@@ -1,0 +1,10 @@
+{
+  "name": "kp-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix kp run dev",
+    "build": "npm --prefix kp run build",
+    "start": "npm --prefix kp run start",
+    "lint": "npm --prefix kp run lint"
+  }
+}

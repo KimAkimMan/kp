@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --blue: #1E4E8C;
+  --navy: #143965;
+  --teal: #148B87;
+  --bg: #F4F7FA;
+  --line: #DCE5ED;
+  --ink: #18304B;
+  --muted: #65778B;
+  --orange: #E78A31;
+  --danger: #BD493B;
+  --green: #258050;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  width: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Badge status */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge.belum {
+  background: #EDF0F3;
+  color: #65727E;
+}
+
+.badge.sedang {
+  background: #E7F0FB;
+  color: #2163AA;
+}
+
+.badge.selesai {
+  background: #E7F6ED;
+  color: #258050;
+}
+
+/* Card highlight bars */
+.card-indicator {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-indicator::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--blue);
+}
+
+.card-indicator.teal::before {
+  background: var(--teal);
+}
+
+.card-indicator.orange::before {
+  background: var(--orange);
+}
+
+.card-indicator.green::before {
+  background: var(--green);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EAF0F4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #BACDD9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8FAEC2;
+}
+
+/* Leaflet container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: inherit;
+}
+
+/* Print view optimization */
+@media print {
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  
+  body, main {
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-area {
+    display: block !important;
+    width: 100% !important;
+  }
+}
