@@ -193,19 +193,23 @@ interface Props {
   programs: Program[];
 }
 
-export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
-  const currentYear = new Date().getFullYear();
-  const availableYears = [currentYear - 1, currentYear, currentYear + 1].filter(
-    (y) => y >= 2024 && y <= 2035
-  );
+const DEFAULT_YEAR = 2026;
+const AVAILABLE_YEARS = [2025, 2026, 2027];
 
+export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
   // Period filter state
   const [periodeType, setPeriodeType] = useState<PeriodeType>("tahunan");
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedTriwulan, setSelectedTriwulan] = useState(
-    Math.ceil((new Date().getMonth() + 1) / 3)
-  );
+  const [selectedYear, setSelectedYear] = useState(DEFAULT_YEAR);
+  const [selectedMonth, setSelectedMonth] = useState(10);
+  const [selectedTriwulan, setSelectedTriwulan] = useState(4);
+
+  // Sync actual client date on mount without failing prerender
+  React.useEffect(() => {
+    const d = new Date();
+    setSelectedYear(d.getFullYear());
+    setSelectedMonth(d.getMonth() + 1);
+    setSelectedTriwulan(Math.ceil((d.getMonth() + 1) / 3));
+  }, []);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const { stats, isProportional } = useMemo(
@@ -327,7 +331,7 @@ export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
           onChange={(e) => setSelectedYear(Number(e.target.value))}
           className="border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#18304B] font-semibold"
         >
-          {availableYears.map((y) => (
+          {AVAILABLE_YEARS.map((y) => (
             <option key={y} value={y}>
               {y}
             </option>

@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Landmark, ArrowRight, ExternalLink } from "lucide-react";
+import { Landmark, ExternalLink } from "lucide-react";
 import { Program } from "../types";
 import {
   calculateSummary,
@@ -10,8 +10,8 @@ import {
   currency,
   quantity,
 } from "../utils/helpers";
-import { SimpleBarChart, SimpleDoughnutChart } from "./Charts";
 import { LeafletMap } from "./LeafletMap";
+import { PimpinanAchievementSection } from "./PimpinanAchievementSection";
 
 interface PublicLandingProps {
   programs: Program[];
@@ -72,16 +72,10 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             Dokumentasi
           </a>
           <a
-            href="#laporan-publik"
-            className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
-          >
-            Laporan
-          </a>
-          <a
             href="#pencapaian"
             className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
           >
-            Pencapaian
+            Pencapaian Program
           </a>
           <a
             href="#lokasi"
@@ -100,25 +94,19 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       </header>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#143965] via-[#1E4E8C] to-[#286BA3] text-white px-[7%] py-16 md:py-24 overflow-hidden">
+      <section className="relative bg-gradient-to-r from-[#143965] via-[#1E4E8C] to-[#286BA3] text-white px-[7%] py-16 md:py-20 overflow-hidden">
         <div className="max-w-3xl">
           <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
-            SISTEM MONITORING DAN PELAPORAN PROGRAM
+            SISTEM INFORMASI MONITORING PERMUKIMAN
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-white mb-4">
             Pembangunan permukiman yang dapat dipantau bersama.
           </h1>
-          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed mb-8 max-w-2xl">
+          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl">
             Pantau kegiatan, target, realisasi, dokumentasi, dan penggunaan
             anggaran pembangunan permukiman Kabupaten Kuningan secara terbuka,
             akuntabel, dan terukur.
           </p>
-          <button
-            onClick={onOpenLogin}
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base bg-white text-[#1E4E8C] hover:bg-[#F0F5FA] transition shadow-lg"
-          >
-            Masuk ke Sistem <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
       </section>
 
@@ -301,120 +289,22 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         </div>
       </section>
 
-      {/* Banner Laporan Publik */}
-      <section id="laporan-publik" className="px-[5%] py-12 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-r from-[#143965] to-[#1E4E8C] text-white rounded-3xl p-8 sm:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-md">
-          <div>
-            <span className="text-xs font-bold tracking-widest text-[#BFE3E1] uppercase">
-              LAPORAN TRANSPARANSI
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold mt-2 mb-2">
-              Laporan Periode 2026
-            </h2>
-            <p className="text-sm sm:text-base text-[#CCE0F2] max-w-xl">
-              Ringkasan pelaksanaan kegiatan, capaian target fisik, realisasi
-              volume, serta transparansi penyerapan anggaran tahun berjalan.
-            </p>
-          </div>
-          <button
-            onClick={onOpenLogin}
-            className="px-6 py-3.5 rounded-xl font-bold text-sm bg-white text-[#1E4E8C] hover:bg-[#F0F5FA] transition shrink-0 shadow"
-          >
-            Masuk untuk Lihat Laporan
-          </button>
-        </div>
-      </section>
-
-      {/* Ringkasan Pencapaian Publik */}
+      {/* Ringkasan Pencapaian Program Publik (Sama dengan Tampilan Pimpinan) */}
       <section id="pencapaian" className="bg-[#F5F8FB] px-[5%] py-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="mb-2">
             <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
-              RINGKASAN PUBLIK
+              TRANSPARANSI KINERJA
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-              Ringkasan Pencapaian Program
+              Pencapaian Program & Capaian Fisik
             </h2>
             <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-              Ringkasan agregat target, realisasi, dan penggunaan anggaran
-              seluruh kegiatan yang dapat diakses oleh publik.
+              Akumulasi capaian target dan realisasi fisik per kategori kegiatan pembangunan infrastruktur permukiman secara transparan.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1: Pencapaian Program */}
-            <article className="bg-white border border-[#E1E9F0] rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-[#143965] mb-1">
-                Keseluruhan Pencapaian Program
-              </h3>
-              <p className="text-xs sm:text-sm text-[#65778B] mb-5">
-                {validVolumeGroups.length > 0
-                  ? `${validVolumeGroups
-                      .map(
-                        (g) =>
-                          `${g.satuan}: ${g.persentase.toLocaleString("id-ID", {
-                            maximumFractionDigits: 1,
-                          })}%`
-                      )
-                      .join(" · ")} · ${programs.length} kegiatan`
-                  : "Belum ada target yang valid"}
-              </p>
-
-              {validVolumeGroups.length > 0 ? (
-                <SimpleBarChart
-                  labels={validVolumeGroups.map((g) => g.satuan)}
-                  datasets={[
-                    {
-                      label: "Target",
-                      data: validVolumeGroups.map((g) => g.target),
-                      backgroundColor: "#1E4E8C",
-                    },
-                    {
-                      label: "Realisasi",
-                      data: validVolumeGroups.map((g) => g.realisasi),
-                      backgroundColor: "#148B87",
-                    },
-                  ]}
-                  formatValue={(v) =>
-                    v.toLocaleString("id-ID", { maximumFractionDigits: 2 })
-                  }
-                  height={240}
-                />
-              ) : (
-                <div className="text-center py-16 text-[#65778B] border border-dashed border-[#C9D8E3] rounded-xl text-sm">
-                  Belum ada data program untuk ditampilkan.
-                </div>
-              )}
-            </article>
-
-            {/* Chart 2: Penggunaan Anggaran */}
-            <article className="bg-white border border-[#E1E9F0] rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-[#143965] mb-1">
-                Keseluruhan Penggunaan Anggaran
-              </h3>
-              <p className="text-xs sm:text-sm text-[#65778B] mb-5">
-                {summary.pagu > 0
-                  ? `${currency(summary.penggunaan)} digunakan (${budgetPercent}%) · Sisa ${currency(
-                      summary.sisaAnggaran
-                    )} dari total ${currency(summary.pagu)}`
-                  : "Belum ada nilai anggaran yang tersedia"}
-              </p>
-
-              {summary.pagu > 0 ? (
-                <SimpleDoughnutChart
-                  labels={["Digunakan", "Sisa Anggaran"]}
-                  data={[summary.penggunaan, summary.sisaAnggaran]}
-                  backgroundColors={["#148B87", "#E78A31"]}
-                  formatValue={(v) => currency(v)}
-                  height={240}
-                />
-              ) : (
-                <div className="text-center py-16 text-[#65778B] border border-dashed border-[#C9D8E3] rounded-xl text-sm">
-                  Belum ada data anggaran untuk ditampilkan.
-                </div>
-              )}
-            </article>
-          </div>
+          <PimpinanAchievementSection programs={programs} />
         </div>
       </section>
 
@@ -460,23 +350,20 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       </section>
 
       {/* Public Footer */}
-      <footer className="bg-[#143965] text-[#D7E7F5] px-[5%] py-10 border-t border-[#1E4E8C]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 text-center sm:text-left">
+      <footer className="bg-[#143965] text-[#D7E7F5] px-[5%] py-8 border-t border-[#1E4E8C]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
           <div>
             <strong className="block text-white font-bold text-base">
               SIMP-KUNINGAN - Sistem Informasi Monitoring Permukiman
             </strong>
             <p className="text-xs sm:text-sm text-[#B8D0E4] mt-1">
               Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten
-              Kuningan © 2026.
+              Kuningan © 2026. Seluruh hak cipta dilindungi undang-undang.
             </p>
           </div>
-          <button
-            onClick={onOpenLogin}
-            className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#148B87] text-white hover:bg-[#10706D] transition shadow"
-          >
-            Login Internal
-          </button>
+          <div className="text-xs text-[#8BAFCF]">
+            Bidang Kawasan Permukiman · Kabupaten Kuningan
+          </div>
         </div>
       </footer>
     </div>
