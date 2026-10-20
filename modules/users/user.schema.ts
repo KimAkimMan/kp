@@ -1,4 +1,6 @@
 import {
+  emailString,
+  passwordString,
   parseJsonObject,
   requiredString,
 } from "@/lib/validation";
@@ -21,9 +23,9 @@ export function parseCreateUserInput(body: unknown): CreateUserInput {
 
   return {
     nama: requiredString(input, "nama"),
-    email: requiredString(input, "email").toLowerCase(),
+    email: emailString(input),
     role: role as CreateUserInput["role"],
-    password: requiredString(input, "password"),
+    password: passwordString(input),
   };
 }
 
@@ -32,7 +34,7 @@ export function parseUpdateUserInput(body: unknown): UpdateUserInput {
   const output: UpdateUserInput = {};
   if (input.nama !== undefined) output.nama = requiredString(input, "nama");
   if (input.email !== undefined) {
-    output.email = requiredString(input, "email").toLowerCase();
+    output.email = emailString(input);
   }
   if (input.role !== undefined) {
     const role = requiredString(input, "role");
@@ -42,7 +44,7 @@ export function parseUpdateUserInput(body: unknown): UpdateUserInput {
     output.role = role as UpdateUserInput["role"];
   }
   if (input.password !== undefined) {
-    output.password = requiredString(input, "password");
+    output.password = passwordString(input);
   }
   if (Object.keys(output).length === 0) {
     throw new ApiError("VALIDATION_ERROR", "Tidak ada data yang diubah.", 400);

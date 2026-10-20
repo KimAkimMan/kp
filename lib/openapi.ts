@@ -116,6 +116,15 @@ export const openapiDocument = {
         required: ["email", "password"],
         properties: { email: { type: "string", format: "email" }, password: { type: "string", minLength: 1 } },
       },
+      AuthResponse: {
+        type: "object",
+        required: ["accessToken", "user", "expiresAt"],
+        properties: {
+          accessToken: { type: "string", description: "JWT access token; juga dikirim sebagai cookie kp_session." },
+          user: { $ref: "#/components/schemas/User" },
+          expiresAt: { type: "string", format: "date-time" },
+        },
+      },
       UserInput: {
         type: "object",
         required: ["nama", "email", "role", "password"],
@@ -125,16 +134,16 @@ export const openapiDocument = {
           role: { type: "string", enum: ["Admin", "Operator", "Pimpinan"] },
           password: { type: "string", minLength: 1 },
         },
-        UserUpdateInput: {
-          type: "object",
-          properties: {
-            nama: { type: "string", minLength: 1 },
-            email: { type: "string", format: "email" },
-            role: { type: "string", enum: ["Admin", "Operator", "Pimpinan"] },
-            password: { type: "string", minLength: 1 },
-          },
-          minProperties: 1,
+      },
+      UserUpdateInput: {
+        type: "object",
+        properties: {
+          nama: { type: "string", minLength: 1 },
+          email: { type: "string", format: "email" },
+          role: { type: "string", enum: ["Admin", "Operator", "Pimpinan"] },
+          password: { type: "string", minLength: 8, maxLength: 255 },
         },
+        minProperties: 1,
       },
       ProgramInput: {
         type: "object",
@@ -150,20 +159,20 @@ export const openapiDocument = {
           target: { type: "number", minimum: 0 },
           pagu: { type: "number", minimum: 0 },
         },
-        ProgramUpdateInput: {
-          type: "object",
-          minProperties: 1,
-          properties: {
-            nama: { type: "string" },
-            kategori: { type: "string" },
-            lokasi: { type: "string" },
-            pj: { type: "string" },
-            periode: { type: "string" },
-            satuan: { type: "string" },
-            target: { type: "number", minimum: 0 },
-            pagu: { type: "number", minimum: 0 },
-            status: { type: "string", enum: ["BELUM_DIKERJAKAN", "SEDANG_DIKERJAKAN", "SELESAI_DIKERJAKAN"] },
-          },
+      },
+      ProgramUpdateInput: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          nama: { type: "string" },
+          kategori: { type: "string" },
+          lokasi: { type: "string" },
+          pj: { type: "string" },
+          periode: { type: "string" },
+          satuan: { type: "string" },
+          target: { type: "number", minimum: 0 },
+          pagu: { type: "number", minimum: 0 },
+          status: { type: "string", enum: ["BELUM_DIKERJAKAN", "SEDANG_DIKERJAKAN", "SELESAI_DIKERJAKAN"] },
         },
       },
       SurveyInput: {
@@ -184,15 +193,15 @@ export const openapiDocument = {
           rekomendasi: { type: "string" },
           status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
         },
-        SurveyUpdateInput: {
-          type: "object",
-          minProperties: 1,
-          properties: {
-            kodeSurvey: { type: "string" },
-            tanggal: { type: "string", format: "date" },
-            surveyor: { type: "string" },
-            status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
-          },
+      },
+      SurveyUpdateInput: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          kodeSurvey: { type: "string" },
+          tanggal: { type: "string", format: "date" },
+          surveyor: { type: "string" },
+          status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
         },
       },
       AdviceInput: {
@@ -242,7 +251,15 @@ export const openapiDocument = {
         tags: ["Auth"],
         summary: "Login",
         requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/LoginInput" } } } },
-        responses: { "200": { description: "Login berhasil" }, "401": { description: "Credential salah", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } },
+        responses: {
+          "200": {
+            description: "Login berhasil",
+            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/AuthResponse" } } } } },
+          },
+          "400": { description: "Payload tidak valid", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Credential salah", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "429": { description: "Terlalu banyak percobaan", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
       },
     },
     "/auth/logout": { post: { tags: ["Auth"], summary: "Logout", security: [{ sessionCookie: [] }], responses: { "200": { description: "Logout berhasil" } } } },

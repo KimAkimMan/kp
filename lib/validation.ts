@@ -28,6 +28,28 @@ export function requiredString(
   return value.trim();
 }
 
+export function emailString(
+  input: Record<string, unknown>,
+  field = "email",
+): string {
+  const value = requiredString(input, field).toLowerCase();
+  if (value.length > 191 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    throw new ApiError("VALIDATION_ERROR", `Field ${field} harus berupa email valid.`, 400);
+  }
+  return value;
+}
+
+export function passwordString(
+  input: Record<string, unknown>,
+  field = "password",
+): string {
+  const value = requiredString(input, field);
+  if (value.length < 8 || value.length > 255) {
+    throw new ApiError("VALIDATION_ERROR", `Field ${field} harus 8 sampai 255 karakter.`, 400);
+  }
+  return value;
+}
+
 export function optionalString(
   input: Record<string, unknown>,
   field: string,

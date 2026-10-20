@@ -1,8 +1,10 @@
 import { ApiError } from "@/lib/http/api-error";
 import { authRepository } from "./auth.repository";
 import {
-  createSessionToken,
+  createAccessToken,
+  createSessionId,
   hashSessionToken,
+  verifyAccessToken,
   verifyPassword,
 } from "./auth.crypto";
 import type { AuthenticatedUser, LoginInput } from "./auth.types";
@@ -21,16 +23,19 @@ export const authService = {
     }
 
     await authRepository.deleteExpiredSessions();
-    const token = createSessionToken();
+    const expiresAt = new Date(Date.now() + SESSION_DURATION_SECONDS * 1000);
+    const sessionId = createSessionId();
+    const accessToken = createAccessToken(user.id, sessionId, expiresAt);
     const session = await authRepository.createUserSession({
+      id: sessionId,
       userId: user.id,
-      tokenHash: hashSessionToken(token),
-      expiresAt: new Date(Date.now() + SESSION_DURATION_SECONDS * 1000),
+      tokenHash: hashSessionToken(accessToken),
+      expiresAt,
     });
 
     return {
-      token,
-      expiresAt: session.expiresAt,
+      accessToken,
+      expiresAt,
       user: session.user,
     };
   },
@@ -39,8 +44,19 @@ export const authService = {
     if (!token) {
       throw new ApiError("UNAUTHENTICATED", "Silakan masuk terlebih dahulu.", 401);
     }
+    let claims;
+    try {
+      claims = verifyAccessToken(token);
+    } catch {
+      throw new ApiError("UNAUTHENTICATED", "Sesi sudah tidak berlaku.", 401);
+    }
     const session = await authRepository.findSession(hashSessionToken(token));
-    if (!session || session.expiresAt <= new Date()) {
+    if (
+      !session ||
+      session.id !== claims.sid ||
+      session.userId !== Number(claims.sub) ||
+      session.expiresAt <= new Date()
+    ) {
       throw new ApiError("UNAUTHENTICATED", "Sesi sudah tidak berlaku.", 401);
     }
     return { ...session.user, sessionId: session.id };

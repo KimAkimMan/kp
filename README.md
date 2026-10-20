@@ -23,7 +23,25 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ## Backend API
 
 The backend uses a modular route-service-repository architecture. Protected
-routes use the `kp_session` HTTP-only cookie created by `POST /api/auth/login`.
+routes use the signed JWT `kp_session` HTTP-only cookie created by
+`POST /api/auth/login`. Login also returns the same JWT as `data.accessToken`
+for API clients that need to store it outside the browser cookie.
+
+Required environment variables:
+
+- `DATABASE_URL`
+- `JWT_SECRET` (minimum 32 characters; use a high-entropy production secret)
+- `APP_ORIGIN` (recommended for CSRF origin validation, for example
+  `https://example.com`)
+
+List endpoints use global pagination:
+
+```text
+?page=1&pageSize=25
+```
+
+The maximum page size is 100. Mutating API requests with an `Origin` header
+must match `APP_ORIGIN`.
 
 Core endpoints:
 

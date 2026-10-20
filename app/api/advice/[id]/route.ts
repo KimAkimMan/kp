@@ -12,8 +12,7 @@ export async function GET(_request: NextRequest, context: Context) {
   return handleRoute(async () => {
     await requireUser();
     const { id } = await context.params;
-    const advice = await adviceService.list();
-    return successResponse(advice.items.find((item) => item.id === id) ?? null);
+    return successResponse(await adviceService.get(id));
   });
 }
 

@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/http/api-error";
 const { state, serviceMethods, programActions, cookieStore } = vi.hoisted(() => ({
   state: {
     auth: "valid" as "none" | "wrong" | "valid",
-    user: { id: 7, nama: "Penguji", email: "uji@example.com", role: "ADMIN" as const },
+    user: { id: 7, nama: "Penguji", email: "uji@example.com", role: "ADMIN" as "ADMIN" | "OPERATOR" | "PIMPINAN" },
   },
   serviceMethods: {
     list: vi.fn(async () => ({ items: [{ id: "1" }], total: 1 })),
@@ -46,9 +46,12 @@ vi.mock("@/modules/auth/auth.context", () => ({
     if (state.auth === "wrong") throw new ApiError("UNAUTHENTICATED", "Sesi sudah tidak berlaku.", 401);
     return state.user;
   }),
-  requireRole: vi.fn(async () => {
+  requireRole: vi.fn(async (...roles: Array<"ADMIN" | "OPERATOR" | "PIMPINAN">) => {
     if (state.auth === "none") throw new ApiError("UNAUTHENTICATED", "Silakan masuk terlebih dahulu.", 401);
     if (state.auth === "wrong") throw new ApiError("UNAUTHENTICATED", "Sesi sudah tidak berlaku.", 401);
+    if (roles.length > 0 && !roles.includes(state.user.role)) {
+      throw new ApiError("FORBIDDEN", "Anda tidak memiliki hak akses.", 403);
+    }
     return state.user;
   }),
 }));
@@ -56,10 +59,14 @@ vi.mock("@/modules/auth/auth.context", () => ({
 vi.mock("@/modules/auth/auth.service", () => ({
   authService: {
     login: vi.fn(async (input: { email: string; password: string }) => {
-      if (input.email !== "uji@example.com" || input.password !== "rahasia") {
+      if (input.email !== "uji@example.com" || input.password !== "rahasia1") {
         throw new ApiError("INVALID_CREDENTIALS", "Email atau kata sandi tidak sesuai.", 401);
       }
-      return { token: "valid-token", expiresAt: new Date("2026-12-31"), user: state.user };
+      return {
+        accessToken: "valid-token",
+        expiresAt: new Date("2026-12-31"),
+        user: state.user,
+      };
     }),
     logout: vi.fn(async () => undefined),
   },
@@ -76,10 +83,15 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     program: {
       findUnique: vi.fn(async () => ({ id: 1, operatorPengelolaId: null })),
+      findFirst: vi.fn(async () => ({ id: 1, operatorPengelolaId: null })),
+      updateMany: vi.fn(async () => ({ count: 1 })),
       update: vi.fn(async () => ({ id: 1 })),
       count: vi.fn(async () => 1),
       groupBy: vi.fn(async () => []),
       aggregate: vi.fn(async () => ({ _sum: {} })),
+    },
+    auditLog: {
+      create: vi.fn(async () => ({ id: "audit-1" })),
     },
   },
 }));
@@ -144,16 +156,18 @@ describe("API route contracts", () => {
     expect(missing.body.error).toMatchObject({ code: "VALIDATION_ERROR" });
 
     const invalid = await json(await loginRoute.POST(request("/api/auth/login", "POST", {
-      email: "uji@example.com", password: "salah",
+      email: "uji@example.com", password: "salah123",
     })));
     expect(invalid.status).toBe(401);
     expect(invalid.body.error).toMatchObject({ code: "INVALID_CREDENTIALS" });
 
     const valid = await json(await loginRoute.POST(request("/api/auth/login", "POST", {
-      email: "uji@example.com", password: "rahasia",
+      email: "uji@example.com", password: "rahasia1",
     })));
     expect(valid.status).toBe(200);
-    expect(valid.body).toHaveProperty("data");
+    expect(valid.body).toMatchObject({
+      data: { accessToken: "valid-token" },
+    });
   });
 
   it("covers auth session endpoints and logout without a credential", async () => {
@@ -213,7 +227,6 @@ describe("API route contracts", () => {
       usersRoute.POST(request("/api/users", "POST", {})),
       programsRoute.POST(request("/api/programs", "POST", {})),
       surveysRoute.POST(request("/api/surveys", "POST", {})),
-      adviceRoute.POST(request("/api/advice", "POST", {})),
       progressRoute.POST(request("/api/programs/1/progress", "POST", {}), context),
       costsRoute.POST(request("/api/programs/1/costs", "POST", {}), context),
       convertRoute.POST(request("/api/surveys/1/convert", "POST", {}), context),
@@ -226,7 +239,7 @@ describe("API route contracts", () => {
 
     const validBodies: Array<[Promise<Response>, number]> = [
       [usersRoute.POST(request("/api/users", "POST", {
-        nama: "Operator Baru", email: "operator@example.com", role: "Operator", password: "rahasia",
+        nama: "Operator Baru", email: "operator@example.com", role: "Operator", password: "rahasia1",
       })), 201],
       [userRoute.PATCH(request("/api/users/1", "PATCH", { nama: "Operator Diperbarui" }), context), 200],
       [programsRoute.POST(request("/api/programs", "POST", {
@@ -254,10 +267,6 @@ describe("API route contracts", () => {
       [convertRoute.POST(request("/api/surveys/1/convert", "POST", {
         kode: "P-002", pj: "Penguji", periode: "2026", satuan: "KM", target: 1, pagu: 1000,
       }), context), 201],
-      [adviceRoute.POST(request("/api/advice", "POST", {
-        idKegiatan: 1, namaKegiatan: "Jalan Desa", identitasPimpinan: "Penguji",
-        pimpinanId: 7, operatorPenerima: "Operator", isi: "Lanjutkan",
-      })), 201],
       [adviceItemRoute.PATCH(request("/api/advice/1", "PATCH", { status: "DIBACA" }), context), 200],
     ];
     for (const [responsePromise, expectedStatus] of validBodies) {
@@ -266,13 +275,25 @@ describe("API route contracts", () => {
       expect(response.body).toHaveProperty("data");
       expect(response.body).not.toHaveProperty("error");
     }
+    state.user.role = "PIMPINAN";
+    const invalidAdvice = await json(await adviceRoute.POST(request("/api/advice", "POST", {})));
+    expect(invalidAdvice.status).toBe(400);
+    expect(invalidAdvice.body.error).toMatchObject({ code: "VALIDATION_ERROR" });
+    state.user.role = "ADMIN";
+    state.user.role = "PIMPINAN";
+    const advice = await json(await adviceRoute.POST(request("/api/advice", "POST", {
+      idKegiatan: 1, namaKegiatan: "Jalan Desa", identitasPimpinan: "Penguji",
+      pimpinanId: 7, operatorPenerima: "Operator", isi: "Lanjutkan",
+    })));
+    expect(advice.status).toBe(201);
+    expect(advice.body).toHaveProperty("data");
+    state.user.role = "ADMIN";
 
     const validReadDeleteHandlers: Array<[Promise<Response>, number]> = [
       [userRoute.GET(request("/api/users/1", "GET"), context), 200],
       [userRoute.DELETE(request("/api/users/1", "DELETE"), context), 200],
       [programRoute.GET(request("/api/programs/1", "GET"), context), 200],
       [programRoute.DELETE(request("/api/programs/1", "DELETE"), context), 200],
-      [claimRoute.POST(request("/api/programs/1/claim", "POST"), context), 200],
       [surveyRoute.GET(request("/api/surveys/1", "GET"), context), 200],
       [surveyRoute.DELETE(request("/api/surveys/1", "DELETE"), context), 200],
       [adviceItemRoute.GET(request("/api/advice/1", "GET"), context), 200],
@@ -283,6 +304,14 @@ describe("API route contracts", () => {
       expect(response.status).toBe(expectedStatus);
       expect(response.body).toHaveProperty("data");
     }
+    state.user.role = "OPERATOR";
+    const claim = await json(await claimRoute.POST(
+      request("/api/programs/1/claim", "POST"),
+      context,
+    ));
+    expect(claim.status).toBe(200);
+    expect(claim.body).toHaveProperty("data");
+    state.user.role = "ADMIN";
 
     for (const handler of [
       () => usersRoute.GET(request("/api/users", "GET")),
@@ -307,5 +336,25 @@ describe("API route contracts", () => {
     expect(docs.status).toBe(200);
     expect(docs.headers.get("content-type")).toContain("text/html");
     expect(await docs.text()).toContain("SwaggerUIBundle");
+  });
+
+  it("enforces role authorization and pagination boundaries", async () => {
+    state.user.role = "OPERATOR";
+    const forbidden = await json(await usersRoute.GET(request("/api/users", "GET")));
+    expect(forbidden.status).toBe(403);
+    expect(forbidden.body.error).toMatchObject({ code: "FORBIDDEN" });
+
+    state.user.role = "ADMIN";
+    const paginated = await json(await programsRoute.GET(
+      request("/api/programs?page=2&pageSize=10", "GET"),
+    ));
+    expect(paginated.status).toBe(200);
+    expect(paginated.body.meta).toMatchObject({ page: 2, pageSize: 10, skip: 10 });
+
+    const invalid = await json(await programsRoute.GET(
+      request("/api/programs?page=0&pageSize=101", "GET"),
+    ));
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.error).toMatchObject({ code: "VALIDATION_ERROR" });
   });
 });

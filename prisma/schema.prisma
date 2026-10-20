@@ -143,12 +143,29 @@ model Program {
   adviceRecords        AdviceRecord[]
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
+  deletedAt            DateTime?
+  deletedById          Int?
 
   @@index([operatorPengelolaId])
   @@index([categoryId])
   @@index([kecamatanId])
   @@index([unitId])
   @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  userId    Int?
+  action    String   @db.VarChar(64)
+  entity    String   @db.VarChar(64)
+  entityId  String   @db.VarChar(191)
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
   @@index([createdAt])
 }
 

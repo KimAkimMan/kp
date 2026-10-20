@@ -7,6 +7,12 @@ export const adviceService = {
     return adviceRepository.findMany(pagination);
   },
 
+  async get(id: string) {
+    const advice = await adviceRepository.findById(id);
+    if (!advice) throw new ApiError("ADVICE_NOT_FOUND", "Arahan tidak ditemukan.", 404);
+    return advice;
+  },
+
   async create(input: {
     idKegiatan: number;
     namaKegiatan: string;
@@ -25,14 +31,12 @@ export const adviceService = {
   },
 
   async updateStatus(id: string, status: string) {
-    const advice = await adviceRepository.findById(id);
-    if (!advice) throw new ApiError("ADVICE_NOT_FOUND", "Arahan tidak ditemukan.", 404);
+    await this.get(id);
     return adviceRepository.update(id, { status });
   },
 
   async remove(id: string) {
-    const advice = await adviceRepository.findById(id);
-    if (!advice) throw new ApiError("ADVICE_NOT_FOUND", "Arahan tidak ditemukan.", 404);
+    await this.get(id);
     return adviceRepository.delete(id);
   },
 };

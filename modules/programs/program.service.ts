@@ -3,6 +3,7 @@ import type { CreateProgramInput } from "./program.types";
 import { ApiError } from "@/lib/http/api-error";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { prisma } from "@/lib/prisma";
 
 export const programService = {
   list(filters: ProgramListFilters = {}) {
@@ -37,8 +38,18 @@ export const programService = {
     return program;
   },
 
-  async remove(id: number) {
+  async remove(id: number, deletedById: number) {
     await this.get(id);
-    return programRepository.delete(id);
+    const result = await programRepository.delete(id, deletedById);
+    await prisma.auditLog.create({
+      data: {
+        userId: deletedById,
+        action: "DELETE",
+        entity: "Program",
+        entityId: String(id),
+        details: { reason: "API admin delete" },
+      },
+    });
+    return result;
   },
 };

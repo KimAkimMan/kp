@@ -19,6 +19,7 @@ export const authRepository = {
   },
 
   createUserSession(input: {
+    id: string;
     userId: number;
     tokenHash: string;
     expiresAt: Date;
@@ -27,6 +28,10 @@ export const authRepository = {
       data: input,
       include: { user: { select: publicUserSelect } },
     });
+  },
+
+  setSessionTokenHash(id: string, tokenHash: string) {
+    return prisma.session.update({ where: { id }, data: { tokenHash } });
   },
 
   findSession(tokenHash: string) {

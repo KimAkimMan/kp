@@ -19,21 +19,21 @@ export const programRepository = {
       };
     const [items, total] = await Promise.all([
       prisma.program.findMany({
-        where,
+        where: { ...where, deletedAt: null },
         include: { operator: true, histories: true, costs: true },
         orderBy: { createdAt: "desc" },
         ...(filters.pagination === undefined
           ? {}
           : { skip: filters.pagination.skip, take: filters.pagination.pageSize }),
       }),
-      prisma.program.count({ where }),
+      prisma.program.count({ where: { ...where, deletedAt: null } }),
     ]);
     return { items, total };
   },
 
   findById(id: number) {
-    return prisma.program.findUnique({
-      where: { id },
+    return prisma.program.findFirst({
+      where: { id, deletedAt: null },
       include: { operator: true, histories: true, costs: true, surveys: true, adviceRecords: true },
     });
   },
@@ -71,7 +71,11 @@ export const programRepository = {
     });
   },
 
-  delete(id: number) {
-    return prisma.program.delete({ where: { id }, select: { id: true } });
+  delete(id: number, deletedById: number) {
+    return prisma.program.update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedById },
+      select: { id: true, deletedAt: true },
+    });
   },
 };
