@@ -39,6 +39,14 @@ Core endpoints:
 Apply database changes with `npx prisma migrate deploy`, followed by
 `npx prisma generate`.
 
+API documentation is available at:
+
+- OpenAPI JSON: `/api/openapi`
+- Swagger UI: `/api/docs`
+
+Run backend unit tests with `npm test` or use `npm run test:watch` during
+development.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
