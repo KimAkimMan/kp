@@ -1,10 +1,37 @@
 {
-  "name": "kp-root",
+  "name": "kp",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm --prefix kp run dev",
-    "build": "npm --prefix kp run build",
-    "start": "npm --prefix kp run start",
-    "lint": "npm --prefix kp run lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.10.1",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "chart.js": "^4.5.1",
+    "dotenv": "^18.0.8",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.58.0",
+    "next": "16.4.2",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "prisma": "^7.10.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
