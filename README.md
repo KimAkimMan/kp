@@ -57,6 +57,16 @@ Core endpoints:
 Apply database changes with `npx prisma migrate deploy`, followed by
 `npx prisma generate`.
 
+For a development database, run the idempotent seed after applying migrations:
+
+```bash
+npm run db:seed
+```
+
+The seed creates `admin@kp.local`, `operator@kp.local`, and
+`pimpinan@kp.local`. All three use the development password
+`Password123!`. Do not use these credentials outside local development.
+
 API documentation is available at:
 
 - OpenAPI JSON: `/api/openapi`
