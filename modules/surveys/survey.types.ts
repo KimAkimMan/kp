@@ -1,0 +1,28 @@
+export type SurveyInput = {
+  id?: string;
+  kodeSurvey: string;
+  tanggal: string;
+  surveyor: string;
+  surveyorId?: number | null;
+  programId?: number | null;
+  namaKegiatan: string;
+  kategori: string;
+  kecamatan: string;
+  desaKelurahan: string;
+  detailLokasi: string;
+  koordinat?: string | null;
+  kondisi: "BAIK" | "RUSAK_RINGAN" | "RUSAK_SEDANG" | "RUSAK_BERAT";
+  panjang?: number | null;
+  lebar?: number | null;
+  luasVolume?: number | null;
+  satuan?: string | null;
+  tipeKonstruksi?: string | null;
+  estimasiBiaya?: number | null;
+  tingkatUrgensi: "RENDAH" | "SEDANG" | "TINGGI_MENDESAK";
+  uraianTemuan: string;
+  rekomendasi: string;
+  kontakPendamping?: string | null;
+  foto?: boolean;
+  fotoUrl?: string | null;
+  status: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+};

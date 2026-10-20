@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/generated/prisma/client";
-import type { CreateUserInput } from "./user.types";
+import type { CreateUserInput, UpdateUserInput } from "./user.types";
 
 const roleMap: Record<CreateUserInput["role"], UserRole> = {
   Admin: UserRole.ADMIN,
@@ -33,7 +33,7 @@ export const userRepository = {
         nama: input.nama,
         email: input.email,
         role: roleMap[input.role],
-        passwordHash: input.passwordHash,
+        passwordHash: input.password,
       },
       select: {
         id: true,
@@ -44,5 +44,43 @@ export const userRepository = {
         updatedAt: true,
       },
     });
+  },
+
+  findById(id: number) {
+    return prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  },
+
+  update(id: number, input: UpdateUserInput) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        ...(input.nama === undefined ? {} : { nama: input.nama }),
+        ...(input.email === undefined ? {} : { email: input.email }),
+        ...(input.role === undefined ? {} : { role: roleMap[input.role] }),
+        ...(input.password === undefined ? {} : { passwordHash: input.password }),
+      },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  },
+
+  delete(id: number) {
+    return prisma.user.delete({ where: { id }, select: { id: true } });
   },
 };

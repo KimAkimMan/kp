@@ -1,21 +1,22 @@
 import { NextRequest } from "next/server";
-import { errorResponse, successResponse } from "@/lib/http/api-response";
+import { successResponse } from "@/lib/http/api-response";
 import { parseCreateUserInput } from "@/modules/users/user.schema";
 import { userService } from "@/modules/users/user.service";
+import { requireRole } from "@/modules/auth/auth.context";
+import { handleRoute } from "@/lib/http/route-handler";
+import { parseRequestBody } from "@/lib/http/request";
 
 export async function GET() {
-  try {
+  return handleRoute(async () => {
+    await requireRole("ADMIN");
     return successResponse(await userService.list());
-  } catch (error) {
-    return errorResponse(error);
-  }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const input = parseCreateUserInput(await request.json());
+  return handleRoute(async () => {
+    await requireRole("ADMIN");
+    const input = parseCreateUserInput(await parseRequestBody(request));
     return successResponse(await userService.create(input), 201);
-  } catch (error) {
-    return errorResponse(error);
-  }
+  });
 }

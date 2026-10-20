@@ -20,6 +20,25 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Backend API
+
+The backend uses a modular route-service-repository architecture. Protected
+routes use the `kp_session` HTTP-only cookie created by `POST /api/auth/login`.
+
+Core endpoints:
+
+- `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- `GET/POST /api/users`, `GET/PATCH/DELETE /api/users/:id`
+- `GET/POST /api/programs`, `GET/PATCH/DELETE /api/programs/:id`
+- `POST /api/programs/:id/claim`, `/progress`, `/costs`, and `/complete`
+- `GET/POST /api/surveys`, `GET/PATCH/DELETE /api/surveys/:id`
+- `POST /api/surveys/:id/verify` and `/convert`
+- `GET/POST /api/advice`, `GET/PATCH/DELETE /api/advice/:id`
+- `GET /api/reports/summary`
+
+Apply database changes with `npx prisma migrate deploy`, followed by
+`npx prisma generate`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

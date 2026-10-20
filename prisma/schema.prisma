@@ -57,6 +57,21 @@ model User {
   enteredCosts     ProgramCost[]    @relation("CostInput")
   receivedAdvice   AdviceRecord[]   @relation("AdviceOperator")
   issuedAdvice     AdviceRecord[]   @relation("AdvicePimpinan")
+  sessions         Session[]
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  tokenHash String   @unique @db.Char(64)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model ProgramCategory {
@@ -133,6 +148,8 @@ model Program {
   @@index([categoryId])
   @@index([kecamatanId])
   @@index([unitId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ProgramHistory {
@@ -209,6 +226,8 @@ model FieldSurvey {
   @@index([surveyorId])
   @@index([programId])
   @@index([kecamatanId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model AdviceRecord {
@@ -231,4 +250,6 @@ model AdviceRecord {
   @@index([idKegiatan])
   @@index([pimpinanId])
   @@index([operatorId])
+  @@index([status])
+  @@index([tanggal])
 }
