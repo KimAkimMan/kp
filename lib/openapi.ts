@@ -20,6 +20,8 @@ export const openapiDocument = {
       StringId: { name: "id", in: "path", required: true, schema: { type: "string", minLength: 1 } },
       Search: { name: "search", in: "query", required: false, schema: { type: "string" } },
       Status: { name: "status", in: "query", required: false, schema: { type: "string" } },
+      Page: { name: "page", in: "query", required: false, schema: { type: "integer", minimum: 1, default: 1 } },
+      PageSize: { name: "pageSize", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 100, default: 25 } },
     },
     securitySchemes: {
       sessionCookie: { type: "apiKey", in: "cookie", name: "kp_session" },
@@ -38,6 +40,17 @@ export const openapiDocument = {
               details: {},
             },
           },
+        },
+      },
+      PaginationMeta: {
+        type: "object",
+        required: ["page", "pageSize", "skip", "total", "totalPages"],
+        properties: {
+          page: { type: "integer", minimum: 1 },
+          pageSize: { type: "integer", minimum: 1, maximum: 100 },
+          skip: { type: "integer", minimum: 0 },
+          total: { type: "integer", minimum: 0 },
+          totalPages: { type: "integer", minimum: 0 },
         },
       },
       User: {
@@ -235,7 +248,7 @@ export const openapiDocument = {
     "/auth/logout": { post: { tags: ["Auth"], summary: "Logout", security: [{ sessionCookie: [] }], responses: { "200": { description: "Logout berhasil" } } } },
     "/auth/me": { get: { tags: ["Auth"], summary: "User aktif", security: [{ sessionCookie: [] }], responses: { "200": { description: "User aktif" } } } },
     "/users": {
-      get: { tags: ["Users"], summary: "Daftar user", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar user" } } },
+      get: { tags: ["Users"], summary: "Daftar user", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar user" } } },
       post: { tags: ["Users"], summary: "Tambah user", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UserInput" } } } }, responses: { "201": { description: "User dibuat" } } },
     },
     "/users/{id}": {
@@ -245,7 +258,7 @@ export const openapiDocument = {
       delete: { tags: ["Users"], security: [{ sessionCookie: [] }], responses: { "200": { description: "User dihapus" } } },
     },
     "/programs": {
-      get: { tags: ["Programs"], summary: "Daftar program", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Search" }, { $ref: "#/components/parameters/Status" }], responses: { "200": { description: "Daftar program" } } },
+      get: { tags: ["Programs"], summary: "Daftar program", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Search" }, { $ref: "#/components/parameters/Status" }, { $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar program" } } },
       post: { tags: ["Programs"], summary: "Tambah program", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProgramInput" } } } }, responses: { "201": { description: "Program dibuat" } } },
     },
     "/programs/{id}": {
@@ -259,7 +272,7 @@ export const openapiDocument = {
     "/programs/{id}/costs": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CostInput" } } } }, responses: { "201": { description: "Biaya dicatat" } } } },
     "/programs/{id}/complete": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Program selesai" } } } },
     "/surveys": {
-      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar survey" } } },
+      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar survey" } } },
       post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/SurveyInput" } } } }, responses: { "201": { description: "Survey dibuat" } } },
     },
     "/surveys/{id}": {
@@ -271,7 +284,7 @@ export const openapiDocument = {
     "/surveys/{id}/verify": { post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Survey diverifikasi" } } } },
     "/surveys/{id}/convert": { post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "201": { description: "Survey menjadi program" } } } },
     "/advice": {
-      get: { tags: ["Advice"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar arahan" } } },
+      get: { tags: ["Advice"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar arahan" } } },
       post: { tags: ["Advice"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AdviceInput" } } } }, responses: { "201": { description: "Arahan dibuat" } } },
     },
     "/advice/{id}": {

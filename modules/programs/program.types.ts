@@ -44,4 +44,8 @@ export type ProgramListFilters = {
   status?: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
   kecamatan?: string;
   search?: string;
+  pagination?: {
+    skip: number;
+    pageSize: number;
+  };
 };

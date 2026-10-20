@@ -1,4 +1,5 @@
 import { ApiError } from "./api-error";
+export { parsePagination } from "@/lib/pagination";
 
 export async function parseRequestBody(request: Request): Promise<unknown> {
   try {
@@ -22,31 +23,6 @@ export function parsePositiveId(value: string, field = "id"): number {
     );
   }
   return parsed;
-}
-
-export function parsePagination(searchParams: URLSearchParams) {
-  const page = Number(searchParams.get("page") ?? 1);
-  const pageSize = Number(searchParams.get("pageSize") ?? 25);
-
-  if (
-    !Number.isSafeInteger(page) ||
-    page < 1 ||
-    !Number.isSafeInteger(pageSize) ||
-    pageSize < 1 ||
-    pageSize > 100
-  ) {
-    throw new ApiError(
-      "VALIDATION_ERROR",
-      "Parameter page harus positif dan pageSize harus antara 1 sampai 100.",
-      400,
-    );
-  }
-
-  return {
-    page,
-    pageSize,
-    skip: (page - 1) * pageSize,
-  };
 }
 
 export function parseOptionalBoolean(

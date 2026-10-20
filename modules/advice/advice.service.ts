@@ -3,8 +3,8 @@ import { ApiError } from "@/lib/http/api-error";
 import { randomUUID } from "node:crypto";
 
 export const adviceService = {
-  list() {
-    return adviceRepository.findMany();
+  list(pagination?: { skip: number; pageSize: number }) {
+    return adviceRepository.findMany(pagination);
   },
 
   async create(input: {

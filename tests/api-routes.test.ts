@@ -8,7 +8,7 @@ const { state, serviceMethods, programActions, cookieStore } = vi.hoisted(() => 
     user: { id: 7, nama: "Penguji", email: "uji@example.com", role: "ADMIN" as const },
   },
   serviceMethods: {
-    list: vi.fn(async () => [{ id: "1" }]),
+    list: vi.fn(async () => ({ items: [{ id: "1" }], total: 1 })),
     get: vi.fn(async () => ({ id: 1 })),
     create: vi.fn(async (input: unknown) => input),
     update: vi.fn(async (_id: unknown, input: unknown) => input),
@@ -171,7 +171,7 @@ describe("API route contracts", () => {
 
   it("covers users, programs, surveys, advice, reports, and every protected action", async () => {
     const protectedHandlers: Array<() => Promise<Response>> = [
-      () => usersRoute.GET(),
+      () => usersRoute.GET(request("/api/users", "GET")),
       () => usersRoute.POST(request("/api/users", "POST", {})),
       () => userRoute.GET(request("/api/users/1", "GET"), context),
       () => userRoute.PATCH(request("/api/users/1", "PATCH", {}), context),
@@ -185,14 +185,14 @@ describe("API route contracts", () => {
       () => progressRoute.POST(request("/api/programs/1/progress", "POST", {}), context),
       () => costsRoute.POST(request("/api/programs/1/costs", "POST", {}), context),
       () => completeRoute.POST(request("/api/programs/1/complete", "POST"), context),
-      () => surveysRoute.GET(),
+      () => surveysRoute.GET(request("/api/surveys", "GET")),
       () => surveysRoute.POST(request("/api/surveys", "POST", {})),
       () => surveyRoute.GET(request("/api/surveys/1", "GET"), context),
       () => surveyRoute.PATCH(request("/api/surveys/1", "PATCH", {}), context),
       () => surveyRoute.DELETE(request("/api/surveys/1", "DELETE"), context),
       () => verifyRoute.POST(request("/api/surveys/1/verify", "POST", {}), context),
       () => convertRoute.POST(request("/api/surveys/1/convert", "POST", {}), context),
-      () => adviceRoute.GET(),
+      () => adviceRoute.GET(request("/api/advice", "GET")),
       () => adviceRoute.POST(request("/api/advice", "POST", {})),
       () => adviceItemRoute.GET(request("/api/advice/1", "GET"), context),
       () => adviceItemRoute.PATCH(request("/api/advice/1", "PATCH", {}), context),
@@ -205,7 +205,7 @@ describe("API route contracts", () => {
     }
 
     state.auth = "valid";
-    const success = await json(await adviceRoute.GET());
+    const success = await json(await adviceRoute.GET(request("/api/advice", "GET")));
     expect(success.status).toBe(200);
     expect(success.body).toHaveProperty("data");
 
@@ -285,10 +285,10 @@ describe("API route contracts", () => {
     }
 
     for (const handler of [
-      () => usersRoute.GET(),
+      () => usersRoute.GET(request("/api/users", "GET")),
       () => programsRoute.GET(request("/api/programs", "GET")),
-      () => surveysRoute.GET(),
-      () => adviceRoute.GET(),
+      () => surveysRoute.GET(request("/api/surveys", "GET")),
+      () => adviceRoute.GET(request("/api/advice", "GET")),
       () => reportRoute.GET(request("/api/reports/summary", "GET")),
     ]) {
       const response = await json(await handler());

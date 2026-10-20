@@ -2,11 +2,18 @@ import { prisma } from "@/lib/prisma";
 import type { SurveyInput } from "./survey.types";
 
 export const surveyRepository = {
-  findMany() {
-    return prisma.fieldSurvey.findMany({
+  async findMany(pagination?: { skip: number; pageSize: number }) {
+    const [items, total] = await Promise.all([
+      prisma.fieldSurvey.findMany({
       include: { program: true, surveyorUser: true },
       orderBy: { createdAt: "desc" },
-    });
+      ...(pagination === undefined
+        ? {}
+        : { skip: pagination.skip, take: pagination.pageSize }),
+      }),
+      prisma.fieldSurvey.count(),
+    ]);
+    return { items, total };
   },
 
   findById(id: string) {

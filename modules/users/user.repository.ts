@@ -9,8 +9,9 @@ const roleMap: Record<CreateUserInput["role"], UserRole> = {
 };
 
 export const userRepository = {
-  findMany() {
-    return prisma.user.findMany({
+  async findMany(pagination?: { skip: number; pageSize: number }) {
+    const [items, total] = await Promise.all([
+      prisma.user.findMany({
       select: {
         id: true,
         nama: true,
@@ -20,7 +21,13 @@ export const userRepository = {
         updatedAt: true,
       },
       orderBy: { createdAt: "desc" },
-    });
+      ...(pagination === undefined
+        ? {}
+        : { skip: pagination.skip, take: pagination.pageSize }),
+      }),
+      prisma.user.count(),
+    ]);
+    return { items, total };
   },
 
   findByEmail(email: string) {

@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { serializePrismaValue } from "@/lib/serializers";
 import { isApiError } from "./api-error";
+import type { PaginationMeta } from "@/lib/pagination";
 
 export function successResponse<T>(data: T, status = 200) {
   return NextResponse.json({ data: serializePrismaValue(data) }, { status });
+}
+
+export function paginatedResponse<T>(
+  data: T[],
+  meta: PaginationMeta,
+  status = 200,
+) {
+  return NextResponse.json(
+    { data: serializePrismaValue(data), meta },
+    { status },
+  );
 }
 
 export function errorResponse(error: unknown) {

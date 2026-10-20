@@ -4,8 +4,8 @@ import { userRepository } from "./user.repository";
 import type { CreateUserInput, UpdateUserInput } from "./user.types";
 
 export const userService = {
-  list() {
-    return userRepository.findMany();
+  list(pagination?: { skip: number; pageSize: number }) {
+    return userRepository.findMany(pagination);
   },
 
   async create(input: CreateUserInput) {

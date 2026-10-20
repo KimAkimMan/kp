@@ -7,6 +7,7 @@ import {
   requiredString,
 } from "@/lib/validation";
 import { parsePositiveId, parsePagination } from "@/lib/http/request";
+import { paginationConfig } from "@/lib/pagination";
 
 describe("shared validation", () => {
   it("accepts and trims required strings", () => {
@@ -35,6 +36,11 @@ describe("shared validation", () => {
     });
     expect(() => parsePositiveId("0")).toThrowError(ApiError);
     expect(() => parsePagination(new URLSearchParams("pageSize=101"))).toThrowError(ApiError);
+    expect(parsePagination(new URLSearchParams())).toEqual({
+      page: paginationConfig.defaultPage,
+      pageSize: paginationConfig.defaultPageSize,
+      skip: 0,
+    });
   });
 
   it("only accepts JSON objects", () => {

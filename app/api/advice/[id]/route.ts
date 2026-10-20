@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest, context: Context) {
     await requireUser();
     const { id } = await context.params;
     const advice = await adviceService.list();
-    return successResponse(advice.find((item) => item.id === id) ?? null);
+    return successResponse(advice.items.find((item) => item.id === id) ?? null);
   });
 }
 

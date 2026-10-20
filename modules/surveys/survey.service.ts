@@ -5,8 +5,8 @@ import type { SurveyInput } from "./survey.types";
 import { prisma } from "@/lib/prisma";
 
 export const surveyService = {
-  list() {
-    return surveyRepository.findMany();
+  list(pagination?: { skip: number; pageSize: number }) {
+    return surveyRepository.findMany(pagination);
   },
 
   async get(id: string) {

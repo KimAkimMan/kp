@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
 
 export const adviceRepository = {
-  findMany() {
-    return prisma.adviceRecord.findMany({
+  async findMany(pagination?: { skip: number; pageSize: number }) {
+    const [items, total] = await Promise.all([
+      prisma.adviceRecord.findMany({
       include: { program: true, pimpinan: true, operator: true },
       orderBy: { createdAt: "desc" },
-    });
+      ...(pagination === undefined
+        ? {}
+        : { skip: pagination.skip, take: pagination.pageSize }),
+      }),
+      prisma.adviceRecord.count(),
+    ]);
+    return { items, total };
   },
 
   findById(id: string) {

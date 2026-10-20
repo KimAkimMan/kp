@@ -1,15 +1,22 @@
 import { NextRequest } from "next/server";
-import { successResponse } from "@/lib/http/api-response";
+import { paginatedResponse, successResponse } from "@/lib/http/api-response";
 import { adviceService } from "@/modules/advice/advice.service";
 import { handleRoute } from "@/lib/http/route-handler";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parseRequestBody } from "@/lib/http/request";
 import { parseCreateAdviceInput } from "@/modules/advice/advice.schema";
+import { parsePagination } from "@/lib/pagination";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   return handleRoute(async () => {
     await requireUser();
-    return successResponse(await adviceService.list());
+    const pagination = parsePagination(request.nextUrl.searchParams);
+    const result = await adviceService.list(pagination);
+    return paginatedResponse(result.items, {
+      ...pagination,
+      total: result.total,
+      totalPages: Math.ceil(result.total / pagination.pageSize),
+    });
   });
 }
 

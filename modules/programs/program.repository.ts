@@ -3,9 +3,8 @@ import type { CreateProgramInput } from "./program.types";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 
 export const programRepository = {
-  findMany(filters: ProgramListFilters = {}) {
-    return prisma.program.findMany({
-      where: {
+  async findMany(filters: ProgramListFilters = {}) {
+    const where = {
         ...(filters.operatorId === undefined ? {} : { operatorPengelolaId: filters.operatorId }),
         ...(filters.status === undefined ? {} : { status: filters.status }),
         ...(filters.kecamatan === undefined ? {} : { kecamatan: filters.kecamatan }),
@@ -17,10 +16,19 @@ export const programRepository = {
             { pj: { contains: filters.search } },
           ],
         }),
-      },
-      include: { operator: true, histories: true, costs: true },
-      orderBy: { createdAt: "desc" },
-    });
+      };
+    const [items, total] = await Promise.all([
+      prisma.program.findMany({
+        where,
+        include: { operator: true, histories: true, costs: true },
+        orderBy: { createdAt: "desc" },
+        ...(filters.pagination === undefined
+          ? {}
+          : { skip: filters.pagination.skip, take: filters.pagination.pageSize }),
+      }),
+      prisma.program.count({ where }),
+    ]);
+    return { items, total };
   },
 
   findById(id: number) {
