@@ -8,10 +8,16 @@ export const quantity = (
   n: number | string | null | undefined,
   unit?: string
 ): string => {
+  let num = Number(n) || 0;
+  const rawUnit = String(unit ?? "").trim().toLowerCase();
+  if ((rawUnit === "km" || rawUnit.includes("kilometer")) && num > 0 && num <= 50) {
+    num = num * 1000;
+  }
   const val = new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 2,
-  }).format(Number(n) || 0);
-  return unit ? `${val} ${unit}` : val;
+  }).format(num);
+  const sym = formatUnitSymbol(unit);
+  return sym ? `${val} ${sym}` : val;
 };
 
 export const remTarget = (p: Program): number => {
@@ -22,14 +28,33 @@ export const remBudget = (p: Program): number => {
   return Math.max(0, (p.pagu ?? 0) - (p.penggunaan ?? 0));
 };
 
-export const normalizeUnitLabel = (unit?: string | null): string => {
-  const raw = String(unit ?? "").trim();
+export const formatUnitSymbol = (unit?: string | null): string => {
+  if (!unit) return "";
+  const raw = String(unit).trim();
   const key = raw.toLowerCase();
-  if (key === "km") return "Kilometer (KM)";
-  if (key === "m" || key === "m'") return "Meter lari (m')";
+  if (
+    key === "km" ||
+    key.includes("kilometer") ||
+    key === "m" ||
+    key === "meter" ||
+    key === "m'" ||
+    key.includes("meter lari")
+  ) {
+    return "m'";
+  }
+  if (key.includes("meter persegi") || key === "m²" || key === "m2") return "m2";
+  if (key.includes("meter kubik") || key === "m³" || key === "m3") return "m3";
   if (key === "unit") return "Unit";
-  if (["m²", "m³", "ha"].includes(raw)) return raw;
-  return raw || "Satuan tidak ditentukan";
+  if (key === "ha" || key.includes("hektar")) return "ha";
+  if (key === "titik") return "Titik";
+  const match = raw.match(/\(([^)]+)\)/);
+  if (match) return match[1];
+  return raw;
+};
+
+export const normalizeUnitLabel = (unit?: string | null): string => {
+  const sym = formatUnitSymbol(unit);
+  return sym || "Satuan tidak ditentukan";
 };
 
 export const calculateSummary = (list: Program[]): ProgramSummary => {

@@ -63,7 +63,62 @@ export default function Home() {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setPrograms(parsed);
+            const migrated = parsed.map((p: Program) => {
+              let kategori = p.kategori;
+              if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
+                kategori = "Konstruksi Lainnya";
+              }
+              const u = String(p.satuan || "").toLowerCase();
+              if (u === "km" || u.includes("kilometer")) {
+                const factor = (p.target || 0) <= 50 ? 1000 : 1;
+                return {
+                  ...p,
+                  kategori,
+                  satuan: "m'",
+                  target: (p.target || 0) * factor,
+                  targetAwal: (p.targetAwal || 0) * factor,
+                  targetVolume: (p.targetVolume || 0) * factor,
+                  realisasi: (p.realisasi || 0) * factor,
+                  realisasiVolume: (p.realisasiVolume || 0) * factor,
+                  histories: Array.isArray(p.histories)
+                    ? p.histories.map((h) => ({
+                        ...h,
+                        satuan: "m'",
+                        nilai: (h.nilai || 0) <= 50 ? (h.nilai || 0) * 1000 : h.nilai,
+                      }))
+                    : [],
+                };
+              }
+              if (u.includes("meter lari") || u === "m'" || u === "m" || u === "meter") {
+                return {
+                  ...p,
+                  kategori,
+                  satuan: "m'",
+                  histories: Array.isArray(p.histories)
+                    ? p.histories.map((h) => ({
+                        ...h,
+                        satuan: "m'",
+                      }))
+                    : [],
+                };
+              }
+              if (u.includes("meter persegi") || u === "m²" || u === "m2") {
+                return {
+                  ...p,
+                  kategori,
+                  satuan: "m2",
+                  histories: Array.isArray(p.histories)
+                    ? p.histories.map((h) => ({
+                        ...h,
+                        satuan: "m2",
+                      }))
+                    : [],
+                };
+              }
+              return { ...p, kategori };
+            });
+            setPrograms(migrated);
+            localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(migrated));
           }
         }
       } catch {
@@ -87,7 +142,15 @@ export default function Home() {
         if (storedSurveys) {
           const parsed = JSON.parse(storedSurveys);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setSurveys(parsed);
+            const migratedSurveys = parsed.map((s: FieldSurvey) => {
+              let kategori = s.kategori;
+              if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
+                kategori = "Konstruksi Lainnya";
+              }
+              return { ...s, kategori };
+            });
+            setSurveys(migratedSurveys);
+            localStorage.setItem(SURVEYS_STORAGE_KEY, JSON.stringify(migratedSurveys));
           }
         }
       } catch {
@@ -326,7 +389,11 @@ export default function Home() {
       nama: customData?.nama || survey.namaKegiatan,
       namaKegiatan:
         customData?.namaKegiatan || customData?.nama || survey.namaKegiatan,
-      kategori: customData?.kategori || survey.kategori || "Jalan Lingkungan",
+      kategori:
+        customData?.kategori ||
+        (survey.kategori === "Air Bersih" || survey.kategori === "Penataan Kawasan"
+          ? "Konstruksi Lainnya"
+          : survey.kategori || "Jalan Lingkungan"),
       pagu:
         customData?.pagu !== undefined
           ? customData.pagu
@@ -350,9 +417,9 @@ export default function Home() {
       satuan:
         customData?.satuan ||
         survey.satuan ||
-        (survey.kategori === "Drainase/TPT"
-          ? "Meter lari (m')"
-          : "Meter persegi (m²)"),
+        (survey.kategori === "Drainase/TPT" || survey.kategori === "Jalan Lingkungan"
+          ? "m'"
+          : "m2"),
       lokasi: fullLokasi,
       kecamatan: customData?.kecamatan || survey.kecamatan,
       desaKelurahan: customData?.desaKelurahan || survey.desaKelurahan,

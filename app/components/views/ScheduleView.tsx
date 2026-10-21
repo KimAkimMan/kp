@@ -18,6 +18,7 @@ import {
   remTarget,
   remBudget,
   operatorAssignment,
+  formatUnitSymbol,
 } from "../../utils/helpers";
 
 interface ScheduleViewProps {
@@ -328,7 +329,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Total Realisasi Kumulatif ({program.satuan})
+                  Total Realisasi Kumulatif ({formatUnitSymbol(program.satuan)})
                 </label>
                 <input
                   type="number"
