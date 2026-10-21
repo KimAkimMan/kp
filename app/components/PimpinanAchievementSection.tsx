@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Download } from "lucide-react";
 import { Program } from "../types";
 import { HorizontalPercentageBarChart, HorizontalBarItem } from "./Charts";
+import { formatUnitSymbol } from "../utils/helpers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,8 @@ function computeStats(
   const groupMap = new Map<string, { target: number; realisasi: number }>();
 
   for (const p of programs) {
-    const key = `${p.kategori}|||${p.satuan}`;
+    const unitSymbol = formatUnitSymbol(p.satuan);
+    const key = `${p.kategori}|||${unitSymbol}`;
     const existing = groupMap.get(key) ?? { target: 0, realisasi: 0 };
 
     const t = isAnnual ? p.target : scaledTarget(p.target, monthsInPeriod);

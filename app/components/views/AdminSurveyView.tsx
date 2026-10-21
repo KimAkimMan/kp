@@ -84,9 +84,9 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     setConvertedTarget(srv.luasVolume || srv.panjang || 1);
     setConvertedSatuan(
       srv.satuan ||
-        (srv.kategori === "Drainase/TPT"
-          ? "Meter lari (m')"
-          : "Meter persegi (m²)")
+        (srv.kategori === "Drainase/TPT" || srv.kategori === "Jalan Lingkungan"
+          ? "m'"
+          : "m2")
     );
     setConvertedKecamatan(srv.kecamatan);
     setConvertedDesa(srv.desaKelurahan);
@@ -528,8 +528,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                     <option value="Jalan Lingkungan">Jalan Lingkungan</option>
                     <option value="Drainase/TPT">Drainase/TPT</option>
                     <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-                    <option value="Air Bersih">Air Bersih</option>
-                    <option value="Penataan Kawasan">Penataan Kawasan</option>
                   </select>
                 </div>
 
@@ -632,11 +630,11 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                         onChange={(e) => setConvertedSatuan(e.target.value)}
                         className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                       >
-                        <option value="Meter persegi (m²)">m²</option>
-                        <option value="Meter lari (m')">m'</option>
-                        <option value="Meter kubik (m³)">m³</option>
+                        <option value="m'">m'</option>
+                        <option value="m2">m2</option>
+                        <option value="m3">m3</option>
                         <option value="Unit">Unit</option>
-                        <option value="Kilometer (KM)">KM</option>
+                        <option value="ha">ha</option>
                       </select>
                     </div>
                   </div>
@@ -1083,8 +1081,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                   <option value="Jalan Lingkungan">Jalan Lingkungan</option>
                   <option value="Drainase/TPT">Drainase/TPT</option>
                   <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-                  <option value="Air Bersih">Air Bersih</option>
-                  <option value="Penataan Kawasan">Penataan Kawasan</option>
                 </select>
               </div>
 
@@ -1187,11 +1183,11 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                       onChange={(e) => setConvertedSatuan(e.target.value)}
                       className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                     >
-                      <option value="Meter persegi (m²)">m²</option>
-                      <option value="Meter lari (m')">m'</option>
-                      <option value="Meter kubik (m³)">m³</option>
+                      <option value="m'">m'</option>
+                      <option value="m2">m2</option>
+                      <option value="m3">m3</option>
                       <option value="Unit">Unit</option>
-                      <option value="Kilometer (KM)">KM</option>
+                      <option value="ha">ha</option>
                     </select>
                   </div>
                 </div>

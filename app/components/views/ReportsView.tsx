@@ -16,6 +16,7 @@ import {
   matchProgram,
   downloadBlob,
   operatorAssignment,
+  formatUnitSymbol,
 } from "../../utils/helpers";
 
 interface ReportsViewProps {
@@ -120,7 +121,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       Math.max(0, p.pagu - p.penggunaan),
       p.target,
       p.realisasi,
-      `"${p.satuan}"`,
+      `"${formatUnitSymbol(p.satuan)}"`,
       `"${p.status}"`,
       `"${p.update}"`,
     ]);

@@ -79,7 +79,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
   const [panjang, setPanjang] = useState<number | "">("");
   const [lebar, setLebar] = useState<number | "">("");
   const [luasVolume, setLuasVolume] = useState<number | "">("");
-  const [satuan, setSatuan] = useState("Meter persegi (m²)");
+  const [satuan, setSatuan] = useState("m2");
   const [estimasiBiaya, setEstimasiBiaya] = useState<number | "">("");
   const [tingkatUrgensi, setTingkatUrgensi] = useState<"Rendah" | "Sedang" | "Tinggi / Mendesak">("Tinggi / Mendesak");
   const [uraianTemuan, setUraianTemuan] = useState("");
@@ -181,7 +181,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     setPanjang("");
     setLebar("");
     setLuasVolume("");
-    setSatuan("Meter persegi (m²)");
+    setSatuan("m2");
     setEstimasiBiaya("");
     setTingkatUrgensi("Tinggi / Mendesak");
     setUraianTemuan("");
@@ -210,7 +210,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     setPanjang(srv.panjang ?? "");
     setLebar(srv.lebar ?? "");
     setLuasVolume(srv.luasVolume ?? "");
-    setSatuan(srv.satuan || "Meter persegi (m²)");
+    setSatuan(srv.satuan || "m2");
     setEstimasiBiaya(srv.estimasiBiaya ?? "");
     setTingkatUrgensi(srv.tingkatUrgensi);
     setUraianTemuan(srv.uraianTemuan);
@@ -723,10 +723,11 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       onChange={(e) => setSatuan(e.target.value)}
                       className="w-40 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                     >
-                      <option value="Meter persegi (m²)">m²</option>
-                      <option value="Meter lari (m')">m' (meter lari)</option>
-                      <option value="Meter kubik (m³)">m³</option>
+                      <option value="m'">m'</option>
+                      <option value="m2">m2</option>
+                      <option value="m3">m3</option>
                       <option value="Unit">Unit</option>
+                      <option value="ha">ha</option>
                       <option value="Titik">Titik</option>
                     </select>
                   </div>

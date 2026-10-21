@@ -12,6 +12,7 @@ import {
   currency,
   quantity,
   remBudget,
+  formatUnitSymbol,
 } from "../../utils/helpers";
 import { SimpleBarChart } from "../Charts";
 
@@ -148,7 +149,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Satuan:</span>
-            <strong className="text-[#143965] ml-1.5">{program.satuan}</strong>
+            <strong className="text-[#143965] ml-1.5">{formatUnitSymbol(program.satuan)}</strong>
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Update Terakhir:</span>
