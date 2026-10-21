@@ -150,4 +150,6 @@ Pagination menggunakan `page` dan `pageSize`, dengan `pageSize` maksimum 100.
 - Instruksi backend: [`backend.md`](./backend.md)
 - Instruksi frontend: [`frontend.md`](./frontend.md)
 - Skill arsitektur: [`../.github/skills/kp-architecture/SKILL.md`](../.github/skills/kp-architecture/SKILL.md)
+- Skill integrasi frontend: [`../.github/skills/kp-frontend-integration/SKILL.md`](../.github/skills/kp-frontend-integration/SKILL.md)
+- Skill testing API: [`../.github/skills/kp-api-testing/SKILL.md`](../.github/skills/kp-api-testing/SKILL.md)
 - Scaffold API client: [`API_CLIENT.md`](./API_CLIENT.md)
