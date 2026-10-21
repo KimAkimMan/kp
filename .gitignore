@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 /generated/prisma
+/kp/.next/
+/kp/node_modules/
+/kp/next-env.d.ts
