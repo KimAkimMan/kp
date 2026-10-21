@@ -321,6 +321,18 @@ export default function Home() {
     setEditingUser(null);
   };
 
+  // Delete User (Admin)
+  const handleDeleteUser = (user: User) => {
+    setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    showToast(`Pengguna ${user.nama} berhasil dihapus.`);
+  };
+
+  // Delete Master Activity (Admin)
+  const handleDeleteActivity = (program: Program) => {
+    saveProgramsState(programs.filter((p) => p.id !== program.id));
+    showToast(`Kegiatan "${program.nama}" berhasil dihapus dari Master Kegiatan.`);
+  };
+
   // Add / Edit Master Activity (Admin)
   const handleSaveActivity = (data: Partial<Program>) => {
     if (editingActivity) {
@@ -743,6 +755,8 @@ export default function Home() {
               onAddAdvice={handleAddAdvice}
               onNavigate={(page) => setCurrentPage(page)}
               onSelectProgram={handleViewProgram}
+              onDeleteProgram={handleDeleteActivity}
+              onDeleteSurvey={handleDeleteSurvey}
               initialAdviceProgramId={targetAdviceProgramId}
               onClearInitialAdviceProgramId={() => setTargetAdviceProgramId(null)}
             />
@@ -751,6 +765,7 @@ export default function Home() {
           {currentUser && currentPage === "users" && currentUser.role === "Admin" && (
             <UsersView
               users={users}
+              currentUser={currentUser}
               onOpenAddUser={() => {
                 setEditingUser(null);
                 setUserModalOpen(true);
@@ -759,6 +774,7 @@ export default function Home() {
                 setEditingUser(u);
                 setUserModalOpen(true);
               }}
+              onDeleteUser={handleDeleteUser}
             />
           )}
 
@@ -776,6 +792,7 @@ export default function Home() {
                   setActivityModalOpen(true);
                 }}
                 onViewProgram={handleViewProgram}
+                onDeleteActivity={handleDeleteActivity}
               />
             )}
 

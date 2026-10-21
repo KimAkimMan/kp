@@ -1,27 +1,39 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserPlus, Search, RotateCcw, Edit2 } from "lucide-react";
+import { UserPlus, Search, RotateCcw, Edit2, Trash2 } from "lucide-react";
 import { User } from "../../types";
 
 interface UsersViewProps {
   users: User[];
+  currentUser: User;
   onOpenAddUser: () => void;
   onOpenEditUser: (user: User) => void;
+  onDeleteUser: (user: User) => void;
 }
 
 export const UsersView: React.FC<UsersViewProps> = ({
   users,
+  currentUser,
   onOpenAddUser,
   onOpenEditUser,
+  onDeleteUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<User | null>(null);
 
   const filteredUsers = users.filter((u) =>
     (u.nama + " " + u.email + " " + u.role)
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteConfirm = () => {
+    if (confirmDeleteUser) {
+      onDeleteUser(confirmDeleteUser);
+      setConfirmDeleteUser(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -96,12 +108,22 @@ export const UsersView: React.FC<UsersViewProps> = ({
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => onOpenEditUser(u)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" /> Ubah
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => onOpenEditUser(u)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" /> Ubah
+                        </button>
+                        {u.id !== currentUser.id && (
+                          <button
+                            onClick={() => setConfirmDeleteUser(u)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FDEEED] text-[#BD493B] hover:bg-[#F8C8C4] transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -116,6 +138,38 @@ export const UsersView: React.FC<UsersViewProps> = ({
           </table>
         </div>
       </section>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border border-[#E1E9F0]">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FDEEED] text-[#BD493B] flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-[#143965]">Hapus Pengguna</h3>
+            </div>
+            <p className="text-sm text-[#65778B] mb-5">
+              Apakah Anda yakin ingin menghapus pengguna{" "}
+              <strong className="text-[#143965]">{confirmDeleteUser.nama}</strong>? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeleteUser(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-[#BD493B] text-white hover:bg-[#9E3B2F] transition"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

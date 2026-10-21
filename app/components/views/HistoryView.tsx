@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
-import { Image as ImageIcon } from "lucide-react";
+import React, { useState } from "react";
+import { Image as ImageIcon, Calendar, Layers } from "lucide-react";
 import { Program, User } from "../../types";
-import { quantity, operatorAssignment } from "../../utils/helpers";
+import { quantity, operatorAssignment, getProgramYear } from "../../utils/helpers";
 
 interface HistoryViewProps {
   currentUser: User;
@@ -18,6 +18,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   selectedProgramId,
   onSelectProgramId,
 }) => {
+  const [yearFilter, setYearFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+
   const accessiblePrograms = programs.filter((p) => {
     const owner = operatorAssignment(p);
     return (
@@ -28,7 +31,23 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     );
   });
 
+  const availableYears = Array.from(
+    new Set(["2026", "2025", "2024", ...accessiblePrograms.map((p) => getProgramYear(p))])
+  ).sort((a, b) => b.localeCompare(a));
+
+  const availableCategories = Array.from(
+    new Set([...accessiblePrograms.map((p) => p.kategori).filter(Boolean)])
+  );
+
+  const filteredPrograms = accessiblePrograms.filter((p) => {
+    if (yearFilter && getProgramYear(p) !== yearFilter) return false;
+    if (categoryFilter && p.kategori !== categoryFilter) return false;
+    return true;
+  });
+
   const program =
+    filteredPrograms.find((p) => p.id === selectedProgramId) ||
+    filteredPrograms[0] ||
     programs.find((p) => p.id === selectedProgramId) ||
     accessiblePrograms[0] ||
     programs[0];
@@ -53,8 +72,81 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
       {/* Panel */}
       <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
+        {/* Sortir Kategori Tahun */}
+        <div className="bg-[#FAFBFD] p-4 rounded-xl border border-[#DFEAF0] mb-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-[#143965] flex items-center gap-1.5 mr-1">
+              <Calendar className="w-4 h-4 text-[#1E4E8C]" /> Kategori Tahun:
+            </span>
+            <button
+              type="button"
+              onClick={() => setYearFilter("")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                !yearFilter
+                  ? "bg-[#1E4E8C] text-white shadow-xs"
+                  : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F0F4F8]"
+              }`}
+            >
+              Semua Tahun ({accessiblePrograms.length})
+            </button>
+            {availableYears.map((yr) => {
+              const count = accessiblePrograms.filter((p) => getProgramYear(p) === yr).length;
+              const isActive = yearFilter === yr;
+              return (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setYearFilter(isActive ? "" : yr)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-[#1E4E8C] text-white shadow-xs"
+                      : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F0F4F8]"
+                  }`}
+                >
+                  <span>Tahun {yr}</span>
+                  <span className="text-[10px] opacity-80">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#F0F4F8]">
+            <span className="text-[11px] font-bold text-[#65778B] flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-[#148B87]" /> Bidang:
+            </span>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !categoryFilter
+                  ? "bg-[#148B87] text-white"
+                  : "bg-white border border-[#CCD9E4] text-[#65778B] hover:bg-[#F6F9FB]"
+              }`}
+            >
+              Semua Bidang
+            </button>
+            {availableCategories.map((c) => {
+              const isActive = categoryFilter === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategoryFilter(isActive ? "" : c)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                    isActive
+                      ? "bg-[#148B87] text-white font-bold"
+                      : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F6F9FB]"
+                  }`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Selector */}
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#EAF0F4]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6 pb-4 border-b border-[#EAF0F4]">
           <label className="text-xs font-bold text-[#35536F] uppercase whitespace-nowrap">
             Pilih Kegiatan:
           </label>
@@ -63,9 +155,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             onChange={(e) => onSelectProgramId(Number(e.target.value))}
             className="w-full sm:w-96 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium text-[#143965]"
           >
-            {accessiblePrograms.map((p) => (
+            {filteredPrograms.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.nama}
+                [TA {getProgramYear(p)}] {p.nama}
               </option>
             ))}
           </select>
@@ -113,7 +205,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               ) : (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-[#65778B]">
-                    Belum ada riwayat realisasi untuk kegiatan ini.
+                    Belum ada catatan riwayat pekerjaan untuk kegiatan ini.
                   </td>
                 </tr>
               )}

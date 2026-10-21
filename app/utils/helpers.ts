@@ -218,3 +218,44 @@ export const downloadBlob = (
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 500);
 };
+
+export const getProgramDesa = (p?: Partial<Program> | null): string => {
+  if (!p) return "—";
+  if (p.desaKelurahan && p.desaKelurahan.trim()) return p.desaKelurahan.trim();
+  if (p.lokasi) {
+    const desaMatch = p.lokasi.match(/(?:Desa|Kelurahan|Kel\.)\s+([^,]+)/i);
+    if (desaMatch) return desaMatch[1].trim();
+  }
+  return "—";
+};
+
+export const getProgramKecamatan = (p?: Partial<Program> | null): string => {
+  if (!p) return "—";
+  if (p.kecamatan && p.kecamatan.trim()) return p.kecamatan.trim();
+  if (p.lokasi) {
+    const kecMatch = p.lokasi.match(/(?:Kecamatan|Kec\.)\s+([^,]+)/i);
+    if (kecMatch) return kecMatch[1].trim();
+  }
+  return "—";
+};
+
+export const getProgramYear = (p?: Partial<Program> | null): string => {
+  if (!p) return "2026";
+  if (p.periode) {
+    const match = p.periode.match(/\b(20\d{2})\b/);
+    if (match) return match[1];
+  }
+  if (p.kode) {
+    const match = p.kode.match(/\b(20\d{2})\b/);
+    if (match) return match[1];
+  }
+  if (p.jadwal) {
+    const match = p.jadwal.match(/\b(20\d{2})\b/);
+    if (match) return match[1];
+  }
+  if (p.tanggalMulai) {
+    const match = p.tanggalMulai.match(/\b(20\d{2})\b/);
+    if (match) return match[1];
+  }
+  return "2026";
+};

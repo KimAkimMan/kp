@@ -1,14 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React from "react";
-import { Landmark, ExternalLink } from "lucide-react";
+import React, { useState } from "react";
+import { Landmark, ExternalLink, Calendar, Layers } from "lucide-react";
 import { Program } from "../types";
 import {
   calculateSummary,
   statusCount,
   currency,
   quantity,
+  getProgramYear,
+  getProgramDesa,
+  getProgramKecamatan,
 } from "../utils/helpers";
 import { LeafletMap } from "./LeafletMap";
 import { PimpinanAchievementSection } from "./PimpinanAchievementSection";
@@ -24,18 +27,26 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   onOpenLogin,
   onSelectProgram,
 }) => {
+  const [landingYearFilter, setLandingYearFilter] = useState("");
+  const [landingCategoryFilter, setLandingCategoryFilter] = useState("");
+
+  const availableYears = Array.from(
+    new Set(["2026", "2025", "2024", ...programs.map((p) => getProgramYear(p))])
+  ).sort((a, b) => b.localeCompare(a));
+
+  const availableCategories = Array.from(
+    new Set([...programs.map((p) => p.kategori).filter(Boolean)])
+  );
+
+  const filteredProjects = programs.filter((p) => {
+    if (landingYearFilter && getProgramYear(p) !== landingYearFilter) return false;
+    if (landingCategoryFilter && p.kategori !== landingCategoryFilter) return false;
+    return true;
+  });
+
   const summary = calculateSummary(programs);
   const activeCount = statusCount(programs, "Sedang Dikerjakan");
   const doneCount = statusCount(programs, "Selesai Dikerjakan");
-  const runningProjects = programs
-    .filter((p) => p.status !== "Selesai Dikerjakan")
-    .slice(0, 3);
-  const validVolumeGroups = summary.volume.filter((g) => g.target > 0);
-
-  const budgetPercent =
-    summary.pagu > 0
-      ? Math.round((summary.penggunaan / summary.pagu) * 100)
-      : 0;
 
   return (
     <div className="w-full min-h-screen bg-[#F5F8FB]">
@@ -140,65 +151,156 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         </div>
       </section>
 
-      {/* Proyek Berjalan */}
+      {/* Proyek Berjalan with Category Sort by Year */}
       <section id="proyek" className="px-[5%] py-16 max-w-7xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
             TRANSPARANSI PELAKSANAAN
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-            Proyek yang Sedang Berjalan
+            Proyek Pembangunan Permukiman
           </h2>
           <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-            Informasi pelaksanaan kegiatan prioritas beserta target dan
-            realisasi di wilayah Kabupaten Kuningan.
+            Pilih kategori tahun untuk menyortir dan melihat kegiatan prioritas yang terdaftar pada tahun anggaran tersebut.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {runningProjects.map((p) => {
-            const badgeClass =
-              p.status === "Belum Dikerjakan"
-                ? "belum"
-                : p.status === "Sedang Dikerjakan"
-                ? "sedang"
-                : "selesai";
+        {/* Sortir Kategori Tahun & Bidang */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E1E9F0] shadow-xs mb-8 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-[#143965] flex items-center gap-1.5 mr-1">
+              <Calendar className="w-4 h-4 text-[#1E4E8C]" /> Sortir Tahun:
+            </span>
+            <button
+              type="button"
+              onClick={() => setLandingYearFilter("")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                !landingYearFilter
+                  ? "bg-[#1E4E8C] text-white shadow-xs"
+                  : "bg-[#F0F4F8] text-[#496178] hover:bg-[#E2EAF2]"
+              }`}
+            >
+              Semua Tahun ({programs.length})
+            </button>
+            {availableYears.map((yr) => {
+              const count = programs.filter((p) => getProgramYear(p) === yr).length;
+              const isActive = landingYearFilter === yr;
+              return (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setLandingYearFilter(isActive ? "" : yr)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-[#1E4E8C] text-white shadow-xs"
+                      : "bg-[#F0F4F8] text-[#496178] hover:bg-[#E2EAF2]"
+                  }`}
+                >
+                  <span>Tahun {yr}</span>
+                  <span className="text-[10px] opacity-80">({count})</span>
+                </button>
+              );
+            })}
+          </div>
 
-            return (
-              <div
-                key={p.id}
-                onClick={() => onSelectProgram(p.id)}
-                className="bg-white border border-[#E1E9F0] rounded-2xl p-5 hover:border-[#A8C9DC] hover:-translate-y-1 transition duration-200 shadow-sm cursor-pointer flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex justify-between items-start gap-2 mb-3">
-                    <span className={`badge ${badgeClass}`}>{p.status}</span>
-                    <span className="text-xs text-[#65778B] font-medium">
-                      {p.kode}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#F0F4F8]">
+            <span className="text-[11px] font-bold text-[#65778B] flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-[#148B87]" /> Kategori Bidang:
+            </span>
+            <button
+              type="button"
+              onClick={() => setLandingCategoryFilter("")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !landingCategoryFilter
+                  ? "bg-[#148B87] text-white"
+                  : "bg-white border border-[#CCD9E4] text-[#65778B] hover:bg-[#F6F9FB]"
+              }`}
+            >
+              Semua Bidang
+            </button>
+            {availableCategories.map((c) => {
+              const isActive = landingCategoryFilter === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setLandingCategoryFilter(isActive ? "" : c)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                    isActive
+                      ? "bg-[#148B87] text-white font-bold"
+                      : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F6F9FB]"
+                  }`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Project Cards Grid */}
+        {filteredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {filteredProjects.map((p) => {
+              const badgeClass =
+                p.status === "Belum Dikerjakan"
+                  ? "belum"
+                  : p.status === "Sedang Dikerjakan"
+                  ? "sedang"
+                  : "selesai";
+
+              const desaDisplay = getProgramDesa(p);
+              const kecamatanDisplay = getProgramKecamatan(p);
+              const yearDisplay = getProgramYear(p);
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => onSelectProgram(p.id)}
+                  className="bg-white border border-[#E1E9F0] rounded-2xl p-5 hover:border-[#A8C9DC] hover:-translate-y-1 transition duration-200 shadow-sm cursor-pointer flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex justify-between items-start gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
+                          TA {yearDisplay}
+                        </span>
+                        <span className={`badge ${badgeClass}`}>{p.status}</span>
+                      </div>
+                      <span className="text-xs text-[#65778B] font-mono">
+                        {p.kode}
+                      </span>
+                    </div>
+                    <span className="inline-block bg-[#EDF5FB] text-[#1E4E8C] px-2 py-0.5 rounded text-[10px] font-semibold mb-2">
+                      {p.kategori}
+                    </span>
+                    <h3 className="text-base font-bold text-[#143965] mb-2 leading-snug">
+                      {p.nama}
+                    </h3>
+                    <p className="text-xs text-[#65778B] mb-3">
+                      <strong className="text-[#143965]">{desaDisplay}</strong>, Kec. {kecamatanDisplay}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-[#F0F4F8] text-xs sm:text-sm">
+                    <span className="text-[#65778B]">
+                      Target:{" "}
+                      <strong className="text-[#143965]">
+                        {quantity(p.target, p.satuan)}
+                      </strong>
+                    </span>
+                    <span className="block text-[#148B87] mt-0.5 font-medium">
+                      Realisasi: {quantity(p.realisasi, p.satuan)}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-[#143965] mb-2 leading-snug">
-                    {p.nama}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#65778B] mb-3">
-                    {p.lokasi}
-                  </p>
                 </div>
-                <div className="pt-3 border-t border-[#F0F4F8] text-xs sm:text-sm">
-                  <span className="text-[#65778B]">
-                    Target:{" "}
-                    <strong className="text-[#143965]">
-                      {quantity(p.target, p.satuan)}
-                    </strong>
-                  </span>
-                  <span className="block text-[#148B87] mt-0.5 font-medium">
-                    Realisasi: {quantity(p.realisasi, p.satuan)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-[#CCD9E4] text-[#65778B] text-sm">
+            Tidak ada proyek yang sesuai dengan kategori tahun yang dipilih.
+          </div>
+        )}
       </section>
 
       {/* Dokumentasi Lapangan */}
@@ -220,8 +322,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
               <img
-                src="https://images.pexels.com/photos/32054406/pexels-photo-32054406.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Pekerja konstruksi marka jalan di desa"
+                src="https://images.pexels.com/photos/8961065/pexels-photo-8961065.jpeg?auto=compress&cs=tinysrgb&w=800"
+                alt="Pekerjaan pengaspalan jalan lingkungan"
                 className="w-full h-44 object-cover"
                 loading="lazy"
               />
@@ -297,14 +399,14 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
               TRANSPARANSI KINERJA
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-              Pencapaian Program & Capaian Fisik
+              Pencapaian Program &amp; Capaian Fisik
             </h2>
             <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
               Akumulasi capaian target dan realisasi fisik per kategori kegiatan pembangunan infrastruktur permukiman secara transparan.
             </p>
           </div>
 
-          <PimpinanAchievementSection programs={programs} />
+          <PimpinanAchievementSection programs={filteredProjects} />
         </div>
       </section>
 
