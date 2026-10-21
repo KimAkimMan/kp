@@ -7,6 +7,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { promisify } from "node:util";
+import { getJwtSecret } from "@/lib/config";
 
 const scrypt = promisify(scryptCallback);
 const KEY_LENGTH = 64;
@@ -57,11 +58,7 @@ function base64Url(value: string | Buffer): string {
 }
 
 function jwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("JWT_SECRET harus diset dan minimal 32 karakter.");
-  }
-  return secret;
+  return getJwtSecret();
 }
 
 export function createAccessToken(

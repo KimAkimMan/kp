@@ -19,16 +19,23 @@ export function paginatedResponse<T>(
   );
 }
 
-export function errorResponse(error: unknown) {
+export function errorResponse(error: unknown, requestId?: string) {
+  const withRequestId = (body: Record<string, unknown>) => ({
+    ...body,
+    error: {
+      ...(body.error as Record<string, unknown>),
+      ...(requestId ? { requestId } : {}),
+    },
+  });
   if (isApiError(error)) {
     return NextResponse.json(
-      {
+      withRequestId({
         error: {
           code: error.code,
           message: error.message,
           ...(error.details === undefined ? {} : { details: error.details }),
         },
-      },
+      }),
       { status: error.status },
     );
   }
@@ -36,13 +43,13 @@ export function errorResponse(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return NextResponse.json(
-        { error: { code: "CONFLICT", message: "Data sudah terdaftar." } },
+        withRequestId({ error: { code: "CONFLICT", message: "Data sudah terdaftar." } }),
         { status: 409 },
       );
     }
     if (error.code === "P2025") {
       return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Data tidak ditemukan." } },
+        withRequestId({ error: { code: "NOT_FOUND", message: "Data tidak ditemukan." } }),
         { status: 404 },
       );
     }
@@ -50,12 +57,12 @@ export function errorResponse(error: unknown) {
 
   console.error("Unhandled API error:", error);
   return NextResponse.json(
-    {
+    withRequestId({
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Terjadi kesalahan pada server.",
       },
-    },
+    }),
     { status: 500 },
   );
 }

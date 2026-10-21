@@ -34,6 +34,12 @@ Required environment variables:
 - `APP_ORIGIN` (recommended for CSRF origin validation, for example
   `https://example.com`)
 
+The readiness endpoint requires all required environment variables and a
+reachable database:
+
+- `GET /api/health` checks that the application is running.
+- `GET /api/ready` checks configuration and database connectivity.
+
 List endpoints use global pagination:
 
 ```text
@@ -53,6 +59,7 @@ Core endpoints:
 - `POST /api/surveys/:id/verify` and `/convert`
 - `GET/POST /api/advice`, `GET/PATCH/DELETE /api/advice/:id`
 - `GET /api/reports/summary`
+- `GET /api/health`, `GET /api/ready`
 
 Apply database changes with `npx prisma migrate deploy`, followed by
 `npx prisma generate`.

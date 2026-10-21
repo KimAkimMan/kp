@@ -16,6 +16,23 @@ Base URL:
 http://localhost:3000/api
 ```
 
+Application health:
+
+```http
+GET http://localhost:3000/api/health
+```
+
+Database/configuration readiness:
+
+```http
+GET http://localhost:3000/api/ready
+```
+
+Kedua endpoint tersebut tidak membutuhkan login. Response sukses `health` berisi
+`status: "ok"`, sedangkan `ready` berisi `status: "ready"` dan
+`database: "up"`. Semua response API menyertakan header `x-request-id`.
+Response error juga menyertakan nilai yang sama pada `error.requestId`.
+
 Untuk request dengan body JSON, gunakan header:
 
 ```http

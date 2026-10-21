@@ -264,6 +264,8 @@ export const openapiDocument = {
     },
     "/auth/logout": { post: { tags: ["Auth"], summary: "Logout", security: [{ sessionCookie: [] }], responses: { "200": { description: "Logout berhasil" } } } },
     "/auth/me": { get: { tags: ["Auth"], summary: "User aktif", security: [{ sessionCookie: [] }], responses: { "200": { description: "User aktif" } } } },
+    "/health": { get: { tags: ["Auth"], summary: "Application health", responses: { "200": { description: "Application is running" } } } },
+    "/ready": { get: { tags: ["Auth"], summary: "Application readiness", responses: { "200": { description: "Configuration and database are ready" }, "503": { description: "Application is not ready" } } } },
     "/users": {
       get: { tags: ["Users"], summary: "Daftar user", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar user" } } },
       post: { tags: ["Users"], summary: "Tambah user", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UserInput" } } } }, responses: { "201": { description: "User dibuat" } } },
