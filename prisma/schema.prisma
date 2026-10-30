@@ -38,26 +38,74 @@ enum UrgencyLevel {
 }
 
 enum SurveyStatus {
-  DRAFT          @map("Draft")
-  SELESAI_SURVEY @map("Selesai Survey")
-  DIVERIFIKASI   @map("Diverifikasi")
+  DRAFT               @map("Draft")
+  SELESAI_SURVEY      @map("Selesai Survey")
+  MENUNGGU_VERIFIKASI @map("Menunggu Verifikasi")
+  PERLU_REVISI        @map("Perlu Revisi")
+  DIVERIFIKASI        @map("Diverifikasi")
+  DIKONVERSI          @map("Dikonversi")
+}
+
+enum ProgramAssignmentStatus {
+  DITUGASKAN @map("Ditugaskan")
+  DITERIMA   @map("Diterima")
+  DITOLAK    @map("Ditolak")
+  DILEPAS    @map("Dilepas")
+}
+
+enum ProgressStatus {
+  DRAFT        @map("Draft")
+  DIAJUKAN     @map("Diajukan")
+  DIVERIFIKASI @map("Diverifikasi")
+  DITOLAK      @map("Ditolak")
+}
+
+enum CostStatus {
+  DRAFT        @map("Draft")
+  DIAJUKAN     @map("Diajukan")
+  DIVERIFIKASI @map("Diverifikasi")
+  DITOLAK      @map("Ditolak")
+}
+
+enum SurveyReviewDecision {
+  DISETUJUI    @map("Disetujui")
+  DITOLAK      @map("Ditolak")
+  PERLU_REVISI @map("Perlu Revisi")
 }
 
 model User {
-  id               Int              @id @default(autoincrement())
-  nama             String           @db.VarChar(191)
-  email            String           @unique @db.VarChar(191)
-  role             UserRole
-  passwordHash     String?          @db.VarChar(255)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  operatedPrograms Program[]        @relation("ProgramOperator")
-  surveys          FieldSurvey[]
-  enteredHistories ProgramHistory[] @relation("HistoryInput")
-  enteredCosts     ProgramCost[]    @relation("CostInput")
-  receivedAdvice   AdviceRecord[]   @relation("AdviceOperator")
-  issuedAdvice     AdviceRecord[]   @relation("AdvicePimpinan")
-  sessions         Session[]
+  id                   Int                   @id @default(autoincrement())
+  nama                 String                @db.VarChar(191)
+  email                String                @unique @db.VarChar(191)
+  role                 UserRole
+  passwordHash         String?               @db.VarChar(255)
+  isActive             Boolean               @default(true)
+  lastLoginAt          DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  operatedPrograms     Program[]             @relation("ProgramOperator")
+  createdPrograms      Program[]             @relation("ProgramCreator")
+  deletedPrograms      Program[]             @relation("ProgramDeleter")
+  programAssignments   ProgramAssignment[]   @relation("ProgramAssignee")
+  assignedPrograms     ProgramAssignment[]   @relation("ProgramAssigner")
+  reportedProgress     ProgramProgress[]     @relation("ProgressReporter")
+  verifiedProgress     ProgramProgress[]     @relation("ProgressVerifier")
+  surveys              FieldSurvey[]
+  verifiedSurveys      FieldSurvey[]         @relation("SurveyVerifier")
+  reviewedSurveys      SurveyReview[]        @relation("SurveyReviewer")
+  surveyStatusChanges  SurveyStatusHistory[] @relation("SurveyStatusChanger")
+  surveyPhotos         SurveyPhoto[]         @relation("SurveyPhotoUploader")
+  enteredHistories     ProgramHistory[]      @relation("HistoryInput")
+  enteredCosts         ProgramCost[]         @relation("CostInput")
+  verifiedCosts        ProgramCost[]         @relation("CostVerifier")
+  costDocuments        ProgramCostDocument[] @relation("CostDocumentUploader")
+  receivedAdvice       AdviceRecord[]        @relation("AdviceOperator")
+  issuedAdvice         AdviceRecord[]        @relation("AdvicePimpinan")
+  adviceReplies        AdviceReply[]
+  linkedSurveyPrograms SurveyProgramLink[]   @relation("SurveyProgramLinker")
+  auditLogs            AuditLog[]
+  sessions             Session[]
 
   @@index([role])
 }
@@ -91,65 +139,107 @@ model Kecamatan {
   nama     String        @unique @db.VarChar(191)
   programs Program[]
   surveys  FieldSurvey[]
+  villages Village[]
+}
+
+model Village {
+  id          Int           @id @default(autoincrement())
+  nama        String        @db.VarChar(191)
+  kecamatanId Int
+  kecamatan   Kecamatan     @relation(fields: [kecamatanId], references: [id], onDelete: Cascade)
+  programs    Program[]
+  surveys     FieldSurvey[]
+
+  @@unique([kecamatanId, nama])
+  @@index([kecamatanId])
+}
+
+model Period {
+  id             Int       @id @default(autoincrement())
+  nama           String    @db.VarChar(191)
+  tahun          Int
+  tanggalMulai   DateTime?
+  tanggalSelesai DateTime?
+  isActive       Boolean   @default(true)
+  programs       Program[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([nama, tahun])
+  @@index([tahun])
+  @@index([isActive])
 }
 
 model Program {
-  id                   Int              @id @default(autoincrement())
-  kode                 String           @unique @db.VarChar(191)
-  nama                 String           @db.VarChar(255)
-  namaKegiatan         String?          @db.VarChar(255)
-  kategori             String           @db.VarChar(191)
+  id                   Int                 @id @default(autoincrement())
+  kode                 String              @unique @db.VarChar(191)
+  nama                 String              @db.VarChar(255)
+  namaKegiatan         String?             @db.VarChar(255)
+  kategori             String              @db.VarChar(191)
   categoryId           Int?
-  category             ProgramCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  lokasi               String           @db.Text
-  kecamatan            String?          @db.VarChar(191)
+  category             ProgramCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  periodId             Int?
+  period               Period?             @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  lokasi               String              @db.Text
+  kecamatan            String?             @db.VarChar(191)
   kecamatanId          Int?
-  kecamatanRef         Kecamatan?       @relation(fields: [kecamatanId], references: [id], onDelete: SetNull)
-  desaKelurahan        String?          @db.VarChar(191)
-  detailLokasi         String?          @db.Text
-  pj                   String           @db.VarChar(191)
-  operatorPengelola    String?          @db.VarChar(191)
+  kecamatanRef         Kecamatan?          @relation(fields: [kecamatanId], references: [id], onDelete: SetNull)
+  desaKelurahan        String?             @db.VarChar(191)
+  detailLokasi         String?             @db.Text
+  pj                   String              @db.VarChar(191)
+  operatorPengelola    String?             @db.VarChar(191)
   operatorPengelolaId  Int?
-  operator             User?            @relation("ProgramOperator", fields: [operatorPengelolaId], references: [id], onDelete: SetNull)
-  penanggungJawabDinas String?          @db.VarChar(191)
-  periode              String           @db.VarChar(191)
-  jadwal               String?          @db.VarChar(191)
-  satuan               String           @db.VarChar(191)
+  operator             User?               @relation("ProgramOperator", fields: [operatorPengelolaId], references: [id], onDelete: SetNull)
+  createdById          Int?
+  createdBy            User?               @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  assignments          ProgramAssignment[]
+  progressEntries      ProgramProgress[]
+  penanggungJawabDinas String?             @db.VarChar(191)
+  periode              String              @db.VarChar(191)
+  jadwal               String?             @db.VarChar(191)
+  satuan               String              @db.VarChar(191)
   unitId               Int?
-  unit                 Unit?            @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  targetAwal           Decimal          @db.Decimal(15, 3)
-  target               Decimal          @db.Decimal(15, 3)
-  targetVolume         Decimal?         @db.Decimal(15, 3)
-  realisasi            Decimal          @db.Decimal(15, 3)
-  realisasiVolume      Decimal?         @db.Decimal(15, 3)
+  unit                 Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  villageId            Int?
+  village              Village?            @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  targetAwal           Decimal             @db.Decimal(15, 3)
+  target               Decimal             @db.Decimal(15, 3)
+  targetVolume         Decimal?            @db.Decimal(15, 3)
+  realisasi            Decimal             @db.Decimal(15, 3)
+  realisasiVolume      Decimal?            @db.Decimal(15, 3)
   status               ProgramStatus
-  update               String           @db.VarChar(191)
-  sumber               String           @db.Text
-  catatan              String           @db.Text
-  pagu                 Decimal          @db.Decimal(18, 2)
-  penggunaan           Decimal          @db.Decimal(18, 2)
-  penggunaanBiaya      Decimal?         @db.Decimal(18, 2)
-  penyedia             String?          @db.VarChar(255)
-  direktur             String?          @db.VarChar(191)
-  nilaiKontrak         Decimal?         @db.Decimal(18, 2)
-  noKontrak            String?          @db.VarChar(191)
-  lebarJalan           Decimal?         @db.Decimal(15, 3)
-  kondisiJalan         String?          @db.VarChar(191)
+  update               String              @db.VarChar(191)
+  sumber               String              @db.Text
+  catatan              String              @db.Text
+  pagu                 Decimal             @db.Decimal(18, 2)
+  penggunaan           Decimal             @db.Decimal(18, 2)
+  penggunaanBiaya      Decimal?            @db.Decimal(18, 2)
+  penyedia             String?             @db.VarChar(255)
+  direktur             String?             @db.VarChar(191)
+  nilaiKontrak         Decimal?            @db.Decimal(18, 2)
+  noKontrak            String?             @db.VarChar(191)
+  lebarJalan           Decimal?            @db.Decimal(15, 3)
+  kondisiJalan         String?             @db.VarChar(191)
   tanggalMulai         DateTime?
   tanggalSelesai       DateTime?
   histories            ProgramHistory[]
   costs                ProgramCost[]
   surveys              FieldSurvey[]
   adviceRecords        AdviceRecord[]
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
+  surveyLinks          SurveyProgramLink[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   deletedAt            DateTime?
   deletedById          Int?
+  deletedBy            User?               @relation("ProgramDeleter", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@index([operatorPengelolaId])
   @@index([categoryId])
+  @@index([periodId])
   @@index([kecamatanId])
+  @@index([villageId])
   @@index([unitId])
+  @@index([createdById])
   @@index([status])
   @@index([createdAt])
   @@index([deletedAt])
@@ -158,15 +248,38 @@ model Program {
 model AuditLog {
   id        String   @id @default(cuid()) @db.VarChar(191)
   userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action    String   @db.VarChar(64)
   entity    String   @db.VarChar(64)
   entityId  String   @db.VarChar(191)
   details   Json?
+  requestId String?  @db.VarChar(191)
+  ipAddress String?  @db.VarChar(64)
+  userAgent String?  @db.Text
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+model ProgramAssignment {
+  id           Int                     @id @default(autoincrement())
+  programId    Int
+  program      Program                 @relation(fields: [programId], references: [id], onDelete: Cascade)
+  operatorId   Int
+  operator     User                    @relation("ProgramAssignee", fields: [operatorId], references: [id], onDelete: Restrict)
+  assignedById Int?
+  assignedBy   User?                   @relation("ProgramAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  status       ProgramAssignmentStatus @default(DITUGASKAN)
+  assignedAt   DateTime                @default(now())
+  acceptedAt   DateTime?
+  releasedAt   DateTime?
+  notes        String?                 @db.Text
+
+  @@index([programId, status])
+  @@index([operatorId, status])
+  @@index([assignedById])
 }
 
 model ProgramHistory {
@@ -190,83 +303,227 @@ model ProgramHistory {
 }
 
 model ProgramCost {
-  id        Int      @id @default(autoincrement())
-  programId Int
-  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  tanggal   DateTime
-  uraian    String   @db.Text
-  nominal   Decimal  @db.Decimal(18, 2)
-  input     String   @db.VarChar(191)
-  inputById Int?
-  inputBy   User?    @relation("CostInput", fields: [inputById], references: [id], onDelete: SetNull)
-  bukti     Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id              Int                   @id @default(autoincrement())
+  programId       Int
+  program         Program               @relation(fields: [programId], references: [id], onDelete: Cascade)
+  tanggal         DateTime
+  uraian          String                @db.Text
+  nominal         Decimal               @db.Decimal(18, 2)
+  input           String                @db.VarChar(191)
+  inputById       Int?
+  inputBy         User?                 @relation("CostInput", fields: [inputById], references: [id], onDelete: SetNull)
+  bukti           Boolean               @default(false)
+  kategori        String?               @db.VarChar(191)
+  status          CostStatus            @default(DIAJUKAN)
+  verifiedById    Int?
+  verifiedBy      User?                 @relation("CostVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt      DateTime?
+  rejectionReason String?               @db.Text
+  documents       ProgramCostDocument[]
+  createdAt       DateTime              @default(now())
 
   @@index([programId])
   @@index([inputById])
+  @@index([status])
+  @@index([verifiedById])
+}
+
+model ProgramCostDocument {
+  id           String      @id @default(cuid()) @db.VarChar(191)
+  costId       Int
+  cost         ProgramCost @relation(fields: [costId], references: [id], onDelete: Cascade)
+  storageKey   String      @db.VarChar(512)
+  originalName String      @db.VarChar(255)
+  mimeType     String      @db.VarChar(127)
+  fileSize     Int
+  uploadedById Int?
+  uploadedBy   User?       @relation("CostDocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+
+  @@index([costId])
+  @@index([uploadedById])
+}
+
+model ProgramProgress {
+  id              Int            @id @default(autoincrement())
+  programId       Int
+  program         Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  reportedById    Int?
+  reportedBy      User?          @relation("ProgressReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  verifiedById    Int?
+  verifiedBy      User?          @relation("ProgressVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  tanggal         DateTime
+  tahap           String         @db.VarChar(255)
+  volume          Decimal        @db.Decimal(15, 3)
+  satuan          String         @db.VarChar(191)
+  persentase      Decimal?       @db.Decimal(5, 2)
+  keterangan      String         @db.Text
+  status          ProgressStatus @default(DIAJUKAN)
+  verifiedAt      DateTime?
+  rejectionReason String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([programId, tanggal])
+  @@index([reportedById])
+  @@index([verifiedById])
+  @@index([status])
 }
 
 model FieldSurvey {
-  id               String          @id @db.VarChar(191)
-  kodeSurvey       String          @unique @db.VarChar(191)
+  id               String                @id @db.VarChar(191)
+  kodeSurvey       String                @unique @db.VarChar(191)
   tanggal          DateTime
-  surveyor         String          @db.VarChar(191)
+  surveyor         String                @db.VarChar(191)
   surveyorId       Int?
-  surveyorUser     User?           @relation(fields: [surveyorId], references: [id], onDelete: SetNull)
+  surveyorUser     User?                 @relation(fields: [surveyorId], references: [id], onDelete: SetNull)
   programId        Int?
-  program          Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
-  namaKegiatan     String          @db.VarChar(255)
-  kategori         String          @db.VarChar(191)
-  kecamatan        String          @db.VarChar(191)
+  program          Program?              @relation(fields: [programId], references: [id], onDelete: SetNull)
+  namaKegiatan     String                @db.VarChar(255)
+  kategori         String                @db.VarChar(191)
+  kecamatan        String                @db.VarChar(191)
   kecamatanId      Int?
-  kecamatanRef     Kecamatan?      @relation(fields: [kecamatanId], references: [id], onDelete: SetNull)
-  desaKelurahan    String          @db.VarChar(191)
-  detailLokasi     String          @db.Text
-  koordinat        String?         @db.VarChar(100)
+  kecamatanRef     Kecamatan?            @relation(fields: [kecamatanId], references: [id], onDelete: SetNull)
+  villageId        Int?
+  village          Village?              @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  desaKelurahan    String                @db.VarChar(191)
+  detailLokasi     String                @db.Text
+  koordinat        String?               @db.VarChar(100)
   kondisi          SurveyCondition
-  panjang          Decimal?        @db.Decimal(15, 3)
-  lebar            Decimal?        @db.Decimal(15, 3)
-  luasVolume       Decimal?        @db.Decimal(15, 3)
-  satuan           String?         @db.VarChar(191)
-  tipeKonstruksi   String?         @db.VarChar(255)
-  estimasiBiaya    Decimal?        @db.Decimal(18, 2)
+  panjang          Decimal?              @db.Decimal(15, 3)
+  lebar            Decimal?              @db.Decimal(15, 3)
+  luasVolume       Decimal?              @db.Decimal(15, 3)
+  satuan           String?               @db.VarChar(191)
+  tipeKonstruksi   String?               @db.VarChar(255)
+  estimasiBiaya    Decimal?              @db.Decimal(18, 2)
   tingkatUrgensi   UrgencyLevel
-  uraianTemuan     String          @db.Text
-  rekomendasi      String          @db.Text
-  kontakPendamping String?         @db.VarChar(255)
-  foto             Boolean         @default(false)
-  fotoUrl          String?         @db.Text
+  uraianTemuan     String                @db.Text
+  rekomendasi      String                @db.Text
+  kontakPendamping String?               @db.VarChar(255)
+  foto             Boolean               @default(false)
+  fotoUrl          String?               @db.Text
   status           SurveyStatus
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  submittedAt      DateTime?
+  verifiedAt       DateTime?
+  verifiedById     Int?
+  verifiedBy       User?                 @relation("SurveyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  rejectionReason  String?               @db.Text
+  photos           SurveyPhoto[]
+  reviews          SurveyReview[]
+  statusHistory    SurveyStatusHistory[]
+  programLinks     SurveyProgramLink[]
+  deletedAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   @@index([surveyorId])
   @@index([programId])
   @@index([kecamatanId])
+  @@index([villageId])
   @@index([status])
+  @@index([verifiedById])
+  @@index([deletedAt])
   @@index([createdAt])
 }
 
+model SurveyPhoto {
+  id           String      @id @default(cuid()) @db.VarChar(191)
+  surveyId     String
+  survey       FieldSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  storageKey   String      @db.VarChar(512)
+  originalName String      @db.VarChar(255)
+  mimeType     String      @db.VarChar(127)
+  fileSize     Int
+  caption      String?     @db.VarChar(255)
+  latitude     Decimal?    @db.Decimal(10, 7)
+  longitude    Decimal?    @db.Decimal(10, 7)
+  uploadedById Int?
+  uploadedBy   User?       @relation("SurveyPhotoUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+
+  @@index([surveyId])
+  @@index([uploadedById])
+}
+
+model SurveyReview {
+  id         String               @id @default(cuid()) @db.VarChar(191)
+  surveyId   String
+  survey     FieldSurvey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  reviewerId Int
+  reviewer   User                 @relation("SurveyReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  decision   SurveyReviewDecision
+  notes      String?              @db.Text
+  reviewedAt DateTime             @default(now())
+
+  @@index([surveyId, reviewedAt])
+  @@index([reviewerId])
+}
+
+model SurveyStatusHistory {
+  id          Int           @id @default(autoincrement())
+  surveyId    String
+  survey      FieldSurvey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  fromStatus  SurveyStatus?
+  toStatus    SurveyStatus
+  changedById Int?
+  changedBy   User?         @relation("SurveyStatusChanger", fields: [changedById], references: [id], onDelete: SetNull)
+  reason      String?       @db.Text
+  createdAt   DateTime      @default(now())
+
+  @@index([surveyId, createdAt])
+  @@index([changedById])
+}
+
+model SurveyProgramLink {
+  id           String      @id @default(cuid()) @db.VarChar(191)
+  surveyId     String
+  survey       FieldSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  programId    Int
+  program      Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  linkedById   Int?
+  linkedBy     User?       @relation("SurveyProgramLinker", fields: [linkedById], references: [id], onDelete: SetNull)
+  relationType String      @db.VarChar(32)
+  linkedAt     DateTime    @default(now())
+
+  @@unique([surveyId, programId])
+  @@index([programId])
+  @@index([linkedById])
+}
+
 model AdviceRecord {
-  id                String   @id @db.VarChar(191)
+  id                String        @id @db.VarChar(191)
   idKegiatan        Int
-  program           Program  @relation(fields: [idKegiatan], references: [id], onDelete: Cascade)
-  namaKegiatan      String   @db.VarChar(255)
-  identitasPimpinan String   @db.VarChar(191)
+  program           Program       @relation(fields: [idKegiatan], references: [id], onDelete: Cascade)
+  namaKegiatan      String        @db.VarChar(255)
+  identitasPimpinan String        @db.VarChar(191)
   pimpinanId        Int?
-  pimpinan          User?    @relation("AdvicePimpinan", fields: [pimpinanId], references: [id], onDelete: SetNull)
-  operatorPenerima  String   @db.VarChar(191)
+  pimpinan          User?         @relation("AdvicePimpinan", fields: [pimpinanId], references: [id], onDelete: SetNull)
+  operatorPenerima  String        @db.VarChar(191)
   operatorId        Int?
-  operator          User?    @relation("AdviceOperator", fields: [operatorId], references: [id], onDelete: SetNull)
-  isi               String   @db.Text
+  operator          User?         @relation("AdviceOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  isi               String        @db.Text
   tanggal           DateTime
-  status            String   @db.VarChar(191)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String        @db.VarChar(191)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  replies           AdviceReply[]
 
   @@index([idKegiatan])
   @@index([pimpinanId])
   @@index([operatorId])
   @@index([status])
   @@index([tanggal])
+}
+
+model AdviceReply {
+  id        String       @id @default(cuid()) @db.VarChar(191)
+  adviceId  String
+  advice    AdviceRecord @relation(fields: [adviceId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  isi       String       @db.Text
+  createdAt DateTime     @default(now())
+
+  @@index([adviceId, createdAt])
+  @@index([authorId])
 }
