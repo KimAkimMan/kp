@@ -119,6 +119,24 @@ Setiap endpoint baru wajib:
 - mendokumentasikan role yang dibutuhkan;
 - memiliki client counterpart bila akan dipakai frontend.
 
+## 9. Invariant workflow domain
+
+- Program hanya dapat di-claim oleh `OPERATOR`; claim atomik mengisi
+  `Program.operatorPengelolaId` dan membuat `ProgramAssignment`.
+- Operator hanya dapat mengubah program yang sudah di-claim olehnya.
+  Penyelesaian program harus melalui action `complete` dan realisasi tidak
+  boleh melampaui target.
+- Progress disimpan sebagai `ProgramProgress` dan snapshot kompatibilitas
+  `ProgramHistory`; biaya tidak boleh melampaui `pagu`.
+- Survey operator hanya dapat dibuat dan diubah oleh surveyor pemiliknya.
+  Survey harus berada pada status siap review sebelum diverifikasi, dan hanya
+  survey `DIVERIFIKASI` yang dapat dikonversi menjadi program. Konversi
+  menghasilkan status `DIKONVERSI` dan `SurveyProgramLink`.
+- User dan survey yang dihapus menggunakan soft delete serta tidak boleh
+  digunakan untuk login atau query normal.
+- Status advice harus memakai enum API
+  `BELUM_DITINDAKLANJUTI` atau `SUDAH_DITINDAKLANJUTI`.
+
 Perintah validasi:
 
 ```bash

@@ -16,6 +16,7 @@ const { state, serviceMethods, programActions, cookieStore } = vi.hoisted(() => 
     verify: vi.fn(async () => ({ verified: true })),
     convertToProgram: vi.fn(async () => ({ id: 1 })),
     updateStatus: vi.fn(async () => ({ status: "SELESAI" })),
+    claim: vi.fn(async () => ({ id: 1 })),
     assertCanEdit: vi.fn(async () => undefined),
   },
   programActions: {
@@ -267,7 +268,9 @@ describe("API route contracts", () => {
       [convertRoute.POST(request("/api/surveys/1/convert", "POST", {
         kode: "P-002", pj: "Penguji", periode: "2026", satuan: "KM", target: 1, pagu: 1000,
       }), context), 201],
-      [adviceItemRoute.PATCH(request("/api/advice/1", "PATCH", { status: "DIBACA" }), context), 200],
+      [adviceItemRoute.PATCH(request("/api/advice/1", "PATCH", {
+        status: "SUDAH_DITINDAKLANJUTI",
+      }), context), 200],
     ];
     for (const [responsePromise, expectedStatus] of validBodies) {
       const response = await json(await responsePromise);

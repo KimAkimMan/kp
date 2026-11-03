@@ -10,11 +10,11 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireRole("ADMIN");
+    const user = await requireRole("ADMIN");
     const body = parseJsonObject(await parseRequestBody(request));
     const programId = body.programId === undefined || body.programId === null
       ? null
       : parsePositiveId(String(body.programId), "programId");
-    return successResponse(await surveyService.verify((await context.params).id, programId));
+    return successResponse(await surveyService.verify((await context.params).id, programId, user.id));
   });
 }

@@ -1,5 +1,11 @@
 import { parseJsonObject, requiredString } from "@/lib/validation";
 import { ApiError } from "@/lib/http/api-error";
+import type { AdviceStatus } from "@/generated/prisma/client";
+
+const adviceStatuses = [
+  "BELUM_DITINDAKLANJUTI",
+  "SUDAH_DITINDAKLANJUTI",
+] as const;
 
 export function parseCreateAdviceInput(body: unknown) {
   const input = parseJsonObject(body);
@@ -25,5 +31,9 @@ export function parseCreateAdviceInput(body: unknown) {
 
 export function parseAdviceStatusInput(body: unknown) {
   const input = parseJsonObject(body);
-  return { status: requiredString(input, "status") };
+  const status = requiredString(input, "status");
+  if (!adviceStatuses.includes(status as (typeof adviceStatuses)[number])) {
+    throw new ApiError("VALIDATION_ERROR", "Status arahan tidak valid.", 400);
+  }
+  return { status: status as AdviceStatus };
 }

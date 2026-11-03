@@ -1,26 +1,46 @@
 import { prisma } from "@/lib/prisma";
+import { ProgramAssignmentStatus } from "@/generated/prisma/client";
 import type { CreateProgramInput } from "./program.types";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 
 export const programRepository = {
   async findMany(filters: ProgramListFilters = {}) {
     const where = {
-        ...(filters.operatorId === undefined ? {} : { operatorPengelolaId: filters.operatorId }),
-        ...(filters.status === undefined ? {} : { status: filters.status }),
-        ...(filters.kecamatan === undefined ? {} : { kecamatan: filters.kecamatan }),
-        ...(filters.search === undefined ? {} : {
-          OR: [
-            { kode: { contains: filters.search } },
-            { nama: { contains: filters.search } },
-            { lokasi: { contains: filters.search } },
-            { pj: { contains: filters.search } },
-          ],
-        }),
-      };
+      ...(filters.operatorId === undefined
+        ? {}
+        : {
+            OR: [
+              { operatorPengelolaId: filters.operatorId },
+              { operatorPengelolaId: null },
+            ],
+          }),
+      ...(filters.status === undefined ? {} : { status: filters.status }),
+      ...(filters.kecamatan === undefined ? {} : { kecamatan: filters.kecamatan }),
+      ...(filters.search === undefined
+        ? {}
+        : {
+            AND: [
+              {
+                OR: [
+                  { kode: { contains: filters.search } },
+                  { nama: { contains: filters.search } },
+                  { lokasi: { contains: filters.search } },
+                  { pj: { contains: filters.search } },
+                ],
+              },
+            ],
+          }),
+    };
     const [items, total] = await Promise.all([
       prisma.program.findMany({
         where: { ...where, deletedAt: null },
-        include: { operator: true, histories: true, costs: true },
+        include: {
+          operator: true,
+          histories: true,
+          progressEntries: true,
+          costs: true,
+          assignments: { orderBy: { assignedAt: "desc" } },
+        },
         orderBy: { createdAt: "desc" },
         ...(filters.pagination === undefined
           ? {}
@@ -34,7 +54,15 @@ export const programRepository = {
   findById(id: number) {
     return prisma.program.findFirst({
       where: { id, deletedAt: null },
-      include: { operator: true, histories: true, costs: true, surveys: true, adviceRecords: true },
+      include: {
+        operator: true,
+        histories: true,
+        progressEntries: true,
+        costs: true,
+        assignments: { orderBy: { assignedAt: "desc" } },
+        surveys: true,
+        adviceRecords: true,
+      },
     });
   },
 
@@ -42,6 +70,7 @@ export const programRepository = {
     return prisma.program.create({
       data: {
         ...input,
+        createdById: input.createdById,
         namaKegiatan: input.nama,
         targetAwal: input.target,
         targetVolume: input.target,
@@ -53,9 +82,65 @@ export const programRepository = {
         catatan: "",
         penggunaan: 0,
         penggunaanBiaya: 0,
-        histories: undefined,
-        costs: undefined,
       },
+    });
+  },
+
+  async claim(id: number, operatorId: number, operatorName: string, assignedById: number) {
+    return prisma.$transaction(async (tx) => {
+      const program = await tx.program.findFirst({
+        where: { id, deletedAt: null },
+      });
+      if (!program) return null;
+      if (program.operatorPengelolaId === operatorId) {
+        const existingAssignment = await tx.programAssignment.findFirst({
+          where: {
+            programId: id,
+            operatorId,
+            status: { in: ["DITUGASKAN", "DITERIMA"] },
+          },
+        });
+        if (!existingAssignment) {
+          await tx.programAssignment.create({
+            data: {
+              programId: id,
+              operatorId,
+              assignedById,
+              status: ProgramAssignmentStatus.DITERIMA,
+              acceptedAt: new Date(),
+            },
+          });
+        }
+        return tx.program.findUnique({
+          where: { id },
+          include: { operator: true, histories: true, progressEntries: true, costs: true, assignments: true },
+        });
+      }
+      if (program.operatorPengelolaId !== null) return false;
+
+      const claimed = await tx.program.updateMany({
+        where: { id, deletedAt: null, operatorPengelolaId: null },
+        data: {
+          operatorPengelolaId: operatorId,
+          operatorPengelola: operatorName,
+          pj: operatorName,
+        },
+      });
+      if (claimed.count !== 1) return false;
+
+      await tx.programAssignment.create({
+        data: {
+          programId: id,
+          operatorId,
+          assignedById,
+          status: ProgramAssignmentStatus.DITERIMA,
+          acceptedAt: new Date(),
+        },
+      });
+      return tx.program.findUnique({
+        where: { id },
+        include: { operator: true, histories: true, progressEntries: true, costs: true, assignments: true },
+      });
     });
   },
 

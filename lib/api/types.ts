@@ -27,7 +27,7 @@ export type Advice = {
   operatorId?: number | null;
   isi: string;
   tanggal: string;
-  status: string;
+  status: "BELUM_DITINDAKLANJUTI" | "SUDAH_DITINDAKLANJUTI";
 };
 
 export type ApiProgram = Record<string, unknown> & {
@@ -40,7 +40,13 @@ export type ApiProgram = Record<string, unknown> & {
 export type ApiSurvey = Record<string, unknown> & {
   id: string;
   kodeSurvey: string;
-  status: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+  status:
+    | "DRAFT"
+    | "SELESAI_SURVEY"
+    | "MENUNGGU_VERIFIKASI"
+    | "PERLU_REVISI"
+    | "DIVERIFIKASI"
+    | "DIKONVERSI";
 };
 
 export type CreateAdviceInput = {

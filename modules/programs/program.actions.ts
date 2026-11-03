@@ -31,8 +31,22 @@ export const programActions = {
   async addProgress(programId: number, input: CreateProgressInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
     return prisma.$transaction(async (tx) => {
-      const program = await tx.program.findUnique({ where: { id: programId } });
+      const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+        throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
+      }
+      if (input.nilai > Number(program.target)) {
+        throw new ApiError("PROGRESS_EXCEEDS_TARGET", "Realisasi tidak boleh melebihi target.", 400);
+      }
+      const progressStatus = input.status as ProgramStatus;
+      if (
+        progressStatus === ProgramStatus.SELESAI_DIKERJAKAN &&
+        Number(program.target) > 0 &&
+        input.nilai < Number(program.target)
+      ) {
+        throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
+      }
       const history = await tx.programHistory.create({
         data: {
           programId,
@@ -44,7 +58,22 @@ export const programActions = {
           foto: input.foto ?? false,
           penginput: userName,
           inputById: userId,
-          status: input.status as ProgramStatus,
+          status: progressStatus,
+        },
+      });
+      const progress = await tx.programProgress.create({
+        data: {
+          programId,
+          tanggal: date,
+          tahap: input.tahap,
+          volume: input.nilai,
+          satuan: input.satuan,
+          persentase: Number(program.target) > 0
+            ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+            : null,
+          keterangan: input.keterangan,
+          reportedById: userId,
+          status: "DIAJUKAN",
         },
       });
       const updated = await tx.program.update({
@@ -59,15 +88,22 @@ export const programActions = {
         },
         include: { operator: true, histories: true, costs: true },
       });
-      return { program: updated, history };
+      return { program: updated, history, progress };
     });
   },
 
   async addCost(programId: number, input: CreateCostInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
     return prisma.$transaction(async (tx) => {
-      const program = await tx.program.findUnique({ where: { id: programId } });
+      const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+        throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
+      }
+      const nextUsage = Number(program.penggunaan) + input.nominal;
+      if (Number(program.pagu) > 0 && nextUsage > Number(program.pagu)) {
+        throw new ApiError("COST_EXCEEDS_BUDGET", "Penggunaan biaya melebihi pagu program.", 400);
+      }
       const cost = await tx.programCost.create({
         data: {
           programId,
@@ -93,8 +129,14 @@ export const programActions = {
 
   async markComplete(programId: number, userId: number, userName: string, foto = false) {
     return prisma.$transaction(async (tx) => {
-      const program = await tx.program.findUnique({ where: { id: programId } });
+      const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+        throw new ApiError("PROGRAM_COMPLETED", "Program sudah selesai.", 409);
+      }
+      if (Number(program.target) > 0 && Number(program.realisasi) < Number(program.target)) {
+        throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
+      }
       const date = new Date();
       const history = await tx.programHistory.create({
         data: {

@@ -9,9 +9,9 @@ import { parsePagination } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   return handleRoute(async () => {
-    await requireUser();
+    const user = await requireUser();
     const pagination = parsePagination(request.nextUrl.searchParams);
-    const result = await surveyService.list(pagination);
+    const result = await surveyService.list(pagination, user);
     return paginatedResponse(result.items, {
       ...pagination,
       total: result.total,
@@ -24,8 +24,10 @@ export async function POST(request: NextRequest) {
   return handleRoute(async () => {
     const user = await requireRole("ADMIN", "OPERATOR");
     const input = parseSurveyInput(await parseRequestBody(request));
-    input.surveyorId ??= user.id;
-    input.surveyor ||= user.nama;
-    return successResponse(await surveyService.create(input), 201);
+    if (user.role === "OPERATOR") {
+      input.surveyorId = user.id;
+      input.surveyor = user.nama;
+    }
+    return successResponse(await surveyService.create(input, user), 201);
   });
 }

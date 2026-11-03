@@ -32,6 +32,7 @@ export const authService = {
       tokenHash: hashSessionToken(accessToken),
       expiresAt,
     });
+    await authRepository.updateLastLoginAt(user.id);
 
     return {
       accessToken,

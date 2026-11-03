@@ -17,10 +17,11 @@ export async function GET(_request: NextRequest, context: Context) {
 
 export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireRole("ADMIN", "OPERATOR");
+    const user = await requireRole("ADMIN", "OPERATOR");
     return successResponse(await surveyService.update(
       (await context.params).id,
       parseSurveyInput(await parseRequestBody(request), true),
+      user,
     ));
   });
 }

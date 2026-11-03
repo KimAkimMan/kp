@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/modules/auth/auth.crypto";
-import { UserRole } from "@/generated/prisma/client";
+import { AdviceStatus, UserRole } from "@/generated/prisma/client";
 
 const password = "Password123!";
 
@@ -160,7 +160,7 @@ async function main() {
       operatorId: operator.id,
       isi: "Pastikan dokumentasi progres diperbarui setiap tahap.",
       tanggal: new Date("2026-02-10"),
-      status: "Belum ditindaklanjuti",
+      status: AdviceStatus.BELUM_DITINDAKLANJUTI,
     },
   });
 

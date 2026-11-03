@@ -73,6 +73,11 @@ enum SurveyReviewDecision {
   PERLU_REVISI @map("Perlu Revisi")
 }
 
+enum AdviceStatus {
+  BELUM_DITINDAKLANJUTI @map("Belum ditindaklanjuti")
+  SUDAH_DITINDAKLANJUTI @map("Sudah ditindaklanjuti")
+}
+
 model User {
   id                   Int                   @id @default(autoincrement())
   nama                 String                @db.VarChar(191)
@@ -503,7 +508,7 @@ model AdviceRecord {
   operator          User?         @relation("AdviceOperator", fields: [operatorId], references: [id], onDelete: SetNull)
   isi               String        @db.Text
   tanggal           DateTime
-  status            String        @db.VarChar(191)
+  status            AdviceStatus
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   replies           AdviceReply[]

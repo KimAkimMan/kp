@@ -1,6 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import type { AdviceStatus } from "@/generated/prisma/client";
 
 export const adviceRepository = {
+  findActiveProgram(id: number) {
+    return prisma.program.findFirst({ where: { id, deletedAt: null } });
+  },
+
+  findActiveOperator(id: number) {
+    return prisma.user.findFirst({
+      where: { id, role: "OPERATOR", isActive: true, deletedAt: null },
+    });
+  },
+
   async findMany(pagination?: { skip: number; pageSize: number }) {
     const [items, total] = await Promise.all([
       prisma.adviceRecord.findMany({
@@ -32,7 +43,7 @@ export const adviceRepository = {
     operatorId?: number | null;
     isi: string;
     tanggal: Date;
-    status: string;
+    status: AdviceStatus;
   }) {
     return prisma.adviceRecord.create({
       data: input,
@@ -40,7 +51,7 @@ export const adviceRepository = {
     });
   },
 
-  update(id: string, data: { status?: string }) {
+  update(id: string, data: { status?: AdviceStatus }) {
     return prisma.adviceRecord.update({
       where: { id },
       data,
