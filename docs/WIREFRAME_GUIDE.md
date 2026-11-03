@@ -45,7 +45,37 @@ Area internal
   └─ Logout → Landing publik
 ```
 
-### 2.2 Matriks menu berdasarkan role
+### 2.3 Inventaris frame wireframe Figma
+
+Board wireframe saat ini memuat 18 frame tanpa node teks, dengan elemen visual
+yang diberi nama semantik agar struktur dapat dibaca langsung di Figma:
+
+1. Landing Publik
+2. Login
+3. Dashboard Admin
+4. Dashboard Operator
+5. Dashboard Pimpinan
+6. Data Program
+7. Form Survey Lapangan
+8. Laporan Detail Modal
+9. Manajemen Pengguna
+10. Master Kegiatan
+11. Hasil Survey Operator
+12. Jadwal, Target, dan Progres
+13. Riwayat Progres
+14. Profil dan Notifikasi
+15. Kumpulan Modal
+16. Detail Program
+17. Detail Hasil Survey
+18. Daftar Survey
+
+Frame halaman internal memakai pola konsisten: sidebar 250 px, topbar 1190 px
+di sisi kanan, area konten dengan margin kiri 285 px, panel putih, toolbar,
+filter, tabel, kartu metrik, form, state kosong, dan state aksi. Frame detail
+dan modal mempertahankan pola yang sama serta menambahkan tombol kembali,
+status, dokumentasi, dan aksi konfirmasi sesuai alur aplikasi.
+
+### 2.4 Matriks menu berdasarkan role
 
 | Halaman / fungsi | Admin | Operator | Pimpinan |
 |---|---:|---:|---:|
