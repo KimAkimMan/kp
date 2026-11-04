@@ -1,8 +1,11 @@
 # Class Diagram SIMP Kuningan v3
 
-Dokumen ini adalah class diagram level implementasi berdasarkan model Prisma
-terkini. Nama atribut memakai format UML `visibility nama : Tipe`, sedangkan
-operasi memakai format `visibility nama(in parameter : Tipe) : ReturnType`.
+Dokumen ini memodelkan schema Prisma sebagai class diagram domain. Diagram
+memakai sintaks resmi Mermaid class diagram untuk visibility UML, relasi,
+label, komposisi, dan kardinalitas.
+
+Rujukan sintaks Mermaid:
+[Class diagrams - Mermaid](https://mermaid.js.org/syntax/classDiagram.html)
 
 ## 1. Class diagram entitas domain
 
@@ -10,7 +13,7 @@ operasi memakai format `visibility nama(in parameter : Tipe) : ReturnType`.
 classDiagram
     direction TB
 
-    %% ===== Level atas: User dan master data =====
+    %% Identity, authentication, and audit
     class User {
         -id : Int
         -nama : String
@@ -28,36 +31,6 @@ classDiagram
         +deactivate() : void
     }
 
-    class Kecamatan {
-        -id : Int
-        -nama : String
-        +rename(in nama : String) : void
-    }
-
-    class ProgramCategory {
-        -id : Int
-        -nama : String
-        +rename(in nama : String) : void
-    }
-
-    class Unit {
-        -id : Int
-        -nama : String
-        +rename(in nama : String) : void
-    }
-
-    class Period {
-        -id : Int
-        -nama : String
-        -tahun : Int
-        -tanggalMulai : DateTime?
-        -tanggalSelesai : DateTime?
-        -isActive : Boolean
-        +activate() : void
-        +deactivate() : void
-    }
-
-    %% ===== Level 2 =====
     class Session {
         -id : String
         -tokenHash : String
@@ -80,17 +53,42 @@ classDiagram
         -ipAddress : String?
         -userAgent : String?
         -createdAt : DateTime
-        +record(in action : String, in entity : String, in entityId : String, in details : Json) : AuditLog
+    }
+
+    %% Master data
+    class ProgramCategory {
+        -id : Int
+        -nama : String
+    }
+
+    class Unit {
+        -id : Int
+        -nama : String
+    }
+
+    class Kecamatan {
+        -id : Int
+        -nama : String
     }
 
     class Village {
         -id : Int
         -nama : String
         -kecamatanId : Int
-        +rename(in nama : String) : void
     }
 
-    %% ===== Level 3: entitas inti =====
+    class Period {
+        -id : Int
+        -nama : String
+        -tahun : Int
+        -tanggalMulai : DateTime?
+        -tanggalSelesai : DateTime?
+        -isActive : Boolean
+        -createdAt : DateTime
+        -updatedAt : DateTime
+    }
+
+    %% Core entities
     class Program {
         -id : Int
         -kode : String
@@ -100,26 +98,47 @@ classDiagram
         -categoryId : Int?
         -periodId : Int?
         -lokasi : String
+        -kecamatan : String?
         -kecamatanId : Int?
-        -villageId : Int?
+        -desaKelurahan : String?
+        -detailLokasi : String?
         -pj : String
+        -operatorPengelola : String?
         -operatorPengelolaId : Int?
         -createdById : Int?
+        -penanggungJawabDinas : String?
+        -periode : String
+        -jadwal : String?
+        -satuan : String
         -unitId : Int?
+        -villageId : Int?
+        -targetAwal : Decimal
         -target : Decimal
+        -targetVolume : Decimal?
         -realisasi : Decimal
+        -realisasiVolume : Decimal?
         -status : ProgramStatus
+        -update : String
+        -sumber : String
+        -catatan : String
         -pagu : Decimal
         -penggunaan : Decimal
+        -penggunaanBiaya : Decimal?
+        -penyedia : String?
+        -direktur : String?
+        -nilaiKontrak : Decimal?
+        -noKontrak : String?
+        -lebarJalan : Decimal?
+        -kondisiJalan : String?
         -tanggalMulai : DateTime?
         -tanggalSelesai : DateTime?
+        -createdAt : DateTime
+        -updatedAt : DateTime
         -deletedAt : DateTime?
         -deletedById : Int?
         +claimProgram(in operatorId : Int) : ProgramAssignment
-        +assignOperator(in operatorId : Int, in assignedById : Int) : ProgramAssignment
         +recordProgress(in input : ProgressInput) : ProgramProgress
         +recordCost(in input : CostInput) : ProgramCost
-        +submitCompletion() : void
         +markComplete() : void
         +softDelete(in deletedById : Int) : void
     }
@@ -128,31 +147,61 @@ classDiagram
         -id : String
         -kodeSurvey : String
         -tanggal : DateTime
+        -surveyor : String
         -surveyorId : Int?
         -programId : Int?
         -namaKegiatan : String
         -kategori : String
+        -kecamatan : String
         -kecamatanId : Int?
         -villageId : Int?
+        -desaKelurahan : String
         -detailLokasi : String
+        -koordinat : String?
         -kondisi : SurveyCondition
+        -panjang : Decimal?
+        -lebar : Decimal?
+        -luasVolume : Decimal?
+        -satuan : String?
+        -tipeKonstruksi : String?
+        -estimasiBiaya : Decimal?
         -tingkatUrgensi : UrgencyLevel
         -uraianTemuan : String
         -rekomendasi : String
-        -estimasiBiaya : Decimal?
+        -kontakPendamping : String?
+        -foto : Boolean
+        -fotoUrl : String?
         -status : SurveyStatus
         -submittedAt : DateTime?
         -verifiedAt : DateTime?
         -verifiedById : Int?
         -rejectionReason : String?
         -deletedAt : DateTime?
-        +submit() : void
-        +review(in reviewerId : Int, in decision : SurveyReviewDecision) : SurveyReview
+        -createdAt : DateTime
+        -updatedAt : DateTime
+        +verify(in reviewerId : Int) : SurveyReview
         +convertToProgram(in input : ProgramInput) : Program
         +softDelete() : void
     }
 
-    %% ===== Level 4: turunan Program, Survey, Advice =====
+    class AdviceRecord {
+        -id : String
+        -idKegiatan : Int
+        -namaKegiatan : String
+        -identitasPimpinan : String
+        -pimpinanId : Int?
+        -operatorPenerima : String
+        -operatorId : Int?
+        -isi : String
+        -tanggal : DateTime
+        -status : AdviceStatus
+        -createdAt : DateTime
+        -updatedAt : DateTime
+        +send() : void
+        +updateStatus(in status : AdviceStatus) : void
+    }
+
+    %% Program workflow
     class ProgramAssignment {
         -id : Int
         -programId : Int
@@ -163,9 +212,6 @@ classDiagram
         -acceptedAt : DateTime?
         -releasedAt : DateTime?
         -notes : String?
-        +accept() : void
-        +reject(in reason : String) : void
-        +release() : void
     }
 
     class ProgramProgress {
@@ -182,26 +228,8 @@ classDiagram
         -status : ProgressStatus
         -verifiedAt : DateTime?
         -rejectionReason : String?
-        +submit() : void
-        +verify(in verifierId : Int) : void
-        +reject(in reason : String) : void
-    }
-
-    class ProgramCost {
-        -id : Int
-        -programId : Int
-        -tanggal : DateTime
-        -uraian : String
-        -nominal : Decimal
-        -inputById : Int?
-        -kategori : String?
-        -status : CostStatus
-        -verifiedById : Int?
-        -verifiedAt : DateTime?
-        -rejectionReason : String?
-        +submit() : void
-        +verify(in verifierId : Int) : void
-        +reject(in reason : String) : void
+        -createdAt : DateTime
+        -updatedAt : DateTime
     }
 
     class ProgramHistory {
@@ -213,21 +241,41 @@ classDiagram
         -satuan : String
         -keterangan : String
         -foto : Boolean
+        -penginput : String
         -inputById : Int?
         -status : ProgramStatus?
+        -createdAt : DateTime
     }
 
-    class SurveyProgramLink {
-        -id : String
-        -surveyId : String
+    class ProgramCost {
+        -id : Int
         -programId : Int
-        -linkedById : Int?
-        -relationType : String
-        -linkedAt : DateTime
-        +link() : void
-        +unlink() : void
+        -tanggal : DateTime
+        -uraian : String
+        -nominal : Decimal
+        -input : String
+        -inputById : Int?
+        -bukti : Boolean
+        -kategori : String?
+        -status : CostStatus
+        -verifiedById : Int?
+        -verifiedAt : DateTime?
+        -rejectionReason : String?
+        -createdAt : DateTime
     }
 
+    class ProgramCostDocument {
+        -id : String
+        -costId : Int
+        -storageKey : String
+        -originalName : String
+        -mimeType : String
+        -fileSize : Int
+        -uploadedById : Int?
+        -createdAt : DateTime
+    }
+
+    %% Survey workflow
     class SurveyPhoto {
         -id : String
         -surveyId : String
@@ -239,8 +287,7 @@ classDiagram
         -latitude : Decimal?
         -longitude : Decimal?
         -uploadedById : Int?
-        +download() : Binary
-        +remove() : void
+        -createdAt : DateTime
     }
 
     class SurveyReview {
@@ -250,9 +297,6 @@ classDiagram
         -decision : SurveyReviewDecision
         -notes : String?
         -reviewedAt : DateTime
-        +approve() : void
-        +requestRevision(in notes : String) : void
-        +reject(in reason : String) : void
     }
 
     class SurveyStatusHistory {
@@ -263,32 +307,15 @@ classDiagram
         -changedById : Int?
         -reason : String?
         -createdAt : DateTime
-        +recordTransition(in toStatus : SurveyStatus, in reason : String) : void
     }
 
-    class AdviceRecord {
+    class SurveyProgramLink {
         -id : String
-        -idKegiatan : Int
-        -pimpinanId : Int?
-        -operatorId : Int?
-        -isi : String
-        -tanggal : DateTime
-        -status : String
-        +send() : void
-        +updateStatus(in status : String) : void
-    }
-
-    %% ===== Level 5 =====
-    class ProgramCostDocument {
-        -id : String
-        -costId : Int
-        -storageKey : String
-        -originalName : String
-        -mimeType : String
-        -fileSize : Int
-        -uploadedById : Int?
-        +download() : Binary
-        +remove() : void
+        -surveyId : String
+        -programId : Int
+        -linkedById : Int?
+        -relationType : String
+        -linkedAt : DateTime
     }
 
     class AdviceReply {
@@ -297,14 +324,24 @@ classDiagram
         -authorId : Int
         -isi : String
         -createdAt : DateTime
-        +reply(in isi : String) : void
     }
 
-    %% ===== Relasi: User dan Identity/Audit =====
+    %% One edge per class pair. Multiple FK roles are combined in one label.
     User "1" *-- "0..*" Session : owns
-    User "1" --> "0..*" AuditLog : performs
+    User "0..1" --> "0..*" AuditLog : records
+    User "0..*" --> "0..*" Program : creates / operates / deletes
+    User "0..*" --> "0..*" FieldSurvey : surveys / verifies
+    User "0..*" --> "0..*" ProgramAssignment : assigns / receives
+    User "0..*" --> "0..*" ProgramProgress : reports / verifies
+    User "0..*" --> "0..*" ProgramCost : inputs / verifies
+    User "0..1" --> "0..*" ProgramCostDocument : uploads
+    User "0..1" --> "0..*" SurveyPhoto : uploads
+    User "1" --> "0..*" SurveyReview : reviews
+    User "0..1" --> "0..*" SurveyStatusHistory : changes
+    User "0..1" --> "0..*" SurveyProgramLink : links
+    User "0..*" --> "0..*" AdviceRecord : issues / receives
+    User "1" --> "0..*" AdviceReply : writes
 
-    %% ===== Relasi: master data dan lokasi =====
     Kecamatan "1" *-- "0..*" Village : contains
     ProgramCategory "0..1" --> "0..*" Program : categorizes
     Unit "0..1" --> "0..*" Program : measures
@@ -314,92 +351,47 @@ classDiagram
     Kecamatan "0..1" --> "0..*" FieldSurvey : locates
     Village "0..1" --> "0..*" FieldSurvey : locates
 
-    %% ===== Relasi: User ke entitas inti =====
-    User "1" --> "0..*" Program : creates / operates / deletes
-    User "1" --> "0..*" FieldSurvey : surveys / verifies
-    User "1" --> "0..*" AdviceRecord : issues / receives
-
-    %% ===== Relasi: Program =====
     Program "1" *-- "0..*" ProgramAssignment : has
     Program "1" *-- "0..*" ProgramProgress : has
+    Program "1" *-- "0..*" ProgramHistory : records
     Program "1" *-- "0..*" ProgramCost : has
-    Program "1" *-- "0..*" ProgramHistory : legacy progress
-    Program "1" *-- "0..*" AdviceRecord : receives
+    Program "1" --> "0..*" FieldSurvey : referenced by programId
     Program "1" *-- "0..*" SurveyProgramLink : links
+    Program "1" *-- "0..*" AdviceRecord : receives
     ProgramCost "1" *-- "0..*" ProgramCostDocument : has
 
-    %% ===== Relasi: Survey =====
-    FieldSurvey "1" *-- "0..*" SurveyProgramLink : links
     FieldSurvey "1" *-- "0..*" SurveyPhoto : has
     FieldSurvey "1" *-- "0..*" SurveyReview : has
     FieldSurvey "1" *-- "0..*" SurveyStatusHistory : has
-
-    %% ===== Relasi: Advice =====
+    FieldSurvey "1" *-- "0..*" SurveyProgramLink : links
     AdviceRecord "1" *-- "0..*" AdviceReply : has
 ```
 
 ### Aturan membaca relasi
 
-- Diagram menggunakan arah `TB` (top-to-bottom): User dan master data di
-  atas, entitas inti (`Program`, `FieldSurvey`) di tengah, dan entitas
-  turunan di bawah.
-- Garis dari `User` hanya digambar ke entitas inti dan ke `Session` serta
-  `AuditLog`. Relasi `User` ke entitas turunan tidak digambar supaya garis
-  tidak menembus class lain. Relasi tersebut dirinci pada tabel berikut.
-- Setiap pasangan kelas hanya digambar dengan **satu garis satu arah**.
-- Tidak ada garis balik dari child ke parent. Arah garis dipilih dari entitas
-  referensi/owner menuju entitas yang dimilikinya atau digunakan.
-- Bila satu pasangan memiliki beberapa peran, perannya digabung dengan `/`
-  pada satu label relasi, misalnya `creates / operates / deletes`.
-- `*--` dipakai untuk komposisi karena child mengikuti penghapusan parent
-  (`onDelete: Cascade`).
-- `-->` dipakai untuk asosiasi atau referensi dengan `SetNull`, `Restrict`,
-  atau relasi biasa.
-- Multiplicity `0..1`, `1`, dan `0..*` mengikuti nullable foreign key dan
-  koleksi relasi pada schema Prisma.
-- `ProgramHistory` tetap ditampilkan sebagai model legacy. Progres baru
-  sebaiknya menggunakan `ProgramProgress`.
-- Relasi langsung legacy `Program.programId` pada `FieldSurvey` tidak digambar
-  karena hubungan survey-program sudah diwakili oleh `SurveyProgramLink`.
-  Field tersebut tetap ada sementara untuk kompatibilitas migrasi.
-- Saat diekspor ke laporan, render ke SVG/PNG beresolusi tinggi dan gunakan
-  halaman A3 landscape atau skala 80--90% agar kompartemen class tidak
-  terpotong.
+- Diagram menggunakan arah `TB` agar identitas dan master data berada di atas,
+  entitas inti di tengah, dan workflow turunannya berada di bawah.
+- Setiap pasangan class hanya mempunyai satu garis. Bila schema mempunyai
+  beberapa foreign key antara pasangan yang sama, perannya digabung dalam satu
+  label, misalnya `creates / operates / deletes`.
+- `*--` dipakai untuk child yang mengikuti penghapusan parent melalui
+  `onDelete: Cascade`.
+- `-->` dipakai untuk foreign key referensi dengan `SetNull`, `Restrict`, atau
+  relasi asosiasi biasa.
+- Kardinalitas mengikuti optionality foreign key dan bentuk koleksi Prisma.
+  Pada relasi User yang menggabungkan FK wajib dan opsional, kardinalitas
+  menggambarkan cakupan pasangan secara ringkas; detail FK tetap terlihat pada
+  atribut class.
+- `ProgramHistory` tetap ditampilkan karena merupakan model schema dan dipakai
+  sebagai snapshot kompatibilitas dari input progress. `ProgramProgress` adalah
+  model workflow progress canonical.
+- `FieldSurvey` memiliki relasi langsung `programId` sekaligus
+  `SurveyProgramLink`. Keduanya tetap ditampilkan karena keduanya benar-benar
+  ada di schema dan memiliki makna berbeda: referensi program utama dan
+  catatan hubungan konversi.
+- Tidak ada class di diagram yang tidak berasal dari model Prisma.
 
-### Relasi User ke entitas turunan
-
-Semuanya berupa asosiasi `User "1" --> "0..*"` (foreign key ke `User`).
-
-| Entitas | Peran User | Atribut FK |
-|---|---|---|
-| ProgramAssignment | assigns / receives | `assignedById`, `operatorId` |
-| ProgramProgress | reports / verifies | `reportedById`, `verifiedById` |
-| ProgramCost | inputs / verifies | `inputById`, `verifiedById` |
-| ProgramCostDocument | uploads | `uploadedById` |
-| SurveyPhoto | uploads | `uploadedById` |
-| SurveyReview | reviews | `reviewerId` |
-| SurveyStatusHistory | changes | `changedById` |
-| SurveyProgramLink | links | `linkedById` |
-| AdviceReply | writes | `authorId` |
-
-## 2. Aturan operasi dan atribut UML
-
-| Elemen | Format | Contoh |
-|---|---|---|
-| Atribut public | `+nama : Tipe` | `+status : ProgramStatus` |
-| Atribut protected | `#nama : Tipe` | `#createdAt : DateTime` |
-| Atribut private | `-nama : Tipe` | `-email : String` |
-| Operasi public | `+nama(in parameter : Tipe) : ReturnType` | `+verify(in verifierId : Int) : void` |
-| Operasi tanpa parameter | `+nama() : ReturnType` | `+submit() : void` |
-| Nilai nullable | `Tipe?` | `-verifiedAt : DateTime?` |
-| Koleksi | `Tipe [0..*]` | `+programs : Program [0..*]` |
-
-Operasi pada diagram adalah operasi bisnis/domain, bukan nama method Prisma
-seperti `findMany` atau `update`. CRUD persistence berada pada service dan
-repository. Operasi yang belum tersedia di endpoint saat ini merupakan target
-kontrak domain untuk modularisasi backend.
-
-## 3. Enumeration
+## 2. Enumeration
 
 ```mermaid
 classDiagram
@@ -472,9 +464,15 @@ classDiagram
         DITOLAK
         PERLU_REVISI
     }
+
+    class AdviceStatus {
+        <<enumeration>>
+        BELUM_DITINDAKLANJUTI
+        SUDAH_DITINDAKLANJUTI
+    }
 ```
 
-## 4. Alur status utama
+## 3. Alur status domain
 
 ```text
 Survey:
@@ -488,18 +486,26 @@ BELUM_DIKERJAKAN -> SEDANG_DIKERJAKAN -> SELESAI_DIKERJAKAN
 Progress dan biaya:
 DRAFT -> DIAJUKAN -> DIVERIFIKASI
                   -> DITOLAK
+
+Advice:
+BELUM_DITINDAKLANJUTI -> SUDAH_DITINDAKLANJUTI
 ```
 
-Konversi survey menjadi program hanya boleh dilakukan setelah survey
-diverifikasi Admin. Perubahan status tersebut dicatat pada
-`SurveyReview`, `SurveyStatusHistory`, dan `SurveyProgramLink`.
+Konversi survey hanya boleh dilakukan setelah survey diverifikasi Admin.
+Konversi mengisi `FieldSurvey.programId`, mengubah status menjadi `DIKONVERSI`,
+dan membuat `SurveyProgramLink`.
 
-## 5. Pemetaan operasi ke peran
+## 4. Catatan pemodelan
 
-| Domain | Admin | Operator | Pimpinan |
-|---|---|---|---|
-| Program | create, assign, update, verify completion, delete | claim/accept, set schedule, progress, cost, submit completion | read, monitor |
-| Survey | review, approve, reject, convert | create, update, submit, upload photo | read |
-| Advice | monitor, moderate | update status, reply | create, update, monitor |
-| User | create, update, deactivate | - | - |
-| AuditLog | read | - | - |
+| Elemen | Konvensi |
+|---|---|
+| Atribut private | `-nama : Tipe` |
+| Operasi public | `+nama(in parameter : Tipe) : ReturnType` |
+| Nilai nullable | `Tipe?` |
+| Koleksi | Direpresentasikan oleh kardinalitas `0..*` pada relasi |
+| Model Prisma | Satu class untuk setiap `model` pada schema |
+| Enum Prisma | Satu class `<<enumeration>>` untuk setiap `enum` pada schema |
+
+Operasi pada diagram adalah operasi domain yang telah menjadi kontrak backend
+atau invariant workflow. Operasi persistence seperti `findMany`, `create`, dan
+`update` tidak ditampilkan karena merupakan tanggung jawab repository.

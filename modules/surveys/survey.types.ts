@@ -24,5 +24,11 @@ export type SurveyInput = {
   kontakPendamping?: string | null;
   foto?: boolean;
   fotoUrl?: string | null;
-  status: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+  status:
+    | "DRAFT"
+    | "SELESAI_SURVEY"
+    | "MENUNGGU_VERIFIKASI"
+    | "PERLU_REVISI"
+    | "DIVERIFIKASI"
+    | "DIKONVERSI";
 };

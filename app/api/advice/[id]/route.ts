@@ -18,9 +18,9 @@ export async function GET(_request: NextRequest, context: Context) {
 
 export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
+    const user = await requireRole("ADMIN", "OPERATOR");
     const { status } = parseAdviceStatusInput(await parseRequestBody(request));
-    return successResponse(await adviceService.updateStatus((await context.params).id, status));
+    return successResponse(await adviceService.updateStatus((await context.params).id, status, user));
   });
 }
 

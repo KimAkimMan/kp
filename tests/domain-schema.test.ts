@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/http/api-error";
 import { parseProgressInput, parseCostInput } from "@/modules/programs/program.action.schema";
-import { parseCreateAdviceInput } from "@/modules/advice/advice.schema";
+import { parseAdviceStatusInput, parseCreateAdviceInput } from "@/modules/advice/advice.schema";
 import { parseSurveyInput } from "@/modules/surveys/survey.schema";
 import { openapiDocument } from "@/lib/openapi";
 
@@ -28,6 +28,14 @@ describe("domain schemas and OpenAPI", () => {
       idKegiatan: 0,
       pimpinanId: 1,
     })).toThrowError(ApiError);
+  });
+
+  it("accepts only persisted advice workflow statuses", () => {
+    expect(parseAdviceStatusInput({ status: "SUDAH_DITINDAKLANJUTI" })).toEqual({
+      status: "SUDAH_DITINDAKLANJUTI",
+    });
+    expect(() => parseAdviceStatusInput({ status: "Belum ditindaklanjuti" }))
+      .toThrowError(ApiError);
   });
 
   it("documents every public API group", () => {

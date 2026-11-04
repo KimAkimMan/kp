@@ -3,7 +3,7 @@ import { paginatedResponse, successResponse } from "@/lib/http/api-response";
 import { parseCreateProgramInput } from "@/modules/programs/program.schema";
 import { programService } from "@/modules/programs/program.service";
 import { handleRoute } from "@/lib/http/route-handler";
-import { requireUser } from "@/modules/auth/auth.context";
+import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePagination } from "@/lib/pagination";
 import { parseProgramListFilters } from "@/modules/programs/program.schema";
 
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return handleRoute(async () => {
-    await requireUser();
+    const user = await requireRole("ADMIN");
     const input = parseCreateProgramInput(await request.json());
-    return successResponse(await programService.create(input), 201);
+    return successResponse(await programService.create(input, user.id), 201);
   });
 }

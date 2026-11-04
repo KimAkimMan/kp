@@ -11,11 +11,11 @@ const publicUserSelect = {
 
 export const authRepository = {
   findUserByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+    return prisma.user.findFirst({ where: { email, deletedAt: null, isActive: true } });
   },
 
   findUserById(id: number) {
-    return prisma.user.findUnique({ where: { id }, select: publicUserSelect });
+    return prisma.user.findFirst({ where: { id, deletedAt: null, isActive: true }, select: publicUserSelect });
   },
 
   createUserSession(input: {
@@ -47,6 +47,13 @@ export const authRepository = {
 
   deleteExpiredSessions() {
     return prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+  },
+
+  updateLastLoginAt(userId: number) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
   },
 
 };

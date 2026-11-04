@@ -95,7 +95,17 @@ export const openapiDocument = {
           kategori: { type: "string" },
           kondisi: { type: "string", enum: ["BAIK", "RUSAK_RINGAN", "RUSAK_SEDANG", "RUSAK_BERAT"] },
           tingkatUrgensi: { type: "string", enum: ["RENDAH", "SEDANG", "TINGGI_MENDESAK"] },
-          status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
+          status: {
+            type: "string",
+            enum: [
+              "DRAFT",
+              "SELESAI_SURVEY",
+              "MENUNGGU_VERIFIKASI",
+              "PERLU_REVISI",
+              "DIVERIFIKASI",
+              "DIKONVERSI",
+            ],
+          },
         },
       },
       Advice: {
@@ -218,7 +228,12 @@ export const openapiDocument = {
       AdviceStatusInput: {
         type: "object",
         required: ["status"],
-        properties: { status: { type: "string" } },
+        properties: {
+          status: {
+            type: "string",
+            enum: ["BELUM_DITINDAKLANJUTI", "SUDAH_DITINDAKLANJUTI"],
+          },
+        },
       },
       ProgressInput: {
         type: "object",

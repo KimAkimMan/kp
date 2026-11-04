@@ -8,6 +8,7 @@ export type CreateProgramInput = {
   satuan: string;
   target: number;
   pagu: number;
+  createdById?: number;
 };
 
 export type UpdateProgramInput = Partial<CreateProgramInput> & {
@@ -48,4 +49,10 @@ export type ProgramListFilters = {
     skip: number;
     pageSize: number;
   };
+};
+
+export type ProgramActor = {
+  id: number;
+  nama: string;
+  role: "ADMIN" | "OPERATOR" | "PIMPINAN";
 };

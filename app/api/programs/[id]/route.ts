@@ -20,7 +20,11 @@ export async function PATCH(request: NextRequest, context: Context) {
     const user = await requireRole("ADMIN", "OPERATOR");
     const id = parsePositiveId((await context.params).id);
     await programService.assertCanEdit(id, user);
-    return successResponse(await programService.update(id, parseUpdateProgramInput(await parseRequestBody(request))));
+    return successResponse(await programService.update(
+      id,
+      parseUpdateProgramInput(await parseRequestBody(request)),
+      user,
+    ));
   });
 }
 

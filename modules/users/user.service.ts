@@ -32,6 +32,12 @@ export const userService = {
 
   async update(id: number, input: UpdateUserInput) {
     await this.get(id);
+    if (input.email !== undefined) {
+      const existing = await userRepository.findByEmail(input.email);
+      if (existing && existing.id !== id) {
+        throw new ApiError("USER_EMAIL_EXISTS", "Email pengguna sudah terdaftar.", 409);
+      }
+    }
     return userRepository.update(id, {
       ...input,
       ...(input.password === undefined

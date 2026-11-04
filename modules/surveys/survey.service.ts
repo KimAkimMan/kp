@@ -3,10 +3,11 @@ import { ApiError } from "@/lib/http/api-error";
 import { randomUUID } from "node:crypto";
 import type { SurveyInput } from "./survey.types";
 import { prisma } from "@/lib/prisma";
+import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 export const surveyService = {
-  list(pagination?: { skip: number; pageSize: number }) {
-    return surveyRepository.findMany(pagination);
+  list(pagination?: { skip: number; pageSize: number }, user?: AuthenticatedUser) {
+    return surveyRepository.findMany(pagination, user?.role === "OPERATOR" ? user.id : undefined);
   },
 
   async get(id: string) {
@@ -15,12 +16,27 @@ export const surveyService = {
     return survey;
   },
 
-  create(input: SurveyInput) {
+  create(input: SurveyInput, user?: AuthenticatedUser) {
+    if (user?.role === "OPERATOR" && input.status === "DIVERIFIKASI") {
+      throw new ApiError("FORBIDDEN", "Operator tidak dapat memverifikasi survey.", 403);
+    }
     return surveyRepository.create(input, input.id ?? randomUUID());
   },
 
-  async update(id: string, input: Partial<SurveyInput>) {
-    await this.get(id);
+  async update(id: string, input: Partial<SurveyInput>, user?: AuthenticatedUser) {
+    const survey = await this.get(id);
+    if (user?.role === "OPERATOR" && survey.surveyorId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah survey operator lain.", 403);
+    }
+    if (
+      user?.role === "OPERATOR" &&
+      (input.surveyorId !== undefined || input.status === "DIVERIFIKASI" || input.status === "DIKONVERSI")
+    ) {
+      throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah kepemilikan atau status verifikasi survey.", 403);
+    }
+    if (survey.status === "DIVERIFIKASI" || survey.status === "DIKONVERSI") {
+      throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat diubah.", 409);
+    }
     return surveyRepository.update(id, input);
   },
 
@@ -29,11 +45,45 @@ export const surveyService = {
     return surveyRepository.delete(id);
   },
 
-  async verify(id: string, programId?: number | null) {
-    await this.get(id);
-    return surveyRepository.update(id, {
-      status: "DIVERIFIKASI",
-      programId: programId ?? undefined,
+  async verify(id: string, programId: number | null | undefined, reviewerId: number) {
+    const survey = await this.get(id);
+    if (survey.status === "DIKONVERSI") {
+      throw new ApiError("SURVEY_LOCKED", "Survey yang telah dikonversi tidak dapat diverifikasi ulang.", 409);
+    }
+    if (!["SELESAI_SURVEY", "MENUNGGU_VERIFIKASI", "PERLU_REVISI"].includes(survey.status)) {
+      throw new ApiError("SURVEY_NOT_READY_FOR_REVIEW", "Survey belum siap untuk diverifikasi.", 409);
+    }
+    if (programId !== undefined && programId !== null) {
+      const program = await prisma.program.findFirst({ where: { id: programId, deletedAt: null } });
+      if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+    }
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.fieldSurvey.update({
+        where: { id },
+        data: {
+          status: "DIVERIFIKASI",
+          programId: programId ?? survey.programId,
+          verifiedById: reviewerId,
+          verifiedAt: new Date(),
+        },
+        include: { program: true, surveyorUser: true },
+      });
+      await tx.surveyReview.create({
+        data: {
+          surveyId: id,
+          reviewerId,
+          decision: "DISETUJUI",
+        },
+      });
+      await tx.surveyStatusHistory.create({
+        data: {
+          surveyId: id,
+          fromStatus: survey.status,
+          toStatus: "DIVERIFIKASI",
+          changedById: reviewerId,
+        },
+      });
+      return updated;
     });
   },
 
@@ -45,12 +95,15 @@ export const surveyService = {
     satuan: string;
     target: number;
     pagu: number;
-  }) {
+  }, createdById?: number) {
     return prisma.$transaction(async (tx) => {
-      const survey = await tx.fieldSurvey.findUnique({ where: { id } });
+      const survey = await tx.fieldSurvey.findFirst({ where: { id, deletedAt: null } });
       if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
       if (survey.programId) {
         throw new ApiError("SURVEY_ALREADY_CONVERTED", "Survey sudah menjadi program.", 409);
+      }
+      if (survey.status !== "DIVERIFIKASI") {
+        throw new ApiError("SURVEY_NOT_VERIFIED", "Survey harus diverifikasi sebelum dikonversi.", 409);
       }
       const program = await tx.program.create({
         data: {
@@ -63,6 +116,7 @@ export const surveyService = {
           desaKelurahan: survey.desaKelurahan,
           detailLokasi: survey.detailLokasi,
           pj: input.pj,
+          createdById,
           operatorPengelola: survey.surveyor,
           operatorPengelolaId: survey.surveyorId,
           periode: input.periode,
@@ -85,8 +139,26 @@ export const surveyService = {
       });
       await tx.fieldSurvey.update({
         where: { id },
-        data: { programId: program.id, status: "DIVERIFIKASI" },
+        data: { programId: program.id, status: "DIKONVERSI" },
       });
+      await tx.surveyProgramLink.create({
+        data: {
+          surveyId: id,
+          programId: program.id,
+          relationType: "CONVERTED_TO_PROGRAM",
+        },
+      });
+      if (survey.surveyorId !== null) {
+        await tx.programAssignment.create({
+          data: {
+            programId: program.id,
+            operatorId: survey.surveyorId,
+            assignedById: createdById,
+            status: "DITERIMA",
+            acceptedAt: new Date(),
+          },
+        });
+      }
       return program;
     });
   },

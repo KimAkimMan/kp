@@ -11,7 +11,10 @@ export const adviceApi = {
   create(input: CreateAdviceInput) {
     return apiClient.post<ApiResponse<Advice>>("/advice", input);
   },
-  updateStatus(id: string, status: string) {
+  updateStatus(
+    id: string,
+    status: "BELUM_DITINDAKLANJUTI" | "SUDAH_DITINDAKLANJUTI",
+  ) {
     return apiClient.patch<ApiResponse<Advice>>(`/advice/${encodeURIComponent(id)}`, { status });
   },
   remove(id: string) {

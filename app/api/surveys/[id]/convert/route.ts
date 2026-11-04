@@ -10,11 +10,12 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireRole("ADMIN");
+    const user = await requireRole("ADMIN");
     return successResponse(
       await surveyService.convertToProgram(
         (await context.params).id,
         parseConvertSurveyInput(await parseRequestBody(request)),
+        user.id,
       ),
       201,
     );

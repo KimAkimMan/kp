@@ -2,23 +2,28 @@ import { prisma } from "@/lib/prisma";
 import type { SurveyInput } from "./survey.types";
 
 export const surveyRepository = {
-  async findMany(pagination?: { skip: number; pageSize: number }) {
+  async findMany(
+    pagination?: { skip: number; pageSize: number },
+    surveyorId?: number,
+  ) {
+    const where = { deletedAt: null, ...(surveyorId === undefined ? {} : { surveyorId }) };
     const [items, total] = await Promise.all([
       prisma.fieldSurvey.findMany({
+      where,
       include: { program: true, surveyorUser: true },
       orderBy: { createdAt: "desc" },
       ...(pagination === undefined
         ? {}
         : { skip: pagination.skip, take: pagination.pageSize }),
       }),
-      prisma.fieldSurvey.count(),
+      prisma.fieldSurvey.count({ where }),
     ]);
     return { items, total };
   },
 
   findById(id: string) {
-    return prisma.fieldSurvey.findUnique({
-      where: { id },
+    return prisma.fieldSurvey.findFirst({
+      where: { id, deletedAt: null },
       include: { program: true, surveyorUser: true },
     });
   },
@@ -72,6 +77,10 @@ export const surveyRepository = {
   },
 
   delete(id: string) {
-    return prisma.fieldSurvey.delete({ where: { id }, select: { id: true } });
+    return prisma.fieldSurvey.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: { id: true, deletedAt: true },
+    });
   },
 };

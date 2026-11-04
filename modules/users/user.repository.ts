@@ -12,6 +12,7 @@ export const userRepository = {
   async findMany(pagination?: { skip: number; pageSize: number }) {
     const [items, total] = await Promise.all([
       prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         nama: true,
@@ -25,13 +26,13 @@ export const userRepository = {
         ? {}
         : { skip: pagination.skip, take: pagination.pageSize }),
       }),
-      prisma.user.count(),
+      prisma.user.count({ where: { deletedAt: null } }),
     ]);
     return { items, total };
   },
 
   findByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+    return prisma.user.findFirst({ where: { email, deletedAt: null } });
   },
 
   create(input: CreateUserInput) {
@@ -54,8 +55,8 @@ export const userRepository = {
   },
 
   findById(id: number) {
-    return prisma.user.findUnique({
-      where: { id },
+    return prisma.user.findFirst({
+      where: { id, deletedAt: null },
       select: {
         id: true,
         nama: true,
@@ -88,6 +89,10 @@ export const userRepository = {
   },
 
   delete(id: number) {
-    return prisma.user.delete({ where: { id }, select: { id: true } });
+    return prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+      select: { id: true, deletedAt: true },
+    });
   },
 };
