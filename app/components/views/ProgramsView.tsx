@@ -14,7 +14,7 @@ import {
   getProgramKecamatan,
   getProgramYear,
 } from "../../utils/helpers";
-import { defaultKecamatanList } from "../../data/initialData";
+import { defaultKecamatanList, standardCategories } from "../../data/initialData";
 
 interface ProgramsViewProps {
   currentUser: User;
@@ -49,7 +49,7 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
 
   // Dynamic available categories
   const availableCategories = Array.from(
-    new Set([...programs.map((p) => p.kategori).filter(Boolean)])
+    new Set([...standardCategories, ...programs.map((p) => p.kategori).filter(Boolean)])
   );
 
   // Dynamic available kecamatans
@@ -58,7 +58,7 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
       ...defaultKecamatanList,
       ...programs.map((p) => getProgramKecamatan(p)).filter((k) => k && k !== "—"),
     ])
-  );
+  ).sort((a, b) => a.localeCompare("id"));
 
   // Filter accessible programs
   const accessiblePrograms = isOperator
@@ -108,7 +108,7 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
       {/* Head */}
       <div>
         <h2 className="text-2xl font-bold text-[#143965]">
-          {isOperator ? "Kegiatan Saya / Data Program" : "Data Program"}
+          Data Kegiatan
         </h2>
         <p className="text-xs sm:text-sm text-[#65778B] mt-0.5">
           Pilah data kegiatan per kategori tahun anggaran dan kategori bidang, pantau realisasi fisik serta penyerapan anggaran.

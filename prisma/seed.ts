@@ -25,20 +25,41 @@ async function main() {
     }),
   ]);
 
-  const category = await prisma.programCategory.upsert({
+  const categoryNames = ["Jalan Lingkungan", "Drainase/TPT", "Konstruksi Lainnya"];
+  for (const nama of categoryNames) {
+    await prisma.programCategory.upsert({
+      where: { nama },
+      update: {},
+      create: { nama },
+    });
+  }
+  const category = await prisma.programCategory.findUniqueOrThrow({
     where: { nama: "Jalan Lingkungan" },
-    update: {},
-    create: { nama: "Jalan Lingkungan" },
   });
+
   const unit = await prisma.unit.upsert({
     where: { nama: "m'" },
     update: {},
     create: { nama: "m'" },
   });
-  const kecamatan = await prisma.kecamatan.upsert({
+
+  const kecamatanNames = [
+    "Ciawigebang", "Cibeureum", "Cibingbin", "Cidahu", "Cigandamekar", "Cigugur",
+    "Cilebak", "Cilimus", "Cimahi", "Ciniru", "Cipicung", "Ciwaru", "Darma",
+    "Garawangi", "Hantara", "Jalaksana", "Japara", "Kadugede", "Kalimanggis",
+    "Karangkancana", "Kramatmulya", "Kuningan", "Lebakwangi", "Luragung",
+    "Maleber", "Mandirancan", "Nusaherang", "Pancalang", "Pasawahan",
+    "Selajambe", "Sindangagung", "Subang",
+  ];
+  for (const nama of kecamatanNames) {
+    await prisma.kecamatan.upsert({
+      where: { nama },
+      update: {},
+      create: { nama },
+    });
+  }
+  const kecamatan = await prisma.kecamatan.findUniqueOrThrow({
     where: { nama: "Kuningan" },
-    update: {},
-    create: { nama: "Kuningan" },
   });
 
   const program = await prisma.program.upsert({

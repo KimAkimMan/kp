@@ -26,6 +26,7 @@ import {
 } from "../../utils/helpers";
 import { SimpleBarChart } from "../Charts";
 import { PimpinanAchievementSection } from "../PimpinanAchievementSection";
+import { standardCategories } from "../../data/initialData";
 
 interface DashboardViewProps {
   currentUser: User;
@@ -80,7 +81,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   ).sort((a, b) => b.localeCompare(a));
 
   const availableCategories = Array.from(
-    new Set([...displayPrograms.map((p) => p.kategori).filter(Boolean)])
+    new Set([...standardCategories, ...displayPrograms.map((p) => p.kategori).filter(Boolean)])
   );
 
   // Filtered programs for dashboard cards

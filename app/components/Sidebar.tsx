@@ -41,15 +41,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { page: "users" as PageType, label: "Manajemen Pengguna", icon: Users },
           { page: "masteractivities" as PageType, label: "Master Kegiatan", icon: FolderPlus },
           { page: "adminsurvey" as PageType, label: "Hasil Survey Operator", icon: ClipboardCheck },
-          { page: "programs" as PageType, label: "Data Program", icon: FolderKanban },
+          { page: "programs" as PageType, label: "Data Kegiatan", icon: FolderKanban },
           { page: "reports" as PageType, label: "Laporan", icon: FileBarChart },
           { page: "profile" as PageType, label: "Profil & Notifikasi", icon: UserRound },
         ];
       case "Operator":
         return [
           { page: "dashboard" as PageType, label: "Dashboard Operator", icon: LayoutDashboard },
-          { page: "programs" as PageType, label: "Kegiatan Saya / Data Program", icon: FolderKanban },
           { page: "survey" as PageType, label: "Form Survey Lapangan", icon: ClipboardCheck },
+          { page: "programs" as PageType, label: "Data Kegiatan", icon: FolderKanban },
           { page: "history" as PageType, label: "Riwayat Progres", icon: History },
           { page: "reports" as PageType, label: "Laporan", icon: FileBarChart },
           { page: "profile" as PageType, label: "Profil & Notifikasi", icon: UserRound },
@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       case "Pimpinan":
         return [
           { page: "dashboard" as PageType, label: "Dashboard Pimpinan", icon: LayoutDashboard },
-          { page: "programs" as PageType, label: "Data Program", icon: FolderKanban },
+          { page: "programs" as PageType, label: "Data Kegiatan", icon: FolderKanban },
           { page: "reports" as PageType, label: "Laporan", icon: FileBarChart },
           { page: "profile" as PageType, label: "Profil & Notifikasi", icon: UserRound },
         ];

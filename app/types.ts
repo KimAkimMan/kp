@@ -28,6 +28,8 @@ export interface HistoryItem {
   satuan: string;
   keterangan: string;
   foto: boolean;
+  fotoUrls?: string[];
+  fotoUrl?: string;
   penginput: string;
   status?: string;
 }

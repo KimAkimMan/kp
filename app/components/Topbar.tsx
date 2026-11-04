@@ -26,7 +26,7 @@ const pageTitles: Record<PageType, { title: string; subtitle: string }> = {
     subtitle: "Atur data dasar, lokasi, target, dan pagu kegiatan",
   },
   programs: {
-    title: "Data Program",
+    title: "Data Kegiatan",
     subtitle: "Target, realisasi, pagu, penggunaan, dan sisa anggaran",
   },
   survey: {
@@ -54,7 +54,7 @@ const pageTitles: Record<PageType, { title: string; subtitle: string }> = {
     subtitle: "Informasi akun dan pemberitahuan sistem",
   },
   detail: {
-    title: "Detail Program",
+    title: "Detail Kegiatan",
     subtitle: "Informasi lengkap capaian, realisasi fisik, dan biaya",
   },
 };

@@ -8,7 +8,7 @@ import {
   remBudget,
   isRoadCategory,
 } from "../utils/helpers";
-import { standardCategories, unitOptions } from "../data/initialData";
+import { defaultKecamatanList, standardCategories, unitOptions } from "../data/initialData";
 
 // --- Base Modal Frame ---
 interface ModalFrameProps {
@@ -277,14 +277,22 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
               Kecamatan
             </label>
-            <input
-              type="text"
+            <select
               value={kecamatan}
               onChange={(e) => setKecamatan(e.target.value)}
               className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
-              placeholder="Ketik nama kecamatan"
               required
-            />
+            >
+              <option value="">Pilih kecamatan...</option>
+              {kecamatan && !defaultKecamatanList.includes(kecamatan) && (
+                <option value={kecamatan}>{kecamatan}</option>
+              )}
+              {defaultKecamatanList.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">

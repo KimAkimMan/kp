@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Plus, Search, RotateCcw, Edit2, Eye, Trash2, Calendar, Layers } from "lucide-react";
 import { Program } from "../../types";
+import { standardCategories } from "../../data/initialData";
 import {
   currency,
   quantity,
@@ -40,7 +41,7 @@ export const MasterActivitiesView: React.FC<MasterActivitiesViewProps> = ({
 
   // Dynamic available categories
   const availableCategories = Array.from(
-    new Set([...programs.map((p) => p.kategori).filter(Boolean)])
+    new Set([...standardCategories, ...programs.map((p) => p.kategori).filter(Boolean)])
   );
 
   const filteredPrograms = programs.filter(

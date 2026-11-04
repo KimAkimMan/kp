@@ -845,8 +845,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                     Kecamatan {k}
                   </option>
                 ))}
-                <option value="Kuningan">Kecamatan Kuningan</option>
-                <option value="Cilimus">Kecamatan Cilimus</option>
               </select>
             </div>
           </div>

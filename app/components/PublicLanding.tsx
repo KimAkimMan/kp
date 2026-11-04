@@ -86,7 +86,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             href="#pencapaian"
             className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
           >
-            Pencapaian Program
+            Pencapaian Kegiatan
           </a>
           <a
             href="#lokasi"
@@ -399,7 +399,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
               TRANSPARANSI KINERJA
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-              Pencapaian Program &amp; Capaian Fisik
+              Pencapaian Kegiatan &amp; Capaian Fisik
             </h2>
             <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
               Akumulasi capaian target dan realisasi fisik per kategori kegiatan pembangunan infrastruktur permukiman secara transparan.

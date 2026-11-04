@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   Paperclip,
   MessageSquarePlus,
+  ExternalLink,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -15,6 +16,7 @@ import {
   formatUnitSymbol,
 } from "../../utils/helpers";
 import { SimpleBarChart } from "../Charts";
+import { openPhotoViewer } from "../../utils/photoViewer";
 
 interface DetailViewProps {
   program: Program;
@@ -191,9 +193,37 @@ export const DetailView: React.FC<DetailViewProps> = ({
                     <td className="p-3 text-[#496178] max-w-sm">{h.keterangan}</td>
                     <td className="p-3 whitespace-nowrap">
                       {h.foto ? (
-                        <span className="inline-flex items-center gap-1.5 text-[#1E4E8C] font-semibold">
-                          <ImageIcon className="w-3.5 h-3.5" /> Foto tersedia
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const photos =
+                              h.fotoUrls && h.fotoUrls.length > 0
+                                ? h.fotoUrls
+                                : h.fotoUrl
+                                ? [h.fotoUrl]
+                                : [
+                                    "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=1200&q=80",
+                                  ];
+                            openPhotoViewer({
+                              title: program.nama,
+                              tahap: h.tahap,
+                              tanggal: h.tanggal,
+                              nilai: quantity(h.nilai, h.satuan),
+                              keterangan: h.keterangan,
+                              penginput: h.penginput,
+                              status: h.status || program.status,
+                              photos,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#1E4E8C] hover:text-white transition shadow-xs group"
+                          title="Klik untuk membuka dokumentasi foto di halaman terpisah"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-[#1E4E8C] group-hover:text-white transition" />
+                          <span>
+                            Lihat Foto {h.fotoUrls && h.fotoUrls.length > 1 ? `(${h.fotoUrls.length})` : ""}
+                          </span>
+                          <ExternalLink className="w-3 h-3 opacity-70 group-hover:opacity-100" />
+                        </button>
                       ) : (
                         <span className="text-[#65778B]">Tidak ada</span>
                       )}

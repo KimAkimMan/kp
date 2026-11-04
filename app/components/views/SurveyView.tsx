@@ -421,7 +421,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                 {/* Hubungkan ke Program / Kegiatan */}
                 <div className="lg:col-span-2">
                   <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Hubungkan ke Data Program / Kegiatan (Opsional)
+                    Hubungkan ke Data Kegiatan (Opsional)
                   </label>
                   <select
                     value={selectedProgramId}
@@ -542,12 +542,6 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                         {k}
                       </option>
                     ))}
-                    <option value="Kuningan">Kuningan</option>
-                    <option value="Cilimus">Cilimus</option>
-                    <option value="Jalaksana">Jalaksana</option>
-                    <option value="Kramatmulya">Kramatmulya</option>
-                    <option value="Darma">Darma</option>
-                    <option value="Luragung">Luragung</option>
                   </select>
                 </div>
 
@@ -986,8 +980,6 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       Kecamatan {k}
                     </option>
                   ))}
-                  <option value="Kuningan">Kecamatan Kuningan</option>
-                  <option value="Cilimus">Kecamatan Cilimus</option>
                 </select>
               </div>
 

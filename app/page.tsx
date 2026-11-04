@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Program, User, AdviceRecord, PageType, FieldSurvey } from "./types";
+import { Program, User, AdviceRecord, PageType, FieldSurvey, HistoryItem } from "./types";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
 import {
   operatorAssignment,
@@ -67,6 +67,10 @@ export default function Home() {
               let kategori = p.kategori;
               if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
                 kategori = "Konstruksi Lainnya";
+              } else if (kategori === "Drainase") {
+                kategori = "Drainase/TPT";
+              } else if (kategori === "Jalan") {
+                kategori = "Jalan Lingkungan";
               }
               const u = String(p.satuan || "").toLowerCase();
               if (u === "km" || u.includes("kilometer")) {
@@ -146,6 +150,10 @@ export default function Home() {
               let kategori = s.kategori;
               if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
                 kategori = "Konstruksi Lainnya";
+              } else if (kategori === "Drainase") {
+                kategori = "Drainase/TPT";
+              } else if (kategori === "Jalan") {
+                kategori = "Jalan Lingkungan";
               }
               return { ...s, kategori };
             });
@@ -405,6 +413,8 @@ export default function Home() {
         customData?.kategori ||
         (survey.kategori === "Air Bersih" || survey.kategori === "Penataan Kawasan"
           ? "Konstruksi Lainnya"
+          : survey.kategori === "Drainase"
+          ? "Drainase/TPT"
           : survey.kategori || "Jalan Lingkungan"),
       pagu:
         customData?.pagu !== undefined
@@ -514,6 +524,7 @@ export default function Home() {
     realisasi: number;
     catatan: string;
     hasPhoto: boolean;
+    fotoUrls?: string[];
   }) => {
     const formattedDate = new Date(progressData.tanggal).toLocaleDateString(
       "id-ID",
@@ -526,13 +537,15 @@ export default function Home() {
 
     const updated = programs.map((p) => {
       if (p.id === selectedProgramId) {
-        const newHistory = {
+        const newHistory: HistoryItem = {
           tanggal: formattedDate,
           tahap: progressData.tahap,
           nilai: progressData.realisasi,
           satuan: p.satuan,
           keterangan: progressData.catatan,
           foto: progressData.hasPhoto,
+          fotoUrls: progressData.fotoUrls || [],
+          fotoUrl: progressData.fotoUrls?.[0] || undefined,
           penginput: currentUser?.nama || "Operator",
           status: progressData.status,
         };
@@ -556,7 +569,7 @@ export default function Home() {
   };
 
   // Mark Program as Complete (Operator)
-  const handleMarkComplete = (program: Program, hasPhoto: boolean) => {
+  const handleMarkComplete = (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => {
     const completedDate = new Date().toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "long",
@@ -565,13 +578,15 @@ export default function Home() {
 
     const updated = programs.map((p) => {
       if (p.id === program.id) {
-        const completionHistory = {
+        const completionHistory: HistoryItem = {
           tanggal: completedDate,
           tahap: "Penyelesaian kegiatan",
           nilai: p.realisasi,
           satuan: p.satuan,
           keterangan: "Kegiatan ditandai selesai setelah realisasi fisik mencapai 100%.",
           foto: hasPhoto,
+          fotoUrls: fotoUrls || [],
+          fotoUrl: fotoUrls?.[0] || undefined,
           penginput: currentUser?.nama || "Operator",
           status: "Selesai Dikerjakan" as const,
         };

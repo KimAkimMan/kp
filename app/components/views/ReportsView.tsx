@@ -11,6 +11,7 @@ import {
   Layers,
 } from "lucide-react";
 import { Program, User } from "../../types";
+import { standardCategories } from "../../data/initialData";
 import {
   calculateSummary,
   currency,
@@ -58,7 +59,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   ).sort((a, b) => b.localeCompare(a));
 
   const availableCategories = Array.from(
-    new Set([...accessiblePrograms.map((p) => p.kategori).filter(Boolean)])
+    new Set([...standardCategories, ...accessiblePrograms.map((p) => p.kategori).filter(Boolean)])
   );
 
   const filtered = accessiblePrograms.filter(
@@ -74,7 +75,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const handleDownloadTxt = () => {
     const lines = [
       "================================================================================",
-      "             LAPORAN MONITORING DAN PELAPORAN CAPAIAN PROGRAM",
+      "             LAPORAN MONITORING DAN PELAPORAN CAPAIAN KEGIATAN",
       "      DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN KABUPATEN KUNINGAN",
       `                   KATEGORI TAHUN ANGGARAN: ${yearFilter || "SEMUA TAHUN"}`,
       categoryFilter ? `                   KATEGORI BIDANG: ${categoryFilter}` : "",
@@ -202,7 +203,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN KABUPATEN KUNINGAN
         </h1>
         <h2 className="text-sm font-semibold text-[#65778B]">
-          LAPORAN CAPAIAN PROGRAM DAN REALISASI FISIK &amp; KEUANGAN
+          LAPORAN CAPAIAN KEGIATAN DAN REALISASI FISIK &amp; KEUANGAN
         </h2>
         <p className="text-xs text-[#65778B]">
           Kategori Tahun Anggaran: {yearFilter || "Semua Tahun"}

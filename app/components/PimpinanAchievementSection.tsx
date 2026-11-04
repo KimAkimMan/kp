@@ -261,7 +261,7 @@ export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#EAF0F4]">
         <div>
           <h3 className="text-base font-bold text-[#143965]">
-            Keseluruhan Pencapaian Program
+            Keseluruhan Pencapaian Kegiatan
           </h3>
           <p className="text-xs text-[#65778B] mt-0.5">
             Akumulasi capaian per kategori — persentase dihitung terpisah per satuan.
@@ -350,7 +350,7 @@ export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
 
       {!hasData ? (
         <div className="text-center py-14 border border-dashed border-[#CCD9E4] rounded-xl text-xs text-[#65778B]">
-          Belum ada data program untuk periode ini.
+          Belum ada data kegiatan untuk periode ini.
         </div>
       ) : (
         <>

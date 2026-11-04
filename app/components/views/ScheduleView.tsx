@@ -8,6 +8,9 @@ import {
   CheckCircle2,
   Lock,
   AlertCircle,
+  Image as ImageIcon,
+  X,
+  Upload,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -33,8 +36,9 @@ interface ScheduleViewProps {
     realisasi: number;
     catatan: string;
     hasPhoto: boolean;
+    fotoUrls?: string[];
   }) => void;
-  onMarkComplete: (program: Program, hasPhoto: boolean) => void;
+  onMarkComplete: (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => void;
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
@@ -74,8 +78,45 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     program?.realisasi !== undefined ? String(program.realisasi) : "0"
   );
   const [updateNote, setUpdateNote] = useState(program?.catatan || "");
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [progressError, setProgressError] = useState("");
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 3 - photos.length;
+    if (remainingSlots <= 0) {
+      setProgressError("Maksimal 3 foto dokumentasi lapangan.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setProgressError(`Hanya ${remainingSlots} foto yang dapat ditambahkan (maksimal 3 foto).`);
+    } else {
+      setProgressError("");
+    }
+
+    const readers = filesToProcess.map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((newPhotos) => {
+      setPhotos((prev) => [...prev, ...newPhotos].slice(0, 3));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    });
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
 
   if (!program) {
     return (
@@ -101,8 +142,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       setProgressError("Tanggal, tahap pekerjaan, dan keterangan wajib diisi.");
       return;
     }
-    if (!hasPhoto) {
-      setProgressError("Dokumentasi foto wajib diunggah untuk verifikasi progres.");
+    if (photos.length === 0) {
+      setProgressError("Dokumentasi foto wajib diunggah minimal 1 foto (maksimal 3 foto).");
+      return;
+    }
+    if (photos.length > 3) {
+      setProgressError("Maksimal 3 foto dokumentasi lapangan.");
       return;
     }
     if (!Number.isFinite(val) || val < 0) {
@@ -124,7 +169,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       tahap: progressStage.trim(),
       realisasi: val,
       catatan: updateNote.trim(),
-      hasPhoto,
+      hasPhoto: true,
+      fotoUrls: photos,
     });
   };
 
@@ -132,8 +178,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     setProgressError("");
     if (isLocked) return;
 
-    if (!hasPhoto) {
-      setProgressError("Dokumentasi foto wajib diunggah sebelum kegiatan ditandai selesai.");
+    if (photos.length === 0) {
+      setProgressError("Dokumentasi foto wajib diunggah sebelum kegiatan ditandai selesai (maksimal 3 foto).");
       return;
     }
     if (program.realisasi < program.target) {
@@ -141,7 +187,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       return;
     }
 
-    onMarkComplete(program, hasPhoto);
+    onMarkComplete(program, true, photos);
   };
 
   return (
@@ -152,7 +198,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           onClick={onBack}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition mb-3"
         >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke Kegiatan Saya
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Data Kegiatan
         </button>
         <h2 className="text-2xl font-bold text-[#143965]">
           Detail Kegiatan &amp; Pengaturan
@@ -355,16 +401,71 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                Dokumentasi Foto Lapangan (Wajib)
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setHasPhoto(Boolean(e.target.files?.length))}
-                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#E8F2F8] file:text-[#1E4E8C]"
-                required
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider">
+                  Dokumentasi Foto Lapangan (Wajib, Maksimal 3 Foto)
+                </label>
+                <span className="text-[11px] font-semibold text-[#1E4E8C] bg-[#E8F2F8] px-2 py-0.5 rounded-md">
+                  {photos.length} dari 3 foto terpilih
+                </span>
+              </div>
+
+              {/* Photo Previews */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  {photos.map((src, index) => (
+                    <div
+                      key={index}
+                      className="relative group rounded-xl overflow-hidden border-2 border-[#1E4E8C]/30 bg-[#F8FAFC] aspect-video sm:aspect-square flex items-center justify-center shadow-xs"
+                    >
+                      <img
+                        src={src}
+                        alt={`Preview foto ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        Foto {index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute top-1.5 right-1.5 bg-red-600/90 text-white p-1 rounded-full hover:bg-red-700 transition shadow-xs"
+                        title="Hapus foto ini"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Input & Trigger */}
+              {photos.length < 3 ? (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFilesSelect}
+                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#E8F2F8] file:text-[#1E4E8C]"
+                  />
+                  <p className="text-[11px] text-[#65778B] mt-1">
+                    Format didukung: JPG, PNG, WEBP. Anda dapat mengunggah hingga 3 foto sekaligus (tersisa {3 - photos.length} slot).
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-[#E7F6ED] border border-[#BCE5CC] rounded-xl text-xs text-[#258050] font-semibold flex items-center justify-between">
+                  <span>Maksimal 3 foto dokumentasi telah terpenuhi.</span>
+                  <button
+                    type="button"
+                    onClick={() => setPhotos([])}
+                    className="text-xs text-[#C44C3B] underline font-bold ml-2"
+                  >
+                    Reset Semua Foto
+                  </button>
+                </div>
+              )}
             </div>
 
             {progressError && (
