@@ -154,4 +154,4 @@ Pagination menggunakan `page` dan `pageSize`, dengan `pageSize` maksimum 100.
 - Skill testing API: [`../.github/skills/kp-api-testing/SKILL.md`](../.github/skills/kp-api-testing/SKILL.md)
 - Scaffold API client: [`API_CLIENT.md`](./API_CLIENT.md)
 - Rich picture: [`rich-picture.md`](./rich-picture.md)
-- Class diagram: [`class-diagram.md`](./class-diagram.md)
+- Class diagram: [`Class_Diagram_SIMP_Kuningan_v3_Utuh.md`](./Class_Diagram_SIMP_Kuningan_v3_Utuh.md)
