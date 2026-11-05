@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Landmark, ExternalLink, Calendar, Layers } from "lucide-react";
 import { Program } from "../types";
 import {
@@ -29,6 +29,43 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 }) => {
   const [landingYearFilter, setLandingYearFilter] = useState("");
   const [landingCategoryFilter, setLandingCategoryFilter] = useState("");
+
+  // Hero slideshow
+  const heroSlides = [
+    {
+      src: "/dokumentasi/hero-jalan-ancaran.jpg",
+      alt: "Pembangunan jalan lingkungan di Ancaran, Kecamatan Kuningan",
+      caption: "Jalan Lingkungan — Ancaran, Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/hero-jalan-ciporang.jpg",
+      alt: "Jalan lingkungan Ciporang, Kecamatan Sindangagung",
+      caption: "Jalan Lingkungan — Ciporang, Kec. Sindangagung",
+    },
+    {
+      src: "/dokumentasi/jalan-lingkungan.jpg",
+      alt: "Pembangunan jalan lingkungan Kabupaten Kuningan",
+      caption: "Jalan Lingkungan — Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/drainase-tpt.jpg",
+      alt: "Pembangunan drainase permukiman Kabupaten Kuningan",
+      caption: "Drainase / TPT — Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/konstruksi-lainnya.jpg",
+      alt: "Konstruksi tembok penahan tanah Kabupaten Kuningan",
+      caption: "Konstruksi Lainnya — Kec. Kuningan",
+    },
+  ];
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % heroSlides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
 
   const availableYears = Array.from(
     new Set(["2026", "2025", "2024", ...programs.map((p) => getProgramYear(p))])
@@ -104,9 +141,37 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         </button>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#143965] via-[#1E4E8C] to-[#286BA3] text-white px-[7%] py-16 md:py-20 overflow-hidden">
-        <div className="max-w-3xl">
+      {/* Hero Section — Slideshow */}
+      <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
+        {/* Slides */}
+        {heroSlides.map((slide, i) => (
+          <div
+            key={i}
+            aria-hidden={i !== heroIndex}
+            className="absolute inset-0 transition-opacity duration-1000"
+            style={{ opacity: i === heroIndex ? 1 : 0 }}
+          >
+            <img
+              src={slide.src}
+              alt={slide.alt}
+              className="w-full h-full object-cover"
+              style={{ minHeight: "420px" }}
+              loading={i === 0 ? "eager" : "lazy"}
+            />
+          </div>
+        ))}
+
+        {/* Dark overlay gradient */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(14,38,70,0.82) 0%, rgba(14,38,70,0.60) 55%, rgba(14,38,70,0.25) 100%)",
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10 px-[7%] py-16 md:py-20 max-w-3xl">
           <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
             SISTEM INFORMASI MONITORING PERMUKIMAN
           </span>
@@ -118,6 +183,30 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             anggaran pembangunan permukiman Kabupaten Kuningan secara terbuka,
             akuntabel, dan terukur.
           </p>
+        </div>
+
+        {/* Caption bawah kiri */}
+        <div className="absolute bottom-4 left-[7%] z-10">
+          <span className="text-[11px] text-white/70 bg-black/30 px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {heroSlides[heroIndex].caption}
+          </span>
+        </div>
+
+        {/* Dot navigasi */}
+        <div className="absolute bottom-4 right-[7%] z-10 flex items-center gap-2">
+          {heroSlides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setHeroIndex(i)}
+              aria-label={`Slide ${i + 1}`}
+              className="transition-all duration-300 rounded-full"
+              style={{
+                width: i === heroIndex ? "24px" : "8px",
+                height: "8px",
+                background: i === heroIndex ? "#fff" : "rgba(255,255,255,0.4)",
+              }}
+            />
+          ))}
         </div>
       </section>
 
@@ -319,71 +408,54 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
               <img
-                src="https://images.pexels.com/photos/8961065/pexels-photo-8961065.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Pekerjaan pengaspalan jalan lingkungan"
-                className="w-full h-44 object-cover"
+                src="/dokumentasi/jalan-lingkungan.jpg"
+                alt="Jalan lingkungan hasil pembangunan Disperkimtan Kuningan"
+                className="w-full h-52 object-cover"
                 loading="lazy"
               />
               <div className="p-4">
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Perbaikan Jalan Lingkungan
+                  Jalan Lingkungan
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Ciawigebang
+                  Kecamatan Kuningan, Kabupaten Kuningan
                 </span>
               </div>
             </article>
 
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
               <img
-                src="https://images.pexels.com/photos/32257223/pexels-photo-32257223.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Pekerja pada saluran drainase besar"
-                className="w-full h-44 object-cover"
+                src="/dokumentasi/drainase-tpt.jpg"
+                alt="Saluran drainase dan tembok penahan tanah hasil pembangunan"
+                className="w-full h-52 object-cover"
                 loading="lazy"
               />
               <div className="p-4">
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Peningkatan Drainase
+                  Drainase / TPT
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Kertawinangun
+                  Kecamatan Kuningan, Kabupaten Kuningan
                 </span>
               </div>
             </article>
 
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
               <img
-                src="https://images.pexels.com/photos/12726229/pexels-photo-12726229.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Instalasi pipa dan sarana air bersih"
-                className="w-full h-44 object-cover"
+                src="/dokumentasi/konstruksi-lainnya.jpg"
+                alt="Konstruksi tembok penahan tanah dan infrastruktur permukiman"
+                className="w-full h-52 object-cover"
                 loading="lazy"
               />
               <div className="p-4">
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Sarana Air Bersih
+                  Konstruksi Lainnya
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Kecamatan Cigugur
-                </span>
-              </div>
-            </article>
-
-            <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="https://images.pexels.com/photos/38470293/pexels-photo-38470293.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Tampak kawasan permukiman rapi"
-                className="w-full h-44 object-cover"
-                loading="lazy"
-              />
-              <div className="p-4">
-                <strong className="block text-sm font-bold text-[#143965]">
-                  Penataan Lingkungan
-                </strong>
-                <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Cisantana
+                  Kecamatan Kuningan, Kabupaten Kuningan
                 </span>
               </div>
             </article>
