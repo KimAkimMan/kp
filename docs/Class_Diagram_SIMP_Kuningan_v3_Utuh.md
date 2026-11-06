@@ -721,10 +721,12 @@ Progress dan biaya:
 DRAFT -> DIAJUKAN -> DIVERIFIKASI
                   -> DITOLAK
 
-Arahan:
+Saran:
 BELUM_DITINDAKLANJUTI -> SUDAH_DITINDAKLANJUTI
 ```
 
+Jika `SurveyReviewDecision` bernilai `DITOLAK`, status survei diubah menjadi
+`PERLU_REVISI`, karena `SurveyStatus` tidak memiliki nilai `DITOLAK`.
 Konversi survei hanya boleh dilakukan setelah survei diverifikasi Admin.
 Konversi mengisi `FieldSurvey.programId`, mengubah status menjadi `DIKONVERSI`,
 dan membuat `SurveyProgramLink`.
