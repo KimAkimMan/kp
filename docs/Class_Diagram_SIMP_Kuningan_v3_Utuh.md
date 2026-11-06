@@ -1,7 +1,7 @@
 # Class Diagram SIMP Kuningan v3
 
-Dokumen ini memodelkan schema Prisma sebagai class diagram domain. Diagram
-memakai sintaks resmi Mermaid class diagram untuk visibility UML, relasi,
+Dokumen ini memodelkan skema Prisma sebagai diagram kelas domain. Diagram
+memakai sintaks resmi Mermaid class diagram untuk visibilitas UML, relasi,
 label, komposisi, dan kardinalitas.
 
 Rujukan sintaks Mermaid:
@@ -9,11 +9,11 @@ Rujukan sintaks Mermaid:
 
 ## 1. Cara memakai diagram
 
-Diagram penuh di bawah tetap menjadi **baseline traceability terhadap
-database**: setiap `model` Prisma ditampilkan, sedangkan `enum` disajikan
+Diagram penuh di bawah tetap menjadi **acuan keterlacakan terhadap basis data**:
+setiap `model` Prisma ditampilkan, sedangkan `enum` disajikan
 dalam tabel pada bagian 3. Untuk analisis fitur, diagram tersebut sebaiknya
-dibaca melalui empat bounded context berikut,
-bukan sebagai satu class diagram operasional yang besar:
+dibaca melalui empat konteks fungsional berikut,
+bukan sebagai satu diagram kelas operasional yang besar:
 
 ### Identitas dan Data Master
 
@@ -25,18 +25,17 @@ classDiagram
         -email : String
         -role : UserRole
         -isActive : Boolean
-        +login(String email, String password) Session
-        +logout(String token) void
-        +activate() void
-        +deactivate() void
+        +login(email : String, password : String) Session
+        +logout(token : String) void
+        +createUser(data : UserInput) User
+        +updateUser(data : UserInput) User
+        +deleteUser() void
     }
     class Session {
         -id : String
         -userId : Int
         -expiresAt : DateTime
-        +authenticate(String token) User
-        +isExpired() Boolean
-        +revoke() void
+        +authenticate(token : String) User
     }
     class AuditLog {
         -id : String
@@ -102,11 +101,15 @@ classDiagram
         -realisasi : Decimal
         -pagu : Decimal
         -penggunaan : Decimal
-        +claimProgram(Int operatorId) ProgramAssignment
-        +recordProgress(ProgressInput input) ProgramProgress
-        +recordCost(CostInput input) ProgramCost
+        +create(data : ProgramInput) Program
+        +update(data : ProgramInput) Program
+        +delete() void
+        +createFromSurvey(survey : FieldSurvey) Program
+        +claimProgram(operatorId : Int) ProgramAssignment
+        +recordProgress(input : ProgressInput) ProgramHistory
+        +recordCost(input : CostInput) ProgramCost
         +markComplete() void
-        +softDelete(Int deletedBy) void
+        +setSchedule(input : ScheduleInput) void
     }
     class ProgramAssignment {
         -id : Int
@@ -115,9 +118,6 @@ classDiagram
         -status : ProgramAssignmentStatus
         -assignedAt : DateTime
         -acceptedAt : DateTime?
-        +assign(Int operatorId) void
-        +accept() void
-        +release() void
     }
     class ProgramProgress {
         -id : Int
@@ -126,8 +126,6 @@ classDiagram
         -tanggal : DateTime
         -volume : Decimal
         -status : ProgressStatus
-        +submit() void
-        +verify(Int reviewerId) void
     }
     class ProgramHistory {
         -id : Int
@@ -144,8 +142,6 @@ classDiagram
         -uraian : String
         -nominal : Decimal
         -status : CostStatus
-        +submit() void
-        +verify(Int reviewerId) void
     }
     class ProgramCostDocument {
         -id : String
@@ -158,11 +154,11 @@ classDiagram
     Program "1" *-- "0..*" ProgramHistory : mencatat
     Program "1" *-- "0..*" ProgramCost : memiliki
     ProgramCost "1" *-- "0..*" ProgramCostDocument : memiliki
-    User "0..1" --> "0..*" Program : relasi pengguna
-    User "0..1" --> "0..*" ProgramAssignment : relasi penugasan
-    User "0..1" --> "0..*" ProgramProgress : relasi pelaporan
-    User "0..1" --> "0..*" ProgramCost : relasi biaya
-    User "0..1" --> "0..*" ProgramCostDocument : relasi dokumen
+    User "0..1" --> "0..*" Program : membuat atau mengelola
+    User "1" --> "0..*" ProgramAssignment : menerima atau memberi penugasan
+    User "0..1" --> "0..*" ProgramProgress : melaporkan atau memverifikasi
+    User "0..1" --> "0..*" ProgramCost : menginput atau memverifikasi
+    User "0..1" --> "0..*" ProgramCostDocument : mengunggah
 ```
 
 ### Siklus Survei Lapangan
@@ -187,9 +183,11 @@ classDiagram
         -kondisi : SurveyCondition
         -tingkatUrgensi : UrgencyLevel
         -status : SurveyStatus
-        +verify(Int reviewerId) SurveyReview
-        +convertToProgram(ProgramInput input) Program
-        +softDelete() void
+        +create(data : SurveyInput) FieldSurvey
+        +update(data : SurveyInput) FieldSurvey
+        +delete() void
+        +verify(reviewerId : Int) SurveyReview
+        +convertToProgram(input : ProgramInput) Program
     }
     class SurveyPhoto {
         -id : String
@@ -224,9 +222,9 @@ classDiagram
     FieldSurvey "1" *-- "0..*" SurveyStatusHistory : mencatat status
     FieldSurvey "1" *-- "0..*" SurveyProgramLink : memiliki tautan
     SurveyProgramLink "0..*" --> "1" Program : menghubungkan
-    User "0..1" --> "0..*" FieldSurvey : relasi pengguna
-    User "1" --> "0..*" SurveyReview : relasi peninjauan
-    User "0..1" --> "0..*" SurveyStatusHistory : relasi perubahan status
+    User "0..1" --> "0..*" FieldSurvey : mensurvei atau memverifikasi
+    User "1" --> "0..*" SurveyReview : meninjau
+    User "0..1" --> "0..*" SurveyStatusHistory : mengubah status
 ```
 
 ### Saran Pimpinan
@@ -250,8 +248,8 @@ classDiagram
         -operatorPenerima : String
         -isi : String
         -status : AdviceStatus
-        +send() void
-        +updateStatus(AdviceStatus status) void
+        +updateStatus(status : AdviceStatus) void
+        +addAdvice(input : AdviceInput) AdviceRecord
     }
     class AdviceReply {
         -id : String
@@ -262,33 +260,53 @@ classDiagram
     }
     Program "1" *-- "0..*" AdviceRecord : menerima
     AdviceRecord "1" *-- "0..*" AdviceReply : memiliki balasan
-    User "0..1" --> "0..*" AdviceRecord : relasi pengguna
-    User "1" --> "0..*" AdviceReply : relasi penulis
+    User "0..1" --> "0..*" AdviceRecord : memberi atau menerima
+    User "1" --> "0..*" AdviceReply : menulis
 ```
 
 View per konteks dipakai untuk komunikasi desain, pembagian pekerjaan, dan
-analisis workflow. Diagram penuh tetap dipakai saat memeriksa migration,
+analisis alur kerja. Diagram penuh tetap dipakai saat memeriksa migrasi,
 kardinalitas, `onDelete`, atau kelengkapan model database.
 
 Untuk penempatan pada laporan, gunakan keterangan berikut:
 
-- **Gambar 4.1 Class Diagram Konteks Identitas dan Data Master**
-- **Gambar 4.2 Class Diagram Konteks Manajemen Program**
-- **Gambar 4.3 Class Diagram Konteks Siklus Survei Lapangan**
-- **Gambar 4.4 Class Diagram Konteks Saran Pimpinan**
+- **Gambar 4.1 Diagram Kelas Konteks Identitas dan Data Master**
+- **Gambar 4.2 Diagram Kelas Konteks Manajemen Program**
+- **Gambar 4.3 Diagram Kelas Konteks Siklus Survei Lapangan**
+- **Gambar 4.4 Diagram Kelas Konteks Saran Pimpinan**
 
 Setiap gambar dijelaskan dengan satu paragraf mengenai tanggung jawab konteks,
 alur utama, dan relasi pentingnya. Atribut lengkap tetap tersedia pada tabel
 kamus data, sedangkan diagram penuh pada bagian lampiran digunakan untuk
-traceability terhadap schema Prisma.
+acuan keterlacakan terhadap skema Prisma.
 
-## 2. Class diagram entitas domain (lampiran traceability)
+### Hak akses berdasarkan peran
+
+| Peran | Operasi |
+|---|---|
+| Admin | `createUser`, `updateUser`, `deleteUser` |
+| Admin | `create`, `update`, `delete` pada `Program` |
+| Admin | `create`, `update`, `delete` pada `FieldSurvey` |
+| Admin | `createFromSurvey`, `convertToProgram` |
+| Operator | `claimProgram`, `setSchedule` |
+| Operator | `recordProgress`, `markComplete` |
+| Operator | `recordCost`, `updateStatus` pada `AdviceRecord` |
+| Pimpinan | `addAdvice` |
+
+Operasi `login`, `logout`, dan `authenticate` berkaitan dengan autentikasi.
+Operasi `create`, `update`, dan `delete` pada diagram merepresentasikan aksi
+pengguna, bukan pemanggilan langsung method Prisma. Model pendukung yang tidak
+memiliki operasi tersendiri, seperti `ProgramProgress`, `SurveyPhoto`, dan
+`ProgramCostDocument`, tetap ditampilkan karena merupakan bagian dari skema,
+tetapi tidak diberi operasi buatan.
+
+## 2. Diagram kelas entitas domain (lampiran keterlacakan)
 
 ```mermaid
 classDiagram
     direction TB
 
-    %% Identity, authentication, and audit
+    %% Identitas, autentikasi, dan audit
     class User {
         -id : Int
         -nama : String
@@ -300,10 +318,11 @@ classDiagram
         -deletedAt : DateTime?
         -createdAt : DateTime
         -updatedAt : DateTime
-        +login(String email, String password) Session
-        +logout(String token) void
-        +activate() void
-        +deactivate() void
+        +login(email : String, password : String) Session
+        +logout(token : String) void
+        +createUser(data : UserInput) User
+        +updateUser(data : UserInput) User
+        +deleteUser() void
     }
 
     class Session {
@@ -312,9 +331,7 @@ classDiagram
         -userId : Int
         -expiresAt : DateTime
         -createdAt : DateTime
-        +authenticate(String token) User
-        +isExpired() Boolean
-        +revoke() void
+        +authenticate(token : String) User
     }
 
     class AuditLog {
@@ -411,11 +428,15 @@ classDiagram
         -updatedAt : DateTime
         -deletedAt : DateTime?
         -deletedById : Int?
-        +claimProgram(Int operatorId) ProgramAssignment
-        +recordProgress(ProgressInput input) ProgramProgress
-        +recordCost(CostInput input) ProgramCost
+        +create(data : ProgramInput) Program
+        +update(data : ProgramInput) Program
+        +delete() void
+        +createFromSurvey(survey : FieldSurvey) Program
+        +claimProgram(operatorId : Int) ProgramAssignment
+        +recordProgress(input : ProgressInput) ProgramHistory
+        +recordCost(input : CostInput) ProgramCost
         +markComplete() void
-        +softDelete(Int deletedById) void
+        +setSchedule(input : ScheduleInput) void
     }
 
     class FieldSurvey {
@@ -454,9 +475,11 @@ classDiagram
         -deletedAt : DateTime?
         -createdAt : DateTime
         -updatedAt : DateTime
-        +verify(Int reviewerId) SurveyReview
-        +convertToProgram(ProgramInput input) Program
-        +softDelete() void
+        +create(data : SurveyInput) FieldSurvey
+        +update(data : SurveyInput) FieldSurvey
+        +delete() void
+        +verify(reviewerId : Int) SurveyReview
+        +convertToProgram(input : ProgramInput) Program
     }
 
     class AdviceRecord {
@@ -472,11 +495,11 @@ classDiagram
         -status : AdviceStatus
         -createdAt : DateTime
         -updatedAt : DateTime
-        +send() void
-        +updateStatus(AdviceStatus status) void
+        +addAdvice(input : AdviceInput) AdviceRecord
+        +updateStatus(status : AdviceStatus) void
     }
 
-    %% Program workflow
+    %% Alur kerja program
     class ProgramAssignment {
         -id : Int
         -programId : Int
@@ -550,7 +573,7 @@ classDiagram
         -createdAt : DateTime
     }
 
-    %% Survey workflow
+    %% Alur kerja survei
     class SurveyPhoto {
         -id : String
         -surveyId : String
@@ -601,77 +624,76 @@ classDiagram
         -createdAt : DateTime
     }
 
-    %% One edge per class pair. Multiple FK roles are combined in one label.
-    User "1" *-- "0..*" Session : owns
-    User "0..1" --> "0..*" AuditLog : records
-    User "0..*" --> "0..*" Program : creates / operates / deletes
-    User "0..*" --> "0..*" FieldSurvey : surveys / verifies
-    User "0..*" --> "0..*" ProgramAssignment : assigns / receives
-    User "0..*" --> "0..*" ProgramProgress : reports / verifies
-    User "0..*" --> "0..*" ProgramCost : inputs / verifies
-    User "0..1" --> "0..*" ProgramCostDocument : uploads
-    User "0..1" --> "0..*" SurveyPhoto : uploads
-    User "1" --> "0..*" SurveyReview : reviews
-    User "0..1" --> "0..*" SurveyStatusHistory : changes
-    User "0..1" --> "0..*" SurveyProgramLink : links
-    User "0..*" --> "0..*" AdviceRecord : issues / receives
-    User "1" --> "0..*" AdviceReply : writes
+    %% Satu garis per pasangan kelas; beberapa peran FK digabung.
+    User "1" *-- "0..*" Session : memiliki
+    User "0..1" --> "0..*" AuditLog : mencatat
+    User "0..1" --> "0..*" Program : membuat, mengelola, atau menghapus
+    User "0..1" --> "0..*" FieldSurvey : mensurvei atau memverifikasi
+    User "1" --> "0..*" ProgramAssignment : menugaskan atau menerima
+    User "0..1" --> "0..*" ProgramProgress : melaporkan atau memverifikasi
+    User "0..1" --> "0..*" ProgramCost : menginput atau memverifikasi
+    User "0..1" --> "0..*" ProgramCostDocument : mengunggah
+    User "0..1" --> "0..*" SurveyPhoto : mengunggah
+    User "1" --> "0..*" SurveyReview : meninjau
+    User "0..1" --> "0..*" SurveyStatusHistory : mengubah status
+    User "0..1" --> "0..*" SurveyProgramLink : menautkan
+    User "0..1" --> "0..*" AdviceRecord : memberi atau menerima
+    User "1" --> "0..*" AdviceReply : menulis
 
-    Kecamatan "1" *-- "0..*" Village : contains
-    ProgramCategory "0..1" --> "0..*" Program : categorizes
-    Unit "0..1" --> "0..*" Program : measures
-    Period "0..1" --> "0..*" Program : schedules
-    Kecamatan "0..1" --> "0..*" Program : locates
-    Village "0..1" --> "0..*" Program : locates
-    Kecamatan "0..1" --> "0..*" FieldSurvey : locates
-    Village "0..1" --> "0..*" FieldSurvey : locates
+    Kecamatan "1" *-- "0..*" Village : memiliki
+    ProgramCategory "0..1" --> "0..*" Program : mengelompokkan
+    Unit "0..1" --> "0..*" Program : mengukur
+    Period "0..1" --> "0..*" Program : menjadwalkan
+    Kecamatan "0..1" --> "0..*" Program : menjadi lokasi
+    Village "0..1" --> "0..*" Program : menjadi lokasi
+    Kecamatan "0..1" --> "0..*" FieldSurvey : menjadi lokasi
+    Village "0..1" --> "0..*" FieldSurvey : menjadi lokasi
 
-    Program "1" *-- "0..*" ProgramAssignment : has
-    Program "1" *-- "0..*" ProgramProgress : has
-    Program "1" *-- "0..*" ProgramHistory : records
-    Program "1" *-- "0..*" ProgramCost : has
-    Program "0..1" --> "0..*" FieldSurvey : referenced by programId
-    Program "1" *-- "0..*" SurveyProgramLink : links
-    Program "1" *-- "0..*" AdviceRecord : receives
-    ProgramCost "1" *-- "0..*" ProgramCostDocument : has
+    Program "1" *-- "0..*" ProgramAssignment : memiliki
+    Program "1" *-- "0..*" ProgramProgress : memiliki
+    Program "1" *-- "0..*" ProgramHistory : mencatat
+    Program "1" *-- "0..*" ProgramCost : memiliki
+    Program "0..1" --> "0..*" FieldSurvey : direferensikan
+    Program "1" *-- "0..*" SurveyProgramLink : menautkan
+    Program "1" *-- "0..*" AdviceRecord : menerima
+    ProgramCost "1" *-- "0..*" ProgramCostDocument : memiliki
 
-    FieldSurvey "1" *-- "0..*" SurveyPhoto : has
-    FieldSurvey "1" *-- "0..*" SurveyReview : has
-    FieldSurvey "1" *-- "0..*" SurveyStatusHistory : has
-    FieldSurvey "1" *-- "0..*" SurveyProgramLink : links
-    AdviceRecord "1" *-- "0..*" AdviceReply : has
+    FieldSurvey "1" *-- "0..*" SurveyPhoto : memiliki
+    FieldSurvey "1" *-- "0..*" SurveyReview : memiliki
+    FieldSurvey "1" *-- "0..*" SurveyStatusHistory : mencatat status
+    FieldSurvey "1" *-- "0..*" SurveyProgramLink : memiliki
+    AdviceRecord "1" *-- "0..*" AdviceReply : memiliki
 ```
 
 ### Aturan membaca relasi
 
-- Diagram menggunakan arah `TB` agar identitas dan master data berada di atas,
-  entitas inti di tengah, dan workflow turunannya berada di bawah.
-- Setiap pasangan class hanya mempunyai satu garis. Bila schema mempunyai
-  beberapa foreign key antara pasangan yang sama, perannya digabung dalam satu
-  label, misalnya `creates / operates / deletes`.
+- Diagram menggunakan arah `TB` agar identitas dan data master berada di atas,
+  entitas inti di tengah, dan alur kerja turunannya berada di bawah.
+- Setiap pasangan kelas hanya mempunyai satu garis. Bila skema mempunyai
+    beberapa foreign key antara pasangan yang sama, perannya digabung dalam satu
+    label berbahasa Indonesia. Untuk pasangan dengan satu FK wajib dan FK lain
+    opsional, kardinalitas garis mengikuti FK wajib dan FK opsional dijelaskan
+    pada tabel atau uraian relasi.
 - `*--` dipakai untuk child yang mengikuti penghapusan parent melalui
   `onDelete: Cascade`.
 - `-->` dipakai untuk foreign key referensi dengan `SetNull`, `Restrict`, atau
   relasi asosiasi biasa.
-- Kardinalitas mengikuti optionality foreign key dan bentuk koleksi Prisma.
-  Pada relasi User yang menggabungkan FK wajib dan opsional, kardinalitas
-  menggambarkan cakupan pasangan secara ringkas; detail FK tetap terlihat pada
-  atribut class.
-- `ProgramHistory` tetap ditampilkan karena merupakan model schema dan dipakai
-  sebagai snapshot kompatibilitas dari input progress. `ProgramProgress` adalah
-  model workflow progress canonical.
+- `ProgramHistory` tetap ditampilkan karena merupakan model skema dan dipakai
+    sebagai snapshot kompatibilitas dari pencatatan progres pada aplikasi.
+    Pencatatan progres saat ini direpresentasikan oleh `ProgramHistory`, sedangkan
+    `ProgramProgress` disiapkan untuk alur pengajuan dan verifikasi progres.
 - `FieldSurvey` memiliki relasi langsung `programId` sekaligus
   `SurveyProgramLink`. Keduanya tetap ditampilkan karena keduanya benar-benar
-  ada di schema dan memiliki makna berbeda: referensi program utama dan
+    ada di skema dan memiliki makna berbeda: referensi program utama dan
   catatan hubungan konversi.
 - Tidak ada class di diagram yang tidak berasal dari model Prisma.
 
-## 3. Enumeration
+## 3. Enumerasi
 
-Enumeration ditampilkan sebagai tabel agar ringkas dan mudah dibaca pada
+Enumerasi ditampilkan sebagai tabel agar ringkas dan mudah dibaca pada
 laporan. Nilai yang digunakan aplikasi tetap mengikuti enum Prisma.
 
-| Enumeration | Nilai |
+| Enumerasi | Nilai |
 |---|---|
 | `UserRole` | `ADMIN`, `OPERATOR`, `PIMPINAN` |
 | `ProgramStatus` | `BELUM_DIKERJAKAN`, `SEDANG_DIKERJAKAN`, `SELESAI_DIKERJAKAN` |
@@ -687,7 +709,7 @@ laporan. Nilai yang digunakan aplikasi tetap mengikuti enum Prisma.
 ## 4. Alur status domain
 
 ```text
-Survey:
+Survei:
 DRAFT -> SELESAI_SURVEY -> MENUNGGU_VERIFIKASI
       -> PERLU_REVISI -> MENUNGGU_VERIFIKASI
       -> DIVERIFIKASI -> DIKONVERSI
@@ -699,11 +721,11 @@ Progress dan biaya:
 DRAFT -> DIAJUKAN -> DIVERIFIKASI
                   -> DITOLAK
 
-Advice:
+Arahan:
 BELUM_DITINDAKLANJUTI -> SUDAH_DITINDAKLANJUTI
 ```
 
-Konversi survey hanya boleh dilakukan setelah survey diverifikasi Admin.
+Konversi survei hanya boleh dilakukan setelah survei diverifikasi Admin.
 Konversi mengisi `FieldSurvey.programId`, mengubah status menjadi `DIKONVERSI`,
 dan membuat `SurveyProgramLink`.
 
@@ -711,13 +733,13 @@ dan membuat `SurveyProgramLink`.
 
 | Elemen | Konvensi |
 |---|---|
-| Atribut private | `-nama : Tipe` |
-| Operasi public | `+nama(Tipe parameter) ReturnType` |
+| Atribut privat | `-nama : Tipe` |
+| Operasi publik | `+nama(parameter : Tipe) ReturnType` |
 | Nilai nullable | `Tipe?` |
 | Koleksi | Direpresentasikan oleh kardinalitas `0..*` pada relasi |
-| Model Prisma | Satu class untuk setiap `model` pada schema |
-| Enum Prisma | Satu class `<<enumeration>>` untuk setiap `enum` pada schema |
+| Model Prisma | Satu kelas untuk setiap `model` pada skema |
+| Enum Prisma | Disajikan sebagai tabel pada bagian 3, bukan sebagai kelas diagram |
 
 Operasi pada diagram adalah operasi domain yang telah menjadi kontrak backend
-atau invariant workflow. Operasi persistence seperti `findMany`, `create`, dan
-`update` tidak ditampilkan karena merupakan tanggung jawab repository.
+atau aturan tetap alur kerja. Operasi penyimpanan seperti `findMany`, `create`,
+dan `update` tidak ditampilkan karena merupakan tanggung jawab repository.
