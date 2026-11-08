@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { Program, User } from "../../types";
 import { quantity, operatorAssignment, getProgramYear } from "../../utils/helpers";
-import { openPhotoViewer } from "../../utils/photoViewer";
 import { ActivityFilters } from "./ActivityFilters";
+import { PhotoLightbox, PhotoLightboxData } from "../PhotoLightbox";
 
 interface HistoryViewProps {
   currentUser: User;
@@ -20,6 +20,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   selectedProgramId,
   onSelectProgramId,
 }) => {
+  const [photoViewer, setPhotoViewer] = React.useState<PhotoLightboxData | null>(null);
   const [yearFilter, setYearFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -130,7 +131,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     <td className="p-3.5 text-[#496178] max-w-sm">{h.keterangan}</td>
                     <td className="p-3.5 whitespace-nowrap">
                       {h.foto ? (
-                        <button
+                        (() => {
+                          const previewPhoto =
+                            h.fotoUrls && h.fotoUrls.length > 0
+                              ? h.fotoUrls[0]
+                              : h.fotoUrl ||
+                                "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=320&q=80";
+                          return (
+                            <button
                           type="button"
                           onClick={() => {
                             const photos =
@@ -141,7 +149,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                 : [
                                     "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=1200&q=80",
                                   ];
-                            openPhotoViewer({
+                            setPhotoViewer({
                               title: program.nama,
                               tahap: h.tahap,
                               tanggal: h.tanggal,
@@ -153,14 +161,20 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             });
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#1E4E8C] hover:text-white transition shadow-xs group"
-                          title="Klik untuk membuka dokumentasi foto di halaman terpisah"
+                          title="Klik untuk melihat dokumentasi foto"
                         >
+                          <img
+                            src={previewPhoto}
+                            alt=""
+                            className="h-7 w-9 rounded object-cover"
+                          />
                           <ImageIcon className="w-3.5 h-3.5 text-[#1E4E8C] group-hover:text-white transition" />
                           <span>
                             Lihat Foto {h.fotoUrls && h.fotoUrls.length > 1 ? `(${h.fotoUrls.length})` : ""}
                           </span>
-                          <ExternalLink className="w-3 h-3 opacity-70 group-hover:opacity-100" />
                         </button>
+                          );
+                        })()
                       ) : (
                         <span className="text-[#65778B]">Tidak ada</span>
                       )}
@@ -181,6 +195,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </table>
         </div>
       </section>
+      {photoViewer && (
+        <PhotoLightbox data={photoViewer} onClose={() => setPhotoViewer(null)} />
+      )}
     </div>
   );
 };
