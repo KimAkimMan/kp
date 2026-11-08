@@ -57,6 +57,10 @@ const pageTitles: Record<PageType, { title: string; subtitle: string }> = {
     title: "Detail Kegiatan",
     subtitle: "Informasi lengkap capaian, realisasi fisik, dan biaya",
   },
+  masteractivitydetail: {
+    title: "Detail Master Kegiatan",
+    subtitle: "Informasi lengkap data dasar, target, lokasi, dan realisasi kegiatan",
+  },
 };
 
 export const Topbar: React.FC<TopbarProps> = ({

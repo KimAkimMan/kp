@@ -116,7 +116,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 const Icon = item.icon;
                 const isActive =
                   currentPage === item.page ||
-                  (item.page === "programs" && currentPage === "detail");
+                  (item.page === "programs" && currentPage === "detail") ||
+                  (item.page === "masteractivities" &&
+                    currentPage === "masteractivitydetail");
 
                 return (
                   <button

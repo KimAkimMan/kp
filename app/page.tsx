@@ -24,6 +24,7 @@ import { ScheduleView } from "./components/views/ScheduleView";
 import { HistoryView } from "./components/views/HistoryView";
 import { ReportsView } from "./components/views/ReportsView";
 import { DetailView } from "./components/views/DetailView";
+import { MasterActivityDetailView } from "./components/views/MasterActivityDetailView";
 import { ProfileView } from "./components/views/ProfileView";
 
 import {
@@ -265,6 +266,11 @@ export default function Home() {
     setSelectedProgramId(id);
     setPreviousPage(currentPage === "detail" ? "programs" : currentPage);
     setCurrentPage("detail");
+  };
+
+  const handleViewMasterActivity = (id: number) => {
+    setSelectedProgramId(id);
+    setCurrentPage("masteractivitydetail");
   };
 
   // Open schedule page for Operator
@@ -806,7 +812,7 @@ export default function Home() {
                   setEditingActivity(p);
                   setActivityModalOpen(true);
                 }}
-                onViewProgram={handleViewProgram}
+                onViewProgram={handleViewMasterActivity}
                 onDeleteActivity={handleDeleteActivity}
               />
             )}
@@ -897,6 +903,16 @@ export default function Home() {
               }}
             />
           )}
+
+          {currentUser &&
+            currentPage === "masteractivitydetail" &&
+            selectedProgram && (
+              <MasterActivityDetailView
+                program={selectedProgram}
+                currentUser={currentUser}
+                onBack={() => setCurrentPage("masteractivities")}
+              />
+            )}
 
           {currentUser && currentPage === "profile" && (
             <ProfileView
