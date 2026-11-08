@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, RotateCcw, Eye, Edit3, Lock, Calendar, Layers } from "lucide-react";
+import { Search, RotateCcw, Eye, Edit3, Lock } from "lucide-react";
 import { Program, User } from "../../types";
 import {
   calculateSummary,
@@ -15,6 +15,7 @@ import {
   getProgramYear,
 } from "../../utils/helpers";
 import { defaultKecamatanList, standardCategories } from "../../data/initialData";
+import { ActivityFilters } from "./ActivityFilters";
 
 interface ProgramsViewProps {
   currentUser: User;
@@ -117,114 +118,16 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
 
       {/* Main Panel */}
       <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
-        {/* Sortir Kategori Berdasarkan Tahun (Pills / Tabs Interaktif) */}
-        <div className="bg-[#FAFBFD] p-4 rounded-xl border border-[#DFEAF0] mb-5 space-y-3.5">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-[#143965] uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-[#1E4E8C]" />
-                Sortir Kategori Berdasarkan Tahun Anggaran:
-              </span>
-              {yearFilter && (
-                <span className="text-[11px] font-semibold text-[#1E4E8C] bg-[#E8F2F8] px-2 py-0.5 rounded-md">
-                  Menampilkan Kategori Tahun {yearFilter}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setYearFilter("")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                  !yearFilter
-                    ? "bg-[#1E4E8C] text-white shadow-xs"
-                    : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F0F4F8]"
-                }`}
-              >
-                <span>Semua Tahun</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                    !yearFilter
-                      ? "bg-white/20 text-white"
-                      : "bg-[#EAF0F4] text-[#496178]"
-                  }`}
-                >
-                  {accessiblePrograms.length}
-                </span>
-              </button>
-
-              {availableYears.map((yr) => {
-                const count = accessiblePrograms.filter(
-                  (p) => getProgramYear(p) === yr
-                ).length;
-                const isActive = yearFilter === yr;
-                return (
-                  <button
-                    key={yr}
-                    type="button"
-                    onClick={() => setYearFilter(isActive ? "" : yr)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                      isActive
-                        ? "bg-[#1E4E8C] text-white shadow-xs"
-                        : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F0F4F8]"
-                    }`}
-                  >
-                    <span>Kategori Tahun {yr}</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-[#EAF0F4] text-[#496178]"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sub-Kategori Bidang Konstruksi */}
-          <div className="pt-3 border-t border-[#EAF0F4] flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold text-[#65778B] flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5 text-[#148B87]" /> Kategori Bidang:
-            </span>
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                !categoryFilter
-                  ? "bg-[#148B87] text-white"
-                  : "bg-white border border-[#CCD9E4] text-[#65778B] hover:bg-[#F6F9FB]"
-              }`}
-            >
-              Semua Bidang
-            </button>
-            {availableCategories.map((cat) => {
-              const isActive = categoryFilter === cat;
-              const count = accessiblePrograms.filter(
-                (p) => (!yearFilter || getProgramYear(p) === yearFilter) && p.kategori === cat
-              ).length;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategoryFilter(isActive ? "" : cat)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                    isActive
-                      ? "bg-[#148B87] text-white font-bold"
-                      : "bg-white border border-[#CCD9E4] text-[#496178] hover:bg-[#F6F9FB]"
-                  }`}
-                >
-                  <span>{cat}</span>
-                  <span className="text-[10px] opacity-80">({count})</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ActivityFilters
+          years={availableYears}
+          categories={availableCategories}
+          yearFilter={yearFilter}
+          categoryFilter={categoryFilter}
+          totalCount={accessiblePrograms.length}
+          onYearChange={setYearFilter}
+          onCategoryChange={setCategoryFilter}
+          className="mb-5"
+        />
 
         {/* Toolbar Pencarian & Filter Tambahan */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
