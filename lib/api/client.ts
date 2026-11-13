@@ -77,17 +77,20 @@ export class ApiClient {
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { body, query, headers, ...init } = options;
-    const requestHeaders = new Headers(headers);
-    if (body !== undefined) requestHeaders.set("content-type", "application/json");
-    if (this.accessToken) requestHeaders.set("authorization", `Bearer ${this.accessToken}`);
+      const { body, query, headers, ...init } = options;
+      const requestHeaders = new Headers(headers);
+      // Don't set content-type for FormData - browser will set with boundary
+      if (body !== undefined && !(body instanceof FormData)) {
+        requestHeaders.set("content-type", "application/json");
+      }
+      if (this.accessToken) requestHeaders.set("authorization", `Bearer ${this.accessToken}`);
 
-    const response = await this.fetcher(createUrl(this.baseUrl, path, query), {
-      ...init,
-      credentials: init.credentials ?? "include",
-      headers: requestHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+      const response = await this.fetcher(createUrl(this.baseUrl, path, query), {
+        ...init,
+        credentials: init.credentials ?? "include",
+        headers: requestHeaders,
+        body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+      });
 
     const payload = await response.json().catch(() => undefined);
     if (!response.ok) {

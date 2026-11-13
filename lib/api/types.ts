@@ -99,4 +99,17 @@ export type ConvertSurveyInput = {
   pagu: number;
 };
 
+export type UploadResult = {
+  storageKey: string;
+  url: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+};
+
+export type PresignedUploadUrl = {
+  uploadUrl: string;
+  key: string;
+};
+
 export type { CreateProgramInput, UpdateProgramInput, SurveyInput, CreateUserInput, UpdateUserInput };
