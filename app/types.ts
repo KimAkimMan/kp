@@ -28,6 +28,7 @@ export interface HistoryItem {
   satuan: string;
   keterangan: string;
   foto: boolean;
+  fotoUrl?: string;
   penginput: string;
   status?: string;
 }
@@ -77,6 +78,12 @@ export interface Program {
   kondisiJalan?: "Baik" | "Sedang" | "Rusak" | string;
   tanggalMulai?: string;
   tanggalSelesai?: string;
+  fotoUrl?: string;
+  dokumentasi?: {
+    tahap: string;
+    url: string;
+    keterangan?: string;
+  }[];
   histories: HistoryItem[];
   costs: CostItem[];
 }

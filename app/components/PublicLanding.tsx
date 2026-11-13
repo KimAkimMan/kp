@@ -96,24 +96,40 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           </a>
         </nav>
 
-        <button
-          onClick={onOpenLogin}
-          className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-sm"
+        <a
+          href="#login"
+          onClick={(e) => {
+            e.preventDefault();
+            onOpenLogin();
+            window.location.hash = "login";
+          }}
+          className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-sm cursor-pointer relative z-30 select-none active:scale-95 inline-flex items-center justify-center"
         >
           Login
-        </button>
+        </a>
       </header>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#143965] via-[#1E4E8C] to-[#286BA3] text-white px-[7%] py-16 md:py-20 overflow-hidden">
-        <div className="max-w-3xl">
-          <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
+      <section
+        className="relative text-white px-[7%] py-20 md:py-28 overflow-hidden"
+        style={{
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        {/* Dark overlay agar teks tetap terbaca */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a1f3d]/85 via-[#143965]/75 to-[#1E4E8C]/50" />
+
+        <div className="relative z-10 max-w-3xl">
+          <span className="inline-block text-xs font-bold tracking-widest text-[#7DD3CE] uppercase mb-3 drop-shadow">
             SISTEM INFORMASI MONITORING PERMUKIMAN
           </span>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-white mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-white mb-4 drop-shadow-lg">
             Pembangunan permukiman yang dapat dipantau bersama.
           </h1>
-          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl">
+          <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-2xl drop-shadow">
             Pantau kegiatan, target, realisasi, dokumentasi, dan penggunaan
             anggaran pembangunan permukiman Kabupaten Kuningan secara terbuka,
             akuntabel, dan terukur.
@@ -124,30 +140,51 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       {/* Floating Public Stats */}
       <section className="px-[5%] -mt-10 sm:-mt-12 relative z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#1E4E8C]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Program aktif</p>
-            <strong className="block text-2xl sm:text-3xl font-bold text-[#143965] mt-2">
-              {activeCount} Kegiatan
-            </strong>
+
+          {/* Card 1 – Program Aktif */}
+          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-md flex flex-col gap-3">
+            <span className="text-sm font-semibold text-[#65778B]">Program Aktif</span>
+            <div className="border-t border-[#F0F4F8] pt-3">
+              <strong className="block text-3xl font-extrabold text-[#143965] leading-tight">
+                {activeCount}
+              </strong>
+              <span className="text-xs text-[#65778B] font-medium mt-0.5 block">Kegiatan sedang dikerjakan</span>
+            </div>
           </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#148B87]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Program selesai</p>
-            <strong className="block text-2xl sm:text-3xl font-bold text-[#148B87] mt-2">
-              {doneCount} Kegiatan
-            </strong>
+
+          {/* Card 2 – Program Selesai */}
+          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-md flex flex-col gap-3">
+            <span className="text-sm font-semibold text-[#65778B]">Program Selesai</span>
+            <div className="border-t border-[#F0F4F8] pt-3">
+              <strong className="block text-3xl font-extrabold text-[#148B87] leading-tight">
+                {doneCount}
+              </strong>
+              <span className="text-xs text-[#65778B] font-medium mt-0.5 block">Kegiatan telah selesai</span>
+            </div>
           </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#E78A31]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Total pagu</p>
-            <strong className="block text-xl sm:text-2xl font-bold text-[#143965] mt-2">
-              {currency(summary.pagu)}
-            </strong>
+
+          {/* Card 3 – Total Pagu */}
+          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-md flex flex-col gap-3">
+            <span className="text-sm font-semibold text-[#65778B]">Total Pagu</span>
+            <div className="border-t border-[#F0F4F8] pt-3">
+              <strong className="block text-xl font-extrabold text-[#143965] leading-tight break-words">
+                {currency(summary.pagu)}
+              </strong>
+              <span className="text-xs text-[#65778B] font-medium mt-0.5 block">Anggaran yang dialokasikan</span>
+            </div>
           </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#258050]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Total penggunaan</p>
-            <strong className="block text-xl sm:text-2xl font-bold text-[#258050] mt-2">
-              {currency(summary.penggunaan)}
-            </strong>
+
+          {/* Card 4 – Total Penggunaan */}
+          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-md flex flex-col gap-3">
+            <span className="text-sm font-semibold text-[#65778B]">Total Penggunaan</span>
+            <div className="border-t border-[#F0F4F8] pt-3">
+              <strong className="block text-xl font-extrabold text-[#258050] leading-tight break-words">
+                {currency(summary.penggunaan)}
+              </strong>
+              <span className="text-xs text-[#65778B] font-medium mt-0.5 block">Realisasi anggaran terpakai</span>
+            </div>
           </article>
+
         </div>
       </section>
 
@@ -321,69 +358,101 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="https://images.pexels.com/photos/8961065/pexels-photo-8961065.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Pekerjaan pengaspalan jalan lingkungan"
-                className="w-full h-44 object-cover"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src="/uploads/jalan/ancaran-100.jpg"
+                  alt="Peningkatan Jalan Lingkungan Permukiman Ancaran"
+                  className="w-full h-44 object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#148B87] text-white shadow-xs">
+                  Selesai 100%
+                </span>
+              </div>
               <div className="p-4">
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EBF3FA] text-[#1E4E8C] mb-1.5">
+                  Jalan Lingkungan
+                </span>
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Perbaikan Jalan Lingkungan
+                  Peningkatan Jalan Lingkungan
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Ciawigebang
+                  Desa Ancaran, Kuningan
                 </span>
               </div>
             </article>
 
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="https://images.pexels.com/photos/32257223/pexels-photo-32257223.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Pekerja pada saluran drainase besar"
-                className="w-full h-44 object-cover"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src="/uploads/tpt/tpt-1.jpg"
+                  alt="Pembangunan Tembok Penahan Tanah (TPT)"
+                  className="w-full h-44 object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#148B87] text-white shadow-xs">
+                  Selesai 100%
+                </span>
+              </div>
               <div className="p-4">
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EBF3FA] text-[#1E4E8C] mb-1.5">
+                  Drainase/TPT
+                </span>
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Peningkatan Drainase
+                  Pembangunan Tembok Penahan Tanah (TPT)
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Kertawinangun
+                  Kecamatan Kuningan
                 </span>
               </div>
             </article>
 
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="https://images.pexels.com/photos/12726229/pexels-photo-12726229.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Instalasi pipa dan sarana air bersih"
-                className="w-full h-44 object-cover"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src="/uploads/drainase/drainase-1.jpg"
+                  alt="Peningkatan Saluran Pembuangan Air Hujan"
+                  className="w-full h-44 object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#148B87] text-white shadow-xs">
+                  Selesai 100%
+                </span>
+              </div>
               <div className="p-4">
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EBF3FA] text-[#1E4E8C] mb-1.5">
+                  Drainase/TPT
+                </span>
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Sarana Air Bersih
+                  Peningkatan Saluran Drainase
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Kecamatan Cigugur
+                  Kelurahan Cigugur
                 </span>
               </div>
             </article>
 
             <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="https://images.pexels.com/photos/38470293/pexels-photo-38470293.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Tampak kawasan permukiman rapi"
-                className="w-full h-44 object-cover"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src="/uploads/jalan/ciporang-100.jpg"
+                  alt="Pembangunan Jalan Lingkungan & Rabat Beton Ciporang"
+                  className="w-full h-44 object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#148B87] text-white shadow-xs">
+                  Selesai 100%
+                </span>
+              </div>
               <div className="p-4">
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EBF3FA] text-[#1E4E8C] mb-1.5">
+                  Jalan Lingkungan
+                </span>
                 <strong className="block text-sm font-bold text-[#143965]">
-                  Penataan Lingkungan
+                  Pembangunan Jalan Rabat Beton
                 </strong>
                 <span className="block text-xs text-[#65778B] mt-1">
-                  Desa Cisantana
+                  Kelurahan Ciporang, Kuningan
                 </span>
               </div>
             </article>

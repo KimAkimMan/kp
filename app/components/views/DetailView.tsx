@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowLeft,
   Image as ImageIcon,
   Paperclip,
   MessageSquarePlus,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -29,6 +31,12 @@ export const DetailView: React.FC<DetailViewProps> = ({
   currentUser,
   onNavigateToDashboardAdvice,
 }) => {
+  const [previewImage, setPreviewImage] = useState<{
+    url: string;
+    title: string;
+    subtitle?: string;
+  } | null>(null);
+
   const percent =
     program.target > 0
       ? Math.min(100, Math.round((program.realisasi / program.target) * 100))
@@ -162,6 +170,61 @@ export const DetailView: React.FC<DetailViewProps> = ({
         </div>
       </section>
 
+      {/* Dokumentasi Visual Lapangan */}
+      {program.dokumentasi && program.dokumentasi.length > 0 && (
+        <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <div>
+              <h3 className="text-base font-bold text-[#143965]">
+                Dokumentasi Fisik Lapangan
+              </h3>
+              <p className="text-xs text-[#65778B] mt-0.5">
+                Dokumentasi visual tahapan pelaksanaan konstruksi fisik di lapangan.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-[#EBF3FA] text-[#1E4E8C] rounded-lg">
+              {program.dokumentasi.length} Dokumentasi Terlampir
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {program.dokumentasi.map((doc, idx) => (
+              <div
+                key={idx}
+                onClick={() =>
+                  setPreviewImage({
+                    url: doc.url,
+                    title: doc.tahap,
+                    subtitle: doc.keterangan,
+                  })
+                }
+                className="group cursor-pointer bg-[#F8FAFC] border border-[#E1E9F0] rounded-xl overflow-hidden hover:border-[#1E4E8C] hover:shadow-md transition flex flex-col"
+              >
+                <div className="relative aspect-video w-full overflow-hidden bg-black/5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={doc.url}
+                    alt={doc.tahap}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  />
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#143965]/85 backdrop-blur text-white shadow-xs">
+                    {doc.tahap}
+                  </span>
+                </div>
+                <div className="p-3 flex-1 flex flex-col justify-between">
+                  <p className="text-xs text-[#496178] line-clamp-2">
+                    {doc.keterangan || doc.tahap}
+                  </p>
+                  <span className="text-[11px] font-semibold text-[#1E4E8C] group-hover:underline mt-2 inline-flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" /> Perbesar Foto
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Riwayat Realisasi */}
       <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
         <h3 className="text-base font-bold text-[#143965] mb-4">
@@ -190,7 +253,21 @@ export const DetailView: React.FC<DetailViewProps> = ({
                     </td>
                     <td className="p-3 text-[#496178] max-w-sm">{h.keterangan}</td>
                     <td className="p-3 whitespace-nowrap">
-                      {h.foto ? (
+                      {h.fotoUrl ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: h.fotoUrl!,
+                              title: h.tahap,
+                              subtitle: h.keterangan,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EBF3FA] text-[#1E4E8C] hover:bg-[#D8E9F6] font-semibold text-xs transition"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" /> Lihat Foto
+                        </button>
+                      ) : h.foto ? (
                         <span className="inline-flex items-center gap-1.5 text-[#1E4E8C] font-semibold">
                           <ImageIcon className="w-3.5 h-3.5" /> Foto tersedia
                         </span>
@@ -318,6 +395,58 @@ export const DetailView: React.FC<DetailViewProps> = ({
           </table>
         </div>
       </section>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-[#DCE5ED]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-[#EAF0F4] flex items-center justify-between">
+              <div>
+                <strong className="block text-sm font-bold text-[#143965]">
+                  {previewImage.title}
+                </strong>
+                {previewImage.subtitle && (
+                  <p className="text-xs text-[#65778B] mt-0.5">
+                    {previewImage.subtitle}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#65778B] hover:bg-[#F0F4F8] hover:text-[#143965] transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="relative bg-black/90 aspect-video flex items-center justify-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-full object-contain max-h-[70vh]"
+              />
+            </div>
+            <div className="p-3 bg-[#F8FAFC] border-t border-[#EAF0F4] flex justify-between items-center text-xs text-[#65778B]">
+              <span>Dokumentasi Dinas Perumahan, Kawasan Permukiman dan Pertanahan</span>
+              <a
+                href={previewImage.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-[#1E4E8C] hover:underline"
+              >
+                Buka Ukuran Asli <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

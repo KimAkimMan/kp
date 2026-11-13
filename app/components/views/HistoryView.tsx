@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Image as ImageIcon, Calendar, Layers } from "lucide-react";
+import { Image as ImageIcon, Calendar, Layers, X, ExternalLink } from "lucide-react";
 import { Program, User } from "../../types";
 import { quantity, operatorAssignment, getProgramYear } from "../../utils/helpers";
 
@@ -18,6 +18,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   selectedProgramId,
   onSelectProgramId,
 }) => {
+  const [previewImage, setPreviewImage] = useState<{
+    url: string;
+    title: string;
+    subtitle?: string;
+  } | null>(null);
   const [yearFilter, setYearFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -189,7 +194,21 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </td>
                     <td className="p-3.5 text-[#496178] max-w-sm">{h.keterangan}</td>
                     <td className="p-3.5 whitespace-nowrap">
-                      {h.foto ? (
+                      {h.fotoUrl ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: h.fotoUrl!,
+                              title: h.tahap,
+                              subtitle: h.keterangan,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EBF3FA] text-[#1E4E8C] hover:bg-[#D8E9F6] font-semibold text-xs transition"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" /> Lihat Foto
+                        </button>
+                      ) : h.foto ? (
                         <span className="inline-flex items-center gap-1.5 text-[#1E4E8C] font-semibold">
                           <ImageIcon className="w-3.5 h-3.5" /> Foto tersedia
                         </span>
@@ -213,6 +232,58 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </table>
         </div>
       </section>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-[#DCE5ED]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-[#EAF0F4] flex items-center justify-between">
+              <div>
+                <strong className="block text-sm font-bold text-[#143965]">
+                  {previewImage.title}
+                </strong>
+                {previewImage.subtitle && (
+                  <p className="text-xs text-[#65778B] mt-0.5">
+                    {previewImage.subtitle}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#65778B] hover:bg-[#F0F4F8] hover:text-[#143965] transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="relative bg-black/90 aspect-video flex items-center justify-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-full object-contain max-h-[70vh]"
+              />
+            </div>
+            <div className="p-3 bg-[#F8FAFC] border-t border-[#EAF0F4] flex justify-between items-center text-xs text-[#65778B]">
+              <span>Dokumentasi Dinas Perumahan, Kawasan Permukiman dan Pertanahan</span>
+              <a
+                href={previewImage.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-[#1E4E8C] hover:underline"
+              >
+                Buka Ukuran Asli <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

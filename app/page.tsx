@@ -57,6 +57,18 @@ export default function Home() {
 
   // Sync with browser storage once mounted
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.location.hash === "#login" || window.location.search.includes("login")) {
+        setScreen("login");
+      }
+      const handleHash = () => {
+        if (window.location.hash === "#login") {
+          setScreen("login");
+        }
+      };
+      window.addEventListener("hashchange", handleHash);
+    }
+
     const frameId = requestAnimationFrame(() => {
       try {
         const stored = localStorage.getItem(PROGRAMS_STORAGE_KEY);
@@ -67,6 +79,41 @@ export default function Home() {
               let kategori = p.kategori;
               if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
                 kategori = "Konstruksi Lainnya";
+              }
+              if (kategori === "Drainase") {
+                kategori = "Drainase/TPT";
+              }
+
+              // Inject documentation for Program ID 1 (Jalan Ancaran)
+              if (p.id === 1 && (!p.fotoUrl || !p.dokumentasi)) {
+                const p1Initial = initialPrograms.find((item) => item.id === 1);
+                if (p1Initial) {
+                  return { ...p, ...p1Initial };
+                }
+              }
+
+              // Inject TPT documentation if this is program ID 2
+              if (p.id === 2 && (!p.fotoUrl || !p.dokumentasi)) {
+                const tptInitial = initialPrograms.find((item) => item.id === 2);
+                if (tptInitial) {
+                  return { ...p, ...tptInitial, kategori: "Drainase/TPT" };
+                }
+              }
+
+              // Inject documentation for Program ID 5 (Jalan Ciporang)
+              if (p.id === 5 && (!p.fotoUrl || !p.dokumentasi)) {
+                const p5Initial = initialPrograms.find((item) => item.id === 5);
+                if (p5Initial) {
+                  return { ...p, ...p5Initial };
+                }
+              }
+
+              // Inject documentation for Program ID 6 (Drainase Cigugur)
+              if (p.id === 6 && (!p.fotoUrl || !p.dokumentasi)) {
+                const p6Initial = initialPrograms.find((item) => item.id === 6);
+                if (p6Initial) {
+                  return { ...p, ...p6Initial, kategori: "Drainase/TPT" };
+                }
               }
               const u = String(p.satuan || "").toLowerCase();
               if (u === "km" || u.includes("kilometer")) {
@@ -146,6 +193,21 @@ export default function Home() {
               let kategori = s.kategori;
               if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
                 kategori = "Konstruksi Lainnya";
+              }
+              if (kategori === "Drainase") {
+                kategori = "Drainase/TPT";
+              }
+              if (s.id === "SRV-2026-001" && (!s.fotoUrl || s.fotoUrl.includes("unsplash"))) {
+                const srvInitial = initialSurveys.find((item) => item.id === "SRV-2026-001");
+                if (srvInitial) {
+                  return { ...s, ...srvInitial };
+                }
+              }
+              if (s.id === "SRV-2026-002" && (!s.fotoUrl || s.fotoUrl.includes("unsplash"))) {
+                const srvInitial = initialSurveys.find((item) => item.id === "SRV-2026-002");
+                if (srvInitial) {
+                  return { ...s, ...srvInitial };
+                }
               }
               return { ...s, kategori };
             });

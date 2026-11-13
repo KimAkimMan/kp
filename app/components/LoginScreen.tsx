@@ -58,22 +58,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   return (
     <div className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] bg-[#EAF3FB]">
-      {/* Left Visual Banner */}
-      <aside className="hidden lg:flex flex-col justify-between p-16 bg-gradient-to-br from-[#1E4E8C] to-[#286BA3] text-white">
-        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white backdrop-blur">
+      {/* Left Visual Banner with Building Background */}
+      <aside
+        className="hidden lg:flex flex-col justify-between p-16 relative text-white overflow-hidden"
+        style={{
+          backgroundImage: "url('/login-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        {/* Dark overlay agar teks dan logo tetap terbaca kontras & jelas */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f3d]/90 via-[#143965]/80 to-[#1E4E8C]/65" />
+
+        <div className="relative z-10 w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white backdrop-blur shadow-sm">
           <Landmark className="w-6 h-6" />
         </div>
-        <div>
-          <h1 className="text-4xl xl:text-5xl font-extrabold leading-tight mb-4">
+        <div className="relative z-10">
+          <h1 className="text-4xl xl:text-5xl font-extrabold leading-tight mb-4 drop-shadow-md text-white">
             Sistem Monitoring Permukiman Kuningan
           </h1>
-          <p className="text-[#D9EBFA] text-lg max-w-lg leading-relaxed">
+          <p className="text-white/90 text-lg max-w-lg leading-relaxed drop-shadow">
             Platform terpadu untuk memantau target capaian fisik, realisasi
             lapangan, pagu, dan penyerapan anggaran Dinas PKPP Kabupaten
             Kuningan.
           </p>
         </div>
-        <div className="text-xs text-[#BED8F0]">
+        <div className="relative z-10 text-xs text-white/80 font-medium drop-shadow">
           Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten Kuningan
         </div>
       </aside>
@@ -103,11 +114,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 key={role}
                 type="button"
                 onClick={() => handleRoleChange(role)}
-                className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold border transition ${
-                  selectedRole === role
+                className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold border transition ${selectedRole === role
                     ? "border-[#1E4E8C] bg-[#EDF5FB] text-[#1E4E8C] shadow-xs"
                     : "border-[#D4E0EB] bg-white text-[#4A647D] hover:bg-[#F7FAFC]"
-                }`}
+                  }`}
               >
                 {role}
               </button>
@@ -177,7 +187,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
           <button
             type="button"
-            onClick={onBackToLanding}
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.location.hash = "";
+              }
+              onBackToLanding();
+            }}
             className="w-full mt-3 py-2.5 text-xs sm:text-sm font-semibold text-[#1E4E8C] hover:bg-[#EDF4F8] rounded-xl transition flex items-center justify-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" /> Kembali ke halaman transparansi
