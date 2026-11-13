@@ -17,4 +17,7 @@ export const userApi = {
   remove(id: number) {
     return apiClient.delete<ApiResponse<ApiUser>>(`/users/${id}`);
   },
+  resetPassword(id: number, password: string) {
+    return apiClient.post<ApiResponse<{ reset: true }>>(`/users/${id}/reset-password`, { password });
+  },
 };

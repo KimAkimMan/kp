@@ -14,6 +14,7 @@ export const openapiDocument = {
       { name: "Advice", description: "Saran dan arahan pimpinan" },
       { name: "Reports", description: "Ringkasan laporan" },
       { name: "Storage", description: "File upload dan storage" },
+      { name: "Reference Data", description: "Master data untuk form" },
     ],
   components: {
     parameters: {
@@ -420,6 +421,23 @@ export const openapiDocument = {
     },
   },
   paths: {
+    "/public/programs": {
+      get: { tags: ["Programs"], summary: "Daftar program untuk landing publik dengan field terbatas", parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar program publik" } } },
+    },
+    "/auth/profile": {
+      patch: { tags: ["Auth"], summary: "Ubah profil sendiri", security: [{ sessionCookie: [] }], responses: { "200": { description: "Profil diperbarui" } } },
+    },
+    "/auth/change-password": {
+      post: { tags: ["Auth"], summary: "Ubah password sendiri", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["currentPassword", "newPassword"], properties: { currentPassword: { type: "string", minLength: 8 }, newPassword: { type: "string", minLength: 8 } } } } } }, responses: { "200": { description: "Password diubah" } } },
+    },
+    "/users/{id}/reset-password": {
+      post: { tags: ["Users"], summary: "Admin reset password pengguna", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Password direset" } } },
+    },
+    "/reference-data/categories": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Kategori program" } } } },
+    "/reference-data/units": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Satuan" } } } },
+    "/reference-data/periods": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Periode aktif" } } } },
+    "/reference-data/districts": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Kecamatan" } } } },
+    "/reference-data/villages": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], parameters: [{ name: "kecamatanId", in: "query", required: true, schema: { type: "integer", minimum: 1 } }], responses: { "200": { description: "Desa/kelurahan" } } } },
     "/auth/login": {
       post: {
         tags: ["Auth"],

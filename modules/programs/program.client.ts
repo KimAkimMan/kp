@@ -37,6 +37,19 @@ export const programApi = {
   complete(id: number, input?: { foto?: boolean }) {
     return apiClient.post<ApiResponse<ApiProgram>>(`/programs/${id}/complete`, input);
   },
+  history(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/history`); },
+  progress(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/progress`); },
+  costs(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/costs`); },
+  assignments(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/assignments`); },
+  assign(id: number, input: { operatorId: number; notes?: string }) { return apiClient.post<ApiResponse<unknown>>(`/programs/${id}/assignments`, input); },
+  acceptAssignment(programId: number, assignmentId: number) { return apiClient.post<ApiResponse<unknown>>(`/programs/${programId}/assignments/${assignmentId}`); },
+  releaseAssignment(programId: number, assignmentId: number) { return apiClient.patch<ApiResponse<unknown>>(`/programs/${programId}/assignments/${assignmentId}`, { action: "release" }); },
+  removeAssignment(programId: number, assignmentId: number) { return apiClient.delete<ApiResponse<unknown>>(`/programs/${programId}/assignments/${assignmentId}`); },
+  verifyProgress(id: number, input: { decision: "APPROVED" | "REJECTED"; rejectionReason?: string }) { return apiClient.patch<ApiResponse<unknown>>(`/progress/${id}/verify`, input); },
+  verifyCost(id: number, input: { decision: "APPROVED" | "REJECTED"; rejectionReason?: string }) { return apiClient.patch<ApiResponse<unknown>>(`/costs/${id}`, input); },
+  costDocuments(costId: number) { return apiClient.get<ApiResponse<unknown[]>>(`/costs/${costId}`); },
+  uploadCostDocument(costId: number, file: File) { const body = new FormData(); body.append("file", file); return apiClient.request<ApiResponse<unknown>>(`/costs/${costId}`, { method: "POST", body }); },
+  removeCostDocument(costId: number, documentId: string) { return apiClient.delete<ApiResponse<unknown>>(`/costs/${costId}/documents/${encodeURIComponent(documentId)}`); },
 };
 
 export type { ConvertSurveyInput };

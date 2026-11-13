@@ -42,26 +42,20 @@ integer. Frontend tidak boleh mengubahnya menjadi angka.
 
 ## Gap yang harus ditutup sebelum layar terkait dibuat
 
-1. **Landing publik.** `PublicLanding` lama menerima seluruh program dari
-   state lokal, sementara `GET /programs` membutuhkan autentikasi. Tentukan
-   apakah landing memang publik. Jika ya, buat endpoint/DTO publik yang hanya
-   mengembalikan data yang boleh dipublikasikan; jangan membuka endpoint admin.
-2. **Master data.** Schema sudah memiliki kategori program, unit, periode,
-   kecamatan, dan desa, tetapi belum ada endpoint baca untuk dropdown.
-   Tambahkan domain `reference-data` (`categories`, `units`, `periods`,
-   `districts`, dan villages berdasarkan district) sebelum form program/survey
-   dibangun.
-3. **Client API belum menutup semua endpoint.** Tambahkan method bertipe untuk
-   assignment, riwayat, daftar/verifikasi progres, daftar/verifikasi biaya,
-   dokumen biaya, foto/review/status-history/link survey, dan reply advice.
-   Jangan memanggil path ini langsung dari komponen.
+1. **Landing publik.** Selesai melalui `GET /public/programs`; endpoint ini
+   hanya mengembalikan DTO publik dan tidak membuka data operator/biaya.
+2. **Master data.** Selesai melalui domain `reference-data`: kategori, satuan,
+   periode aktif, kecamatan, serta desa/kelurahan berdasarkan kecamatan.
+3. **Client API.** Selesai: client program, survey, dan advice telah mencakup
+   endpoint lanjutan. Komponen tetap dilarang memanggil path langsung.
 4. **Filter list.** Program sudah mendukung `status`, `operatorId`,
    `kecamatan`, dan `search`. Survey, advice, dan user saat ini hanya
    pagination. Tambahkan filter server-side yang diperlukan oleh tabel UI
    (minimal status, pencarian, dan rentang tanggal) sebelum datanya besar.
-5. **Profil dan kredensial.** Belum ada endpoint khusus untuk ubah profil
-   sendiri, ubah kata sandi, atau reset kata sandi. Ini diperlukan bila halaman
-   profil tidak hanya menampilkan arahan.
+5. **Profil dan kredensial.** Selesai melalui `PATCH /auth/profile`,
+   `POST /auth/change-password`, dan reset password oleh admin di
+   `POST /users/{id}/reset-password`. Reset mandiri melalui email tidak dibuat
+   karena membutuhkan provider email di luar scope backend ini.
 6. **Audit operasional.** Schema `AuditLog` tersedia, tetapi pencatatan belum
    mencakup semua mutasi penting. Tentukan event minimum: login, perubahan
    program, assignment, verifikasi progres/biaya/survey, upload, dan delete.

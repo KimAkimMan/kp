@@ -20,4 +20,7 @@ export const adviceApi = {
   remove(id: string) {
     return apiClient.delete<ApiResponse<Advice>>(`/advice/${encodeURIComponent(id)}`);
   },
+  replies(id: string) { return apiClient.get<ApiResponse<unknown[]>>(`/advice/${encodeURIComponent(id)}/replies`); },
+  reply(id: string, isi: string) { return apiClient.post<ApiResponse<unknown>>(`/advice/${encodeURIComponent(id)}/replies`, { isi }); },
+  removeReply(replyId: string) { return apiClient.delete<ApiResponse<unknown>>(`/advice/replies/${encodeURIComponent(replyId)}`); },
 };

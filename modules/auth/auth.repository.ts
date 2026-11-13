@@ -56,4 +56,20 @@ export const authRepository = {
     });
   },
 
+  findUserWithPassword(id: number) {
+    return prisma.user.findFirst({ where: { id, deletedAt: null, isActive: true } });
+  },
+
+  updateOwnProfile(id: number, input: { nama?: string; email?: string }) {
+    return prisma.user.update({ where: { id }, data: input, select: publicUserSelect });
+  },
+
+  updatePassword(id: number, passwordHash: string) {
+    return prisma.user.update({ where: { id }, data: { passwordHash } });
+  },
+
+  deleteOtherSessions(userId: number, currentSessionId: string) {
+    return prisma.session.deleteMany({ where: { userId, id: { not: currentSessionId } } });
+  },
+
 };
