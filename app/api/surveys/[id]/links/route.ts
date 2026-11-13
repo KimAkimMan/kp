@@ -5,7 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { surveyProgramLinkService } from "@/modules/surveys/survey-program-link.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
-type Context = { params: Promise<{ id: string; linkId?: string }> };
+type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, context: Context) {
   return handleRoute(async () => {
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest, context: Context) {
     return successResponse(result);
   });
 }
-
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(async () => {
     const user = await requireRole("ADMIN");
@@ -33,14 +32,5 @@ export async function POST(request: NextRequest, context: Context) {
       user as AuthenticatedUser,
     );
     return successResponse(result, 201);
-  });
-}
-
-export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    const { id, linkId } = await context.params;
-    const result = await surveyProgramLinkService.delete(linkId, user as AuthenticatedUser);
-    return successResponse(result);
   });
 }

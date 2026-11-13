@@ -4,7 +4,6 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePositiveId } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
-import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 type Context = { params: Promise<{ id: string; assignmentId: string }> };
 
@@ -50,6 +49,18 @@ export async function PATCH(request: NextRequest, context: Context) {
       assignmentIdNum,
       user.id,
       true,
+    );
+    return successResponse(result);
+  });
+}
+
+export async function DELETE(_request: NextRequest, context: Context) {
+  return handleRoute(async () => {
+    const user = await requireRole("ADMIN");
+    const { assignmentId } = await context.params;
+    const result = await programAssignmentService.delete(
+      parsePositiveId(assignmentId),
+      user,
     );
     return successResponse(result);
   });

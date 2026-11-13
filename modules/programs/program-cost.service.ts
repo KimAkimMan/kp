@@ -1,5 +1,5 @@
 import { programCostRepository } from "./program-cost.repository";
-import type { CostDocumentInput } from "./program-cost.repository";
+import { ApiError } from "@/lib/http/api-error";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 export const programCostService = {
@@ -30,19 +30,19 @@ export const programCostService = {
     return programCostRepository.addDocument(costId, file, uploadedById);
   },
 
-  async deleteDocument(documentId: number, userId: number) {
+  async deleteDocument(documentId: string, user: AuthenticatedUser) {
     const document = await prismaProgramCostDocumentFindById(documentId);
-    if (document.uploadedById !== userId) {
-      throw new Error("Hanya pemilik dokumen yang dapat menghapus.");
+    if (user.role !== "ADMIN" && document.uploadedById !== user.id) {
+      throw new ApiError("FORBIDDEN", "Hanya pemilik dokumen yang dapat menghapus.", 403);
     }
     return programCostRepository.deleteDocument(documentId);
   },
 };
 
 // Helper untuk find document by id
-async function prismaProgramCostDocumentFindById(id: number) {
+async function prismaProgramCostDocumentFindById(id: string) {
   const { prisma } = await import("@/lib/prisma");
   const document = await prisma.programCostDocument.findUnique({ where: { id } });
-  if (!document) throw new Error("Dokumen tidak ditemukan.");
+  if (!document) throw new ApiError("DOCUMENT_NOT_FOUND", "Dokumen tidak ditemukan.", 404);
   return document;
 }

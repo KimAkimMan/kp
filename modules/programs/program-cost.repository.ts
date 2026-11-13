@@ -74,13 +74,13 @@ export const programCostRepository = {
     file: File,
     uploadedById?: number,
   ) {
-    const cost = await this.findById(costId);
+    await this.findById(costId);
     const storage = getStorage();
     const storageKey = `costs/${costId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const result = await storage.upload({
+    await storage.upload({
       key: storageKey,
       contentType: file.type,
       body: buffer,
@@ -99,7 +99,6 @@ export const programCostRepository = {
         mimeType: file.type,
         fileSize: file.size,
         uploadedById,
-        url: result.url,
       },
       include: {
         uploadedBy: { select: { id: true, nama: true } },
@@ -107,7 +106,7 @@ export const programCostRepository = {
     });
   },
 
-  async deleteDocument(documentId: number) {
+  async deleteDocument(documentId: string) {
     const document = await prisma.programCostDocument.findUnique({
       where: { id: documentId },
     });

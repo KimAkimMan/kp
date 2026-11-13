@@ -10,7 +10,11 @@ export const adviceReplyService = {
     return adviceReplyRepository.list(adviceId);
   },
 
-  async create(adviceId: string, input: Omit<AdviceReplyInput, "adviceId">, user: AuthenticatedUser) {
+  async create(
+    adviceId: string,
+    input: Pick<AdviceReplyInput, "isi">,
+    user: AuthenticatedUser,
+  ) {
     return adviceReplyRepository.create({
       adviceId,
       ...input,

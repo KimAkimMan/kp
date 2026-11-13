@@ -17,8 +17,9 @@ export const systemApi = {
     formData.append("file", file);
     if (type) formData.append("type", type);
     if (prefix) formData.append("prefix", prefix);
-    return apiClient.post<ApiResponse<UploadResult>>("/upload", formData, {
-      headers: {}, // Let browser set content-type with boundary
+    return apiClient.request<ApiResponse<UploadResult>>("/upload", {
+      method: "POST",
+      body: formData,
     });
   },
   getPresignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number) {

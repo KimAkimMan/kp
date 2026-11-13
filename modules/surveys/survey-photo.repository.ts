@@ -50,7 +50,7 @@ export const surveyPhotoRepository = {
     const arrayBuffer = await input.file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const result = await storage.upload({
+    await storage.upload({
       key: storageKey,
       contentType: input.file.type,
       body: buffer,
@@ -72,7 +72,6 @@ export const surveyPhotoRepository = {
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
         uploadedById: input.uploadedById ?? null,
-        url: result.url,
       },
       include: {
         uploadedBy: { select: { id: true, nama: true } },

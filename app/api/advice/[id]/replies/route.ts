@@ -5,7 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { adviceReplyService } from "@/modules/advice/advice-reply.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
-type Context = { params: Promise<{ id: string; replyId?: string }> };
+type Context = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, context: Context) {
   return handleRoute(async () => {
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest, context: Context) {
     return successResponse(result);
   });
 }
-
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(async () => {
     const user = await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
@@ -33,14 +32,5 @@ export async function POST(request: NextRequest, context: Context) {
       user as AuthenticatedUser,
     );
     return successResponse(result, 201);
-  });
-}
-
-export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireUser();
-    const { id, replyId } = await context.params;
-    const result = await adviceReplyService.delete(replyId, user as AuthenticatedUser);
-    return successResponse(result);
   });
 }

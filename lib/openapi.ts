@@ -559,7 +559,7 @@ export const openapiDocument = {
       post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { "201": { description: "Dokumen diupload" } } },
     },
     "/costs/{costId}/documents/{documentId}": {
-      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }, { name: "documentId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }, { name: "documentId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
       delete: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Dokumen dihapus" } } },
     },
     "/surveys/{id}/photos": {
