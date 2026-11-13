@@ -260,25 +260,6 @@ export const openapiDocument = {
           bukti: { type: "boolean" },
         },
       },
-      UploadResult: {
-        type: "object",
-        required: ["storageKey", "url", "originalName", "mimeType", "size"],
-        properties: {
-          storageKey: { type: "string" },
-          url: { type: "string", format: "uri" },
-          originalName: { type: "string" },
-          mimeType: { type: "string" },
-          size: { type: "integer", minimum: 0 },
-        },
-      },
-      PresignedUploadUrl: {
-        type: "object",
-        required: ["uploadUrl", "key"],
-        properties: {
-          uploadUrl: { type: "string", format: "uri" },
-          key: { type: "string" },
-        },
-      },
       ProgramAssignment: {
         type: "object",
         properties: {
@@ -523,52 +504,6 @@ export const openapiDocument = {
       delete: { tags: ["Advice"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Arahan dihapus" } } },
     },
     "/reports/summary": { get: { tags: ["Reports"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Ringkasan laporan" } } } },
-    "/upload": {
-      post: {
-        tags: ["Storage"],
-        summary: "Upload file (multipart/form-data)",
-        security: [{ sessionCookie: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            "multipart/form-data": {
-              schema: {
-                type: "object",
-                required: ["file"],
-                properties: {
-                  file: { type: "string", format: "binary" },
-                  type: { type: "string", enum: ["image", "document"], default: "image" },
-                  prefix: { type: "string", default: "uploads" },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          "201": {
-            description: "File terupload",
-            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/UploadResult" } } } } },
-          },
-          "400": { description: "File tidak valid", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
-      get: {
-        tags: ["Storage"],
-        summary: "Dapatkan presigned URL untuk direct upload",
-        security: [{ sessionCookie: [] }],
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "contentType", in: "query", required: true, schema: { type: "string" } },
-          { name: "expiresIn", in: "query", required: false, schema: { type: "integer", default: 3600 } },
-        ],
-        responses: {
-          "200": {
-            description: "Presigned URL",
-            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/PresignedUploadUrl" } } } } },
-          },
-        },
-      },
-    },
     "/programs/{id}/assignments": {
       get: { tags: ["Programs"], summary: "Daftar assignment", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar assignment program" } } },
       post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["operatorId"], properties: { operatorId: { type: "integer" }, notes: { type: "string" } } } } } }, responses: { "201": { description: "Assignment dibuat" } } },

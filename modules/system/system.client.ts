@@ -1,5 +1,4 @@
-import { apiClient, type ApiResponse } from "@/lib/api/client";
-import type { UploadResult, PresignedUploadUrl } from "@/lib/api/types";
+import { apiClient } from "@/lib/api/client";
 
 export type HealthStatus = {
   status: string;
@@ -11,20 +10,5 @@ export const systemApi = {
   },
   ready() {
     return apiClient.get<HealthStatus>("/ready");
-  },
-  upload(file: File, type?: "image" | "document", prefix?: string) {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (type) formData.append("type", type);
-    if (prefix) formData.append("prefix", prefix);
-    return apiClient.request<ApiResponse<UploadResult>>("/upload", {
-      method: "POST",
-      body: formData,
-    });
-  },
-  getPresignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number) {
-    const params = new URLSearchParams({ key, contentType });
-    if (expiresInSeconds) params.set("expiresIn", String(expiresInSeconds));
-    return apiClient.get<ApiResponse<PresignedUploadUrl>>(`/upload?${params.toString()}`);
   },
 };
