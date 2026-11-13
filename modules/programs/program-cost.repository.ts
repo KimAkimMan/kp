@@ -12,6 +12,15 @@ export type CostDocumentInput = {
 };
 
 export const programCostRepository = {
+  async findDocumentById(id: string) {
+    const document = await prisma.programCostDocument.findUnique({
+      where: { id },
+      include: { uploadedBy: { select: { id: true, nama: true } } },
+    });
+    if (!document) throw new ApiError("DOCUMENT_NOT_FOUND", "Dokumen tidak ditemukan.", 404);
+    return document;
+  },
+
   async list(programId: number) {
     const program = await prisma.program.findFirst({
       where: { id: programId, deletedAt: null },
@@ -34,6 +43,7 @@ export const programCostRepository = {
     const cost = await prisma.programCost.findUnique({
       where: { id },
       include: {
+        program: { select: { operatorPengelolaId: true } },
         inputBy: { select: { id: true, nama: true, role: true } },
         verifiedBy: { select: { id: true, nama: true, role: true } },
         documents: true,
@@ -106,11 +116,23 @@ export const programCostRepository = {
     });
   },
 
-  async deleteDocument(documentId: string) {
-    const document = await prisma.programCostDocument.findUnique({
-      where: { id: documentId },
+  async addDirectDocument(input: {
+    costId: number;
+    storageKey: string;
+    originalName: string;
+    mimeType: string;
+    fileSize: number;
+    uploadedById: number;
+  }) {
+    await this.findById(input.costId);
+    return prisma.programCostDocument.create({
+      data: input,
+      include: { uploadedBy: { select: { id: true, nama: true } } },
     });
-    if (!document) throw new ApiError("DOCUMENT_NOT_FOUND", "Dokumen tidak ditemukan.", 404);
+  },
+
+  async deleteDocument(documentId: string) {
+    const document = await this.findDocumentById(documentId);
 
     const storage = getStorage();
     try {

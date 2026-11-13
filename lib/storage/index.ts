@@ -25,6 +25,15 @@ export interface StorageProvider {
     expiresInSeconds?: number;
   }): Promise<{ uploadUrl: string; key: string }>;
 
+  getPresignedDownloadUrl?(params: {
+    key: string;
+    expiresInSeconds?: number;
+    contentType?: string;
+    contentDisposition?: string;
+  }): Promise<{ downloadUrl: string; key: string }>;
+
+  head?(key: string): Promise<{ size: number; contentType?: string }>;
+
   /**
    * Get public URL untuk file
    */
@@ -222,7 +231,7 @@ function createVercelBlobProvider(config: StorageConfig): StorageProvider {
 }
 
 function createR2Provider(config: StorageConfig): StorageProvider {
-  let S3Client: any, PutObjectCommand: any, DeleteObjectCommand: any, GetObjectCommand: any, getSignedUrl: any;
+  let S3Client: any, PutObjectCommand: any, DeleteObjectCommand: any, GetObjectCommand: any, HeadObjectCommand: any, getSignedUrl: any;
 
   try {
     const client = require("@aws-sdk/client-s3");
@@ -230,6 +239,7 @@ function createR2Provider(config: StorageConfig): StorageProvider {
     PutObjectCommand = client.PutObjectCommand;
     DeleteObjectCommand = client.DeleteObjectCommand;
     GetObjectCommand = client.GetObjectCommand;
+    HeadObjectCommand = client.HeadObjectCommand;
     const presigner = require("@aws-sdk/s3-request-presigner");
     getSignedUrl = presigner.getSignedUrl;
   } catch {
@@ -266,6 +276,20 @@ function createR2Provider(config: StorageConfig): StorageProvider {
       const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType });
       const uploadUrl = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
       return { uploadUrl, key };
+    },
+    async getPresignedDownloadUrl({ key, expiresInSeconds = 900, contentType, contentDisposition }) {
+      const command = new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ...(contentType ? { ResponseContentType: contentType } : {}),
+        ...(contentDisposition ? { ResponseContentDisposition: contentDisposition } : {}),
+      });
+      const downloadUrl = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+      return { downloadUrl, key };
+    },
+    async head(key) {
+      const result = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+      return { size: result.ContentLength ?? 0, contentType: result.ContentType };
     },
     getPublicUrl(key) {
       return `${publicUrl}/${key}`;

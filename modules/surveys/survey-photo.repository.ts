@@ -12,6 +12,15 @@ export type SurveyPhotoInput = {
 };
 
 export const surveyPhotoRepository = {
+  async assertSurvey(surveyId: string) {
+    const survey = await prisma.fieldSurvey.findFirst({
+      where: { id: surveyId, deletedAt: null },
+      select: { id: true, surveyorId: true },
+    });
+    if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+    return survey;
+  },
+
   async list(surveyId: string) {
     const survey = await prisma.fieldSurvey.findFirst({
       where: { id: surveyId, deletedAt: null },
@@ -76,6 +85,34 @@ export const surveyPhotoRepository = {
       include: {
         uploadedBy: { select: { id: true, nama: true } },
       },
+    });
+  },
+
+  async addDirectPhoto(input: {
+    surveyId: string;
+    storageKey: string;
+    originalName: string;
+    mimeType: string;
+    fileSize: number;
+    uploadedById: number;
+    caption?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  }) {
+    await this.assertSurvey(input.surveyId);
+    return prisma.surveyPhoto.create({
+      data: {
+        surveyId: input.surveyId,
+        storageKey: input.storageKey,
+        originalName: input.originalName,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize,
+        caption: input.caption ?? null,
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
+        uploadedById: input.uploadedById,
+      },
+      include: { uploadedBy: { select: { id: true, nama: true } } },
     });
   },
 

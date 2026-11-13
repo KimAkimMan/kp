@@ -424,6 +424,24 @@ export const openapiDocument = {
     "/public/programs": {
       get: { tags: ["Programs"], summary: "Daftar program untuk landing publik dengan field terbatas", parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar program publik" } } },
     },
+    "/surveys/{id}/photos/presign": {
+      post: { tags: ["Surveys"], summary: "Buat URL upload foto langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["originalName", "mimeType", "fileSize"], properties: { originalName: { type: "string" }, mimeType: { type: "string" }, fileSize: { type: "integer", minimum: 1 } } } } } }, responses: { "200": { description: "Presigned upload URL" } } },
+    },
+    "/surveys/{id}/photos/complete": {
+      post: { tags: ["Surveys"], summary: "Simpan metadata foto setelah direct upload selesai", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], responses: { "201": { description: "Foto terdaftar" } } },
+    },
+    "/surveys/photos/{photoId}/download": {
+      get: { tags: ["Surveys"], summary: "Buat URL preview/download foto private", security: [{ sessionCookie: [] }], parameters: [{ name: "photoId", in: "path", required: true, schema: { type: "string" } }], responses: { "200": { description: "Presigned download URL" } } },
+    },
+    "/costs/{costId}/documents/presign": {
+      post: { tags: ["Programs"], summary: "Buat URL upload dokumen biaya langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Presigned upload URL" } } },
+    },
+    "/costs/{costId}/documents/complete": {
+      post: { tags: ["Programs"], summary: "Simpan metadata dokumen biaya setelah direct upload selesai", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: "Dokumen terdaftar" } } },
+    },
+    "/costs/{costId}/documents/{documentId}/download": {
+      get: { tags: ["Programs"], summary: "Buat URL preview/download dokumen private", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }, { name: "documentId", in: "path", required: true, schema: { type: "string" } }], responses: { "200": { description: "Presigned download URL" } } },
+    },
     "/auth/profile": {
       patch: { tags: ["Auth"], summary: "Ubah profil sendiri", security: [{ sessionCookie: [] }], responses: { "200": { description: "Profil diperbarui" } } },
     },

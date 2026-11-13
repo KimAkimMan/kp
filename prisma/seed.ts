@@ -3,24 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/modules/auth/auth.crypto";
 import { AdviceStatus, UserRole } from "@/generated/prisma/client";
 
-const password = "Password123!";
+const password = process.env.SEED_LOGIN_PASSWORD ?? "Password123!";
+
+if (process.env.NODE_ENV === "production" && !process.env.SEED_LOGIN_PASSWORD) {
+  throw new Error("SEED_LOGIN_PASSWORD wajib diisi saat menjalankan seed di production.");
+}
 
 async function main() {
   const passwordHash = await hashPassword(password);
   const [admin, operator, pimpinan] = await Promise.all([
     prisma.user.upsert({
       where: { email: "admin@kp.local" },
-      update: { nama: "Admin KP", role: UserRole.ADMIN, passwordHash },
+      update: { nama: "Admin KP", role: UserRole.ADMIN, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Admin KP", email: "admin@kp.local", role: UserRole.ADMIN, passwordHash },
     }),
     prisma.user.upsert({
       where: { email: "operator@kp.local" },
-      update: { nama: "Operator KP", role: UserRole.OPERATOR, passwordHash },
+      update: { nama: "Operator KP", role: UserRole.OPERATOR, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Operator KP", email: "operator@kp.local", role: UserRole.OPERATOR, passwordHash },
     }),
     prisma.user.upsert({
       where: { email: "pimpinan@kp.local" },
-      update: { nama: "Pimpinan KP", role: UserRole.PIMPINAN, passwordHash },
+      update: { nama: "Pimpinan KP", role: UserRole.PIMPINAN, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Pimpinan KP", email: "pimpinan@kp.local", role: UserRole.PIMPINAN, passwordHash },
     }),
   ]);
