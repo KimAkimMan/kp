@@ -73,7 +73,9 @@ export class ApiClient {
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = getBaseUrl(options.baseUrl);
     this.accessToken = options.accessToken;
-    this.fetcher = options.fetcher ?? fetch;
+    // Keep the native fetch receiver intact in browsers. Calling a detached
+    // `window.fetch` function can throw an "Illegal invocation" TypeError.
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -85,12 +87,27 @@ export class ApiClient {
       }
       if (this.accessToken) requestHeaders.set("authorization", `Bearer ${this.accessToken}`);
 
-      const response = await this.fetcher(createUrl(this.baseUrl, path, query), {
+      const url = createUrl(this.baseUrl, path, query);
+      const requestInit: RequestInit = {
         ...init,
         credentials: init.credentials ?? "include",
         headers: requestHeaders,
         body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-      });
+      };
+
+      let response: Response;
+      try {
+        response = await this.fetcher(url, requestInit);
+      } catch (error) {
+        const method = (init.method ?? "GET").toUpperCase();
+        const canRetry = method === "GET" || method === "HEAD" || method === "OPTIONS";
+        if (!canRetry) throw error;
+
+        // A dev-server rebuild or Fast Refresh can briefly interrupt a read
+        // request. Retry reads once without ever replaying mutations.
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        response = await this.fetcher(url, requestInit);
+      }
 
     const payload = await response.json().catch(() => undefined);
     if (!response.ok) {
