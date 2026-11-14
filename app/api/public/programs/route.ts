@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
           target: true,
           realisasi: true,
           satuan: true,
+          pagu: true,
+          penggunaan: true,
           operatorPengelola: true,
           operatorPengelolaId: true,
           updatedAt: true,

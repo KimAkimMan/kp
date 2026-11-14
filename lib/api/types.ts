@@ -51,6 +51,8 @@ export type PublicProgram = {
   target: number;
   realisasi: number;
   satuan: string;
+  pagu: number;
+  penggunaan: number;
   operatorPengelola?: string | null;
   operatorPengelolaId?: number | null;
   updatedAt: string;

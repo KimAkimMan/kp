@@ -138,9 +138,9 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     update: p.updatedAt,
     sumber: "Dokumentasi Transparansi",
     catatan: "",
-    pagu: 0,
-    penggunaan: 0,
-    penggunaanBiaya: 0,
+    pagu: Number(p.pagu) || 0,
+    penggunaan: Number(p.penggunaan) || 0,
+    penggunaanBiaya: Number(p.penggunaan) || 0,
     histories: [],
     costs: [],
   });
