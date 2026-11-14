@@ -86,7 +86,10 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   }, []);
 
   useEffect(() => {
-    fetchPrograms();
+    const load = async () => {
+      await fetchPrograms();
+    };
+    load();
     const interval = setInterval(fetchPrograms, 30000);
     return () => clearInterval(interval);
   }, [fetchPrograms, refreshKey]);
