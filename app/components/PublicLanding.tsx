@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Landmark, ExternalLink } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
+import { programApi, type PublicProgram } from "@/lib/api";
 import { Program } from "../types";
 import {
   calculateSummary,
@@ -18,18 +19,20 @@ import { PimpinanAchievementSection } from "./PimpinanAchievementSection";
 import { ActivityFilters } from "./views/ActivityFilters";
 
 interface PublicLandingProps {
-  programs: Program[];
   onOpenLogin: () => void;
   onSelectProgram: (id: number) => void;
 }
 
 export const PublicLanding: React.FC<PublicLandingProps> = ({
-  programs,
   onOpenLogin,
   onSelectProgram,
 }) => {
   const [landingYearFilter, setLandingYearFilter] = useState("");
   const [landingCategoryFilter, setLandingCategoryFilter] = useState("");
+  const [programs, setPrograms] = useState<PublicProgram[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Hero slideshow
   const heroSlides = [
@@ -68,23 +71,98 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
+  const fetchPrograms = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await programApi.public();
+      setPrograms(res.data ?? []);
+    } catch (err: unknown) {
+      setError("Gagal memuat data kegiatan dari server.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPrograms();
+    const interval = setInterval(fetchPrograms, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPrograms, refreshKey]);
+
+  const triggerRefresh = () => {
+    setRefreshKey((k) => k + 1);
+  };
+
+  // Map PublicProgram (API enum status) → Program (display label status) for helpers
+  const toProgram = (p: PublicProgram): Program => ({
+    id: p.id,
+    kode: p.kode,
+    nama: p.nama,
+    namaKegiatan: p.nama,
+    kategori: p.kategori,
+    lokasi: p.lokasi,
+    kecamatan: p.kecamatan ?? "",
+    desaKelurahan: p.desaKelurahan ?? "",
+    detailLokasi: p.detailLokasi ?? "",
+    pj: p.operatorPengelola ?? "Belum Ditugaskan",
+    operatorPengelola: p.operatorPengelola ?? null,
+    operatorPengelolaId: p.operatorPengelolaId ?? null,
+    penanggungJawabDinas: null,
+    periode: "2026",
+    satuan: p.satuan,
+    targetAwal: p.target,
+    target: p.target,
+    targetVolume: p.target,
+    realisasi: p.realisasi,
+    realisasiVolume: p.realisasi,
+    status: (() => {
+      switch (p.status) {
+        case "SELESAI_DIKERJAKAN":
+          return "Selesai Dikerjakan";
+        case "SEDANG_DIKERJAKAN":
+          return "Sedang Dikerjakan";
+        default:
+          return "Belum Dikerjakan";
+      }
+    })(),
+    update: p.updatedAt,
+    sumber: "Dokumentasi Transparansi",
+    catatan: "",
+    pagu: 0,
+    penggunaan: 0,
+    penggunaanBiaya: 0,
+    histories: [],
+    costs: [],
+  });
+
+  const displayPrograms = programs.map(toProgram);
+
   const availableYears = Array.from(
-    new Set(["2026", "2025", "2024", ...programs.map((p) => getProgramYear(p))])
+    new Set([
+      "2026",
+      "2025",
+      "2024",
+      ...displayPrograms.map((p) => getProgramYear(p)),
+    ])
   ).sort((a, b) => b.localeCompare(a));
 
   const availableCategories = Array.from(
-    new Set([...programs.map((p) => p.kategori).filter(Boolean)])
+    new Set([...displayPrograms.map((p) => p.kategori).filter(Boolean)])
   );
 
-  const filteredProjects = programs.filter((p) => {
-    if (landingYearFilter && getProgramYear(p) !== landingYearFilter) return false;
-    if (landingCategoryFilter && p.kategori !== landingCategoryFilter) return false;
+  const filteredProjects = displayPrograms.filter((p) => {
+    if (landingYearFilter && getProgramYear(p) !== landingYearFilter)
+      return false;
+    if (landingCategoryFilter && p.kategori !== landingCategoryFilter)
+      return false;
     return true;
   });
 
-  const summary = calculateSummary(programs);
-  const activeCount = statusCount(programs, "Sedang Dikerjakan");
-  const doneCount = statusCount(programs, "Selesai Dikerjakan");
+  const summary = calculateSummary(filteredProjects);
+  const activeCount = statusCount(filteredProjects, "Sedang Dikerjakan");
+  const doneCount = statusCount(filteredProjects, "Selesai Dikerjakan");
 
   return (
     <div className="w-full min-h-screen bg-[#F5F8FB]">
@@ -134,15 +212,47 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           </a>
         </nav>
 
-        <button
-          onClick={onOpenLogin}
-          className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-sm"
-        >
-          Login
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={triggerRefresh}
+            className="p-2 rounded-lg text-[#65778B] hover:text-[#1E4E8C] transition bg-[#F5F8FB] hover:bg-[#E8EFF5]"
+            title="Segarkan data"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onOpenLogin}
+            className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-sm"
+          >
+            Login
+          </button>
+        </div>
       </header>
 
-      {/* Hero Section — Slideshow */}
+      {/* Loading state */}
+      {loading && !error && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E4E8C] mb-4"></div>
+          <p className="text-[#65778B] text-sm">Memuat data kegiatan...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && programs.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <p className="text-[#65778B] text-sm mb-3">{error}</p>
+          <button
+            onClick={fetchPrograms}
+            className="px-4 py-2 rounded-lg text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition"
+          >
+            Coba lagi
+          </button>
+        </div>
+      )}
+
+      {!loading && (
+        <>
+          {/* Hero Section — Slideshow */}
       <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
         {/* Slides */}
         {heroSlides.map((slide, i) => (
@@ -260,7 +370,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           categories={availableCategories}
           yearFilter={landingYearFilter}
           categoryFilter={landingCategoryFilter}
-          totalCount={programs.length}
+          totalCount={displayPrograms.length}
           onYearChange={setLandingYearFilter}
           onCategoryChange={setLandingCategoryFilter}
           onReset={() => {
@@ -484,6 +594,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           </div>
         </div>
       </footer>
+        </>
+      )}
     </div>
   );
 };

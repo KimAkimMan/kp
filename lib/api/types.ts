@@ -37,6 +37,24 @@ export type ApiProgram = Record<string, unknown> & {
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
 };
 
+export type PublicProgram = {
+  id: number;
+  kode: string;
+  nama: string;
+  kategori: string;
+  lokasi: string;
+  kecamatan: string;
+  desaKelurahan?: string | null;
+  detailLokasi?: string | null;
+  status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
+  target: number;
+  realisasi: number;
+  satuan: string;
+  operatorPengelola?: string | null;
+  operatorPengelolaId?: number | null;
+  updatedAt: string;
+};
+
 export type ApiSurvey = Record<string, unknown> & {
   id: string;
   kodeSurvey: string;

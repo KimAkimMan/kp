@@ -1,5 +1,6 @@
 export { ApiClient, ApiClientError, apiClient } from "./client";
 export type { ApiResponse, PaginatedResponse } from "./client";
+export type { PublicProgram } from "./types";
 export { authApi } from "@/modules/auth/auth.client";
 export { adviceApi } from "@/modules/advice/advice.client";
 export { programApi } from "@/modules/programs/program.client";

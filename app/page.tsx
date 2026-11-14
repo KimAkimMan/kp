@@ -702,7 +702,6 @@ export default function Home() {
     return (
       <>
         <PublicLanding
-          programs={programs}
           onOpenLogin={() => setScreen("login")}
           onSelectProgram={(id) => {
             setSelectedProgramId(id);
