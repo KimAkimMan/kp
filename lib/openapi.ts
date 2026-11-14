@@ -493,7 +493,18 @@ export const openapiDocument = {
     "/programs/{id}/costs": { get: { tags: ["Programs"], summary: "Daftar biaya", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar biaya program" } } }, post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CostInput" } } } }, responses: { "201": { description: "Biaya dicatat" } } } },
     "/programs/{id}/complete": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Program selesai" } } } },
     "/surveys": {
-      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar survey" } } },
+      get: {
+        tags: ["Surveys"],
+        security: [{ sessionCookie: [] }],
+        parameters: [
+          { $ref: "#/components/parameters/Page" },
+          { $ref: "#/components/parameters/PageSize" },
+          { name: "search", in: "query", required: false, schema: { type: "string" } },
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] } },
+          { name: "kecamatan", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Daftar survey" } },
+      },
       post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/SurveyInput" } } } }, responses: { "201": { description: "Survey dibuat" } } },
     },
     "/surveys/{id}": {

@@ -9,7 +9,7 @@ import type { SurveyInput } from "@/modules/surveys/survey.types";
 import { parsePagination } from "@/lib/pagination";
 import { ApiError } from "@/lib/http/api-error";
 
-const surveyStatuses = ["DRAFT", "SELESAI_SURVEY", "MENUNGGU_VERIFIKASI", "PERLU_REVISI", "DIVERIFIKASI", "DIKONVERSI"];
+const surveyStatuses = ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"];
 
 function parseSurveyListFilters(params: URLSearchParams) {
   const status = params.get("status") ?? undefined;

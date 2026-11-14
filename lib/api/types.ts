@@ -98,7 +98,7 @@ export type SurveyFilters = {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: SurveyInput["status"];
+  status?: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
   kecamatan?: string;
 };
 
