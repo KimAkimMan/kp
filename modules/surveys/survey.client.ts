@@ -3,7 +3,12 @@ import type { ApiSurvey, ConvertSurveyInput, SurveyFilters, SurveyInput } from "
 
 export const surveyApi = {
   list(filters?: SurveyFilters) {
-    return apiClient.get<PaginatedResponse<ApiSurvey>>("/surveys", filters);
+    const { page, pageSize, ...rest } = filters ?? {};
+    return apiClient.get<PaginatedResponse<ApiSurvey>>("/surveys", {
+      page,
+      pageSize,
+      ...rest,
+    });
   },
   get(id: string) {
     return apiClient.get<ApiResponse<ApiSurvey>>(`/surveys/${encodeURIComponent(id)}`);

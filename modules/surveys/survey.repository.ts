@@ -1,20 +1,42 @@
 import { prisma } from "@/lib/prisma";
 import type { SurveyInput } from "./survey.types";
 
+export type SurveyListFilters = {
+  search?: string;
+  status?: SurveyInput["status"];
+  kecamatan?: string;
+  surveyorId?: number;
+  pagination?: { skip: number; pageSize: number };
+};
+
 export const surveyRepository = {
-  async findMany(
-    pagination?: { skip: number; pageSize: number },
-    surveyorId?: number,
-  ) {
-    const where = { deletedAt: null, ...(surveyorId === undefined ? {} : { surveyorId }) };
+  async findMany(filters: SurveyListFilters = {}) {
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (filters.surveyorId !== undefined) where.surveyorId = filters.surveyorId;
+    if (filters.status !== undefined) where.status = filters.status;
+    if (filters.kecamatan !== undefined) where.kecamatan = filters.kecamatan;
+    if (filters.search !== undefined) {
+      const search = filters.search;
+      where.AND = [
+        {
+          OR: [
+            { kodeSurvey: { contains: search } },
+            { namaKegiatan: { contains: search } },
+            { surveyor: { contains: search } },
+            { kecamatan: { contains: search } },
+            { desaKelurahan: { contains: search } },
+          ],
+        },
+      ];
+    }
     const [items, total] = await Promise.all([
       prisma.fieldSurvey.findMany({
-      where,
-      include: { program: true, surveyorUser: true },
-      orderBy: { createdAt: "desc" },
-      ...(pagination === undefined
-        ? {}
-        : { skip: pagination.skip, take: pagination.pageSize }),
+        where,
+        include: { program: true, surveyorUser: true },
+        orderBy: { createdAt: "desc" },
+        ...(filters.pagination === undefined
+          ? {}
+          : { skip: filters.pagination.skip, take: filters.pagination.pageSize }),
       }),
       prisma.fieldSurvey.count({ where }),
     ]);

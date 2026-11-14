@@ -3,7 +3,12 @@ import type { Advice, AdviceFilters, CreateAdviceInput } from "@/lib/api/types";
 
 export const adviceApi = {
   list(filters?: AdviceFilters) {
-    return apiClient.get<PaginatedResponse<Advice>>("/advice", filters);
+    const { page, pageSize, ...rest } = filters ?? {};
+    return apiClient.get<PaginatedResponse<Advice>>("/advice", {
+      page,
+      pageSize,
+      ...rest,
+    });
   },
   get(id: string) {
     return apiClient.get<ApiResponse<Advice>>(`/advice/${encodeURIComponent(id)}`);

@@ -1,5 +1,6 @@
 import type { CreateProgramInput, UpdateProgramInput } from "@/modules/programs/program.types";
 import type { SurveyInput } from "@/modules/surveys/survey.types";
+import type { AdviceStatus } from "@/generated/prisma/client";
 import type { CreateUserInput, UpdateUserInput } from "@/modules/users/user.types";
 
 export type ApiUser = {
@@ -86,9 +87,27 @@ export type ProgramFilters = {
   search?: string;
 };
 
-export type UserFilters = { page?: number; pageSize?: number };
-export type SurveyFilters = { page?: number; pageSize?: number };
-export type AdviceFilters = { page?: number; pageSize?: number };
+export type UserFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: "Admin" | "Operator" | "Pimpinan";
+};
+
+export type SurveyFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: SurveyInput["status"];
+  kecamatan?: string;
+};
+
+export type AdviceFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: AdviceStatus;
+};
 
 export type CreateProgressInput = {
   tanggal: string;

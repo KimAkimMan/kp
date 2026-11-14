@@ -3,7 +3,12 @@ import type { ApiUser, UserFilters, CreateUserInput, UpdateUserInput } from "@/l
 
 export const userApi = {
   list(filters?: UserFilters) {
-    return apiClient.get<PaginatedResponse<ApiUser>>("/users", filters);
+    const { page, pageSize, ...rest } = filters ?? {};
+    return apiClient.get<PaginatedResponse<ApiUser>>("/users", {
+      page,
+      pageSize,
+      ...rest,
+    });
   },
   get(id: number) {
     return apiClient.get<ApiResponse<ApiUser>>(`/users/${id}`);

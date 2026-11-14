@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import type { AdviceStatus } from "@/generated/prisma/client";
 
+export type AdviceListFilters = {
+  search?: string;
+  status?: AdviceStatus;
+  pagination?: { skip: number; pageSize: number };
+};
+
 export const adviceRepository = {
   findActiveProgram(id: number) {
     return prisma.program.findFirst({ where: { id, deletedAt: null } });
@@ -12,16 +18,32 @@ export const adviceRepository = {
     });
   },
 
-  async findMany(pagination?: { skip: number; pageSize: number }) {
+  async findMany(filters: AdviceListFilters = {}) {
+    const where: Record<string, unknown> = {};
+    if (filters.status !== undefined) where.status = filters.status;
+    if (filters.search !== undefined) {
+      const search = filters.search;
+      where.AND = [
+        {
+          OR: [
+            { namaKegiatan: { contains: search } },
+            { identitasPimpinan: { contains: search } },
+            { operatorPenerima: { contains: search } },
+            { isi: { contains: search } },
+          ],
+        },
+      ];
+    }
     const [items, total] = await Promise.all([
       prisma.adviceRecord.findMany({
-      include: { program: true, pimpinan: true, operator: true },
-      orderBy: { createdAt: "desc" },
-      ...(pagination === undefined
-        ? {}
-        : { skip: pagination.skip, take: pagination.pageSize }),
+        where,
+        include: { program: true, pimpinan: true, operator: true },
+        orderBy: { createdAt: "desc" },
+        ...(filters.pagination === undefined
+          ? {}
+          : { skip: filters.pagination.skip, take: filters.pagination.pageSize }),
       }),
-      prisma.adviceRecord.count(),
+      prisma.adviceRecord.count({ where }),
     ]);
     return { items, total };
   },

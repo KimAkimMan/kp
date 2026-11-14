@@ -403,7 +403,18 @@ export const openapiDocument = {
   },
   paths: {
     "/public/programs": {
-      get: { tags: ["Programs"], summary: "Daftar program untuk landing publik dengan field terbatas", parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar program publik" } } },
+      get: {
+        tags: ["Programs"],
+        summary: "Daftar program untuk landing publik dengan field terbatas",
+        parameters: [
+          { $ref: "#/components/parameters/Page" },
+          { $ref: "#/components/parameters/PageSize" },
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["BELUM_DIKERJAKAN", "SEDANG_DIKERJAKAN", "SELESAI_DIKERJAKAN"] } },
+          { name: "kecamatan", in: "query", required: false, schema: { type: "string" } },
+          { name: "search", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Daftar program publik" } },
+      },
     },
     "/surveys/{id}/photos/presign": {
       post: { tags: ["Surveys"], summary: "Buat URL upload foto langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["originalName", "mimeType", "fileSize"], properties: { originalName: { type: "string" }, mimeType: { type: "string" }, fileSize: { type: "integer", minimum: 1 } } } } } }, responses: { "200": { description: "Presigned upload URL" } } },
