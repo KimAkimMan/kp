@@ -100,8 +100,26 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           },
         ];
 
-  // Hero slideshow dihasilkan dari foto dokumentasi object storage (API), bukan dummy.
-  // Tidak akan merender slide bila tidak ada data dari server.
+  // Fallback statis untuk hero slideshow bila API belum mengembalikan data.
+  const HERO_STATIC_FALLBACKS = [
+    {
+      src: "/dokumentasi/jalan-lingkungan.jpg",
+      alt: "Pembangunan jalan lingkungan Kabupaten Kuningan",
+      caption: "Jalan Lingkungan — Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/drainase-tpt.jpg",
+      alt: "Pembangunan drainase permukiman Kabupaten Kuningan",
+      caption: "Drainase / TPT — Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/konstruksi-lainnya.jpg",
+      alt: "Konstruksi tembok penahan tanah Kabupaten Kuningan",
+      caption: "Konstruksi Lainnya — Kec. Kuningan",
+    },
+  ];
+
+  // Hero slideshow: pakai data API bila tersedia, otherwise fallback statis.
   const heroSlides =
     documentationPhotos.length > 0
       ? documentationPhotos.slice(0, 5).map((photo) => ({
@@ -110,10 +128,9 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           caption: `${photo.program?.nama ?? photo.originalName} — ${photo.program?.lokasi ?? "Kabupaten Kuningan"}`,
           id: photo.id,
         }))
-      : [];
+      : HERO_STATIC_FALLBACKS;
 
   useEffect(() => {
-    if (heroSlides.length === 0) return;
     const timer = setInterval(() => {
       setHeroIndex((i) => (i + 1) % heroSlides.length);
     }, 4000);
