@@ -50,7 +50,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   const displayPrograms = programs.map(mapPublicProgramToProgram);
 
   // Kartu dokumentasi dihasilkan dari foto di object storage melalui API.
-  // Jika API gagal atau tidak ada data, gunakan fallback gambar statis.
+  // Jika belum ada data, array kosong dan akan ditampilkan keterangan kosong di UI.
   const documentationCards =
     documentationPhotos.length > 0
       ? documentationPhotos.slice(0, 6).map((photo) => ({
@@ -64,44 +64,21 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           badgeClass: "selesai",
           onClick: photo.program ? () => onSelectProgram(photo.program!.id) : undefined,
         }))
-      : [
-          {
-            key: "fallback-jalan",
-            src: "/dokumentasi/jalan-lingkungan.jpg",
-            alt: "Jalan lingkungan hasil pembangunan Disperkimtan Kuningan",
-            title: "Jalan Lingkungan",
-            location: "Kecamatan Kuningan, Kabupaten Kuningan",
-            year: "2026",
-            status: "-",
-            badgeClass: "belum",
-            onClick: undefined,
-          },
-          {
-            key: "fallback-drainase",
-            src: "/dokumentasi/drainase-tpt.jpg",
-            alt: "Saluran drainase dan tembok penahan tanah hasil pembangunan",
-            title: "Drainase / TPT",
-            location: "Kecamatan Kuningan, Kabupaten Kuningan",
-            year: "2026",
-            status: "-",
-            badgeClass: "belum",
-            onClick: undefined,
-          },
-          {
-            key: "fallback-konstruksi",
-            src: "/dokumentasi/konstruksi-lainnya.jpg",
-            alt: "Konstruksi tembok penahan tanah dan infrastruktur permukiman",
-            title: "Konstruksi Lainnya",
-            location: "Kecamatan Kuningan, Kabupaten Kuningan",
-            year: "2026",
-            status: "-",
-            badgeClass: "belum",
-            onClick: undefined,
-          },
-        ];
+      : [];
 
-  // Fallback statis untuk hero slideshow bila API belum mengembalikan data.
+  // Gambar statis default untuk hero slideshow di bagian atas halaman.
+  // Tidak menggunakan API — ini adalah identitas visual halaman utama.
   const HERO_STATIC_FALLBACKS = [
+    {
+      src: "/dokumentasi/hero-jalan-ancaran.jpg",
+      alt: "Pembangunan jalan lingkungan di Ancaran, Kecamatan Kuningan",
+      caption: "Jalan Lingkungan — Ancaran, Kec. Kuningan",
+    },
+    {
+      src: "/dokumentasi/hero-jalan-ciporang.jpg",
+      alt: "Jalan lingkungan Ciporang, Kecamatan Sindangagung",
+      caption: "Jalan Lingkungan — Ciporang, Kec. Sindangagung",
+    },
     {
       src: "/dokumentasi/jalan-lingkungan.jpg",
       alt: "Pembangunan jalan lingkungan Kabupaten Kuningan",
@@ -119,16 +96,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     },
   ];
 
-  // Hero slideshow: pakai data API bila tersedia, otherwise fallback statis.
-  const heroSlides =
-    documentationPhotos.length > 0
-      ? documentationPhotos.slice(0, 5).map((photo) => ({
-          src: photo.downloadUrl,
-          alt: photo.caption ?? photo.originalName,
-          caption: `${photo.program?.nama ?? photo.originalName} — ${photo.program?.lokasi ?? "Kabupaten Kuningan"}`,
-          id: photo.id,
-        }))
-      : HERO_STATIC_FALLBACKS;
+  // Hero slideshow: selalu pakai gambar statis default (identitas halaman utama).
+  const heroSlides = HERO_STATIC_FALLBACKS;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -306,7 +275,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 
       {!loading && (
         <>
-          {heroSlides.length > 0 && (
+          {heroSlides.length > 0 ? (
       <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
         {/* Slides */}
         {heroSlides.map((slide, i) => (
@@ -374,7 +343,32 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           ))}
         </div>
       </section>
-          )}
+    ) : (
+      <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
+        {/* Dark overlay gradient */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(14,38,70,0.82) 0%, rgba(14,38,70,0.60) 55%, rgba(14,38,70,0.25) 100%)",
+          }}
+        />
+
+        {/* Empty state content */}
+        <div className="relative z-10 px-[7%] py-20 md:py-24 max-w-3xl mx-auto text-center">
+          <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
+            SISTEM INFORMASI MONITORING PERMUKIMAN
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight text-white mb-4">
+            Belum ada dokumentasi yang tersedia
+          </h1>
+          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl mx-auto">
+            Dokumentasi kegiatan akan ditampilkan di sini setelah survey
+            diunggah dan program selesai dikerjakan.
+          </p>
+        </div>
+      </section>
+    )}
       {/* Floating Public Stats */}
       <section className="px-[5%] -mt-10 sm:-mt-12 relative z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -516,38 +510,50 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {documentationCards.map((card) => (
-              <article
-                key={card.key}
-                onClick={card.onClick}
-                className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition flex flex-col ${
-                  card.onClick ? "cursor-pointer" : ""
-                }`}
-              >
-                <img
-                  src={card.src}
-                  alt={card.alt}
-                  className="w-full h-52 object-cover"
-                  loading="lazy"
-                />
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
-                      TA {card.year}
+          {documentationCards.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {documentationCards.map((card) => (
+                <article
+                  key={card.key}
+                  onClick={card.onClick}
+                  className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition flex flex-col ${
+                    card.onClick ? "cursor-pointer" : ""
+                  }`}
+                >
+                  <img
+                    src={card.src}
+                    alt={card.alt}
+                    className="w-full h-52 object-cover"
+                    loading="lazy"
+                  />
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
+                        TA {card.year}
+                      </span>
+                      <span className={`badge ${card.badgeClass}`}>{card.status}</span>
+                    </div>
+                    <strong className="block text-sm font-bold text-[#143965] mt-2">
+                      {card.title}
+                    </strong>
+                    <span className="block text-xs text-[#65778B] mt-1">
+                      {card.location}
                     </span>
-                    <span className={`badge ${card.badgeClass}`}>{card.status}</span>
                   </div>
-                  <strong className="block text-sm font-bold text-[#143965] mt-2">
-                    {card.title}
-                  </strong>
-                  <span className="block text-xs text-[#65778B] mt-1">
-                    {card.location}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#CCD9E4]">
+              <span className="text-xs font-bold tracking-widest text-[#65778B] uppercase mb-2">
+                Belum ada dokumentasi
+              </span>
+              <p className="text-[#65778B] text-sm">
+                Dokumentasi kegiatan akan ditampilkan di sini setelah survey diunggah
+                dan program selesai dikerjakan.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

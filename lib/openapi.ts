@@ -516,7 +516,7 @@ export const openapiDocument = {
     "/surveys/{id}/verify": { post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Survey diverifikasi" } } } },
     "/surveys/{id}/convert": { post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "201": { description: "Survey menjadi program" } } } },
     "/advice": {
-      get: { tags: ["Advice"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar arahan" } } },
+      get: { tags: ["Advice"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }, { name: "search", in: "query", required: false, schema: { type: "string" } }, { name: "status", in: "query", required: false, schema: { type: "string", enum: ["BELUM_DITINDAKLANJUTI", "SUDAH_DITINDAKLANJUTI"] } }, { name: "operatorId", in: "query", required: false, schema: { type: "integer", minimum: 1 } }], responses: { "200": { description: "Daftar arahan" } } },
       post: { tags: ["Advice"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AdviceInput" } } } }, responses: { "201": { description: "Arahan dibuat" } } },
     },
     "/advice/{id}": {

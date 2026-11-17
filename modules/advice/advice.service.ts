@@ -7,6 +7,7 @@ import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 export type AdviceListFilters = {
   search?: string;
   status?: "BELUM_DITINDAKLANJUTI" | "SUDAH_DITINDAKLANJUTI";
+  operatorId?: number;
   pagination?: { skip: number; pageSize: number };
 };
 
@@ -34,14 +35,18 @@ export const adviceService = {
     if (!program) {
       throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     }
-    if (input.operatorId !== null && input.operatorId !== undefined) {
-      const operator = await adviceRepository.findActiveOperator(input.operatorId);
+    const operatorId = input.operatorId ?? program.operatorPengelolaId;
+    const operator = operatorId === null || operatorId === undefined
+      ? null
+      : await adviceRepository.findActiveOperator(operatorId);
+    if (operatorId !== null && operatorId !== undefined) {
       if (!operator) {
-        throw new ApiError("OPERATOR_NOT_FOUND", "Operator penerima tidak ditemukan.", 404);
+        throw new ApiError("OPERATOR_NOT_FOUND", "Operator penerima tidak ditemukan atau tidak aktif.", 404);
       }
     }
     return adviceRepository.create({
       ...input,
+      operatorId,
       id: randomUUID(),
       tanggal: new Date(),
       status: "BELUM_DITINDAKLANJUTI",

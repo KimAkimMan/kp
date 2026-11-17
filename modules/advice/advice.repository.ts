@@ -4,6 +4,7 @@ import type { AdviceStatus } from "@/generated/prisma/client";
 export type AdviceListFilters = {
   search?: string;
   status?: AdviceStatus;
+  operatorId?: number;
   pagination?: { skip: number; pageSize: number };
 };
 
@@ -21,6 +22,7 @@ export const adviceRepository = {
   async findMany(filters: AdviceListFilters = {}) {
     const where: Record<string, unknown> = {};
     if (filters.status !== undefined) where.status = filters.status;
+    if (filters.operatorId !== undefined) where.operatorId = filters.operatorId;
     if (filters.search !== undefined) {
       const search = filters.search;
       where.AND = [

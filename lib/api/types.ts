@@ -78,8 +78,6 @@ export type ApiSurvey = Record<string, unknown> & {
 export type CreateAdviceInput = {
   idKegiatan: number;
   namaKegiatan: string;
-  identitasPimpinan: string;
-  pimpinanId: number;
   operatorPenerima: string;
   operatorId?: number | null;
   isi: string;
@@ -114,6 +112,7 @@ export type AdviceFilters = {
   pageSize?: number;
   search?: string;
   status?: AdviceStatus;
+  operatorId?: number;
 };
 
 export type CreateProgressInput = {
