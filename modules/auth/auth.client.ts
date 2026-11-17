@@ -8,6 +8,12 @@ export const authApi = {
   logout() {
     return apiClient.post<ApiResponse<null>>("/auth/logout");
   },
+  updateProfile(input: { nama?: string; email?: string }) {
+    return apiClient.patch<ApiResponse<ApiUser>>("/auth/profile", input);
+  },
+  changePassword(input: { currentPassword: string; newPassword: string }) {
+    return apiClient.post<ApiResponse<{ changed: true }>>("/auth/change-password", input);
+  },
   me() {
     return apiClient.get<ApiResponse<ApiUser>>("/auth/me");
   },

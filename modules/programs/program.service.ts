@@ -11,8 +11,18 @@ export const programService = {
     return programRepository.findMany(filters);
   },
 
-  create(input: CreateProgramInput, createdById: number) {
-    return programRepository.create({ ...input, createdById });
+  async create(input: CreateProgramInput, createdById: number) {
+    const result = await programRepository.create({ ...input, createdById });
+    await prisma.auditLog.create({
+      data: {
+        userId: createdById,
+        action: "CREATE",
+        entity: "Program",
+        entityId: String(result.id),
+        details: { kode: input.kode, nama: input.nama },
+      },
+    });
+    return result;
   },
 
   async claim(id: number, user: ProgramActor) {
@@ -26,6 +36,15 @@ export const programService = {
     if (result === false) {
       throw new ApiError("PROGRAM_ALREADY_ASSIGNED", "Kegiatan telah diambil operator lain.", 409);
     }
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: "CLAIM",
+        entity: "Program",
+        entityId: String(id),
+        details: { operatorId: user.id, operatorNama: user.nama },
+      },
+    });
     return result;
   },
 
@@ -48,7 +67,17 @@ export const programService = {
         throw new ApiError("USE_COMPLETE_ACTION", "Gunakan action complete untuk menyelesaikan program.", 409);
       }
     }
-    return programRepository.update(id, input);
+    const result = await programRepository.update(id, input);
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: "UPDATE",
+        entity: "Program",
+        entityId: String(id),
+        details: input,
+      },
+    });
+    return result;
   },
 
   async assertCanEdit(id: number, user: AuthenticatedUser) {

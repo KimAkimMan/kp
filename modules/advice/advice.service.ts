@@ -4,9 +4,15 @@ import { randomUUID } from "node:crypto";
 import type { AdviceStatus } from "@/generated/prisma/client";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
+export type AdviceListFilters = {
+  search?: string;
+  status?: "BELUM_DITINDAKLANJUTI" | "SUDAH_DITINDAKLANJUTI";
+  pagination?: { skip: number; pageSize: number };
+};
+
 export const adviceService = {
-  list(pagination?: { skip: number; pageSize: number }) {
-    return adviceRepository.findMany(pagination);
+  list(filters?: AdviceListFilters) {
+    return adviceRepository.findMany(filters);
   },
 
   async get(id: string) {

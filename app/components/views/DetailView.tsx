@@ -6,7 +6,6 @@ import {
   Image as ImageIcon,
   Paperclip,
   MessageSquarePlus,
-  ExternalLink,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -16,7 +15,7 @@ import {
   formatUnitSymbol,
 } from "../../utils/helpers";
 import { SimpleBarChart } from "../Charts";
-import { openPhotoViewer } from "../../utils/photoViewer";
+import { PhotoLightbox, PhotoLightboxData } from "../PhotoLightbox";
 
 interface DetailViewProps {
   program: Program;
@@ -31,6 +30,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
   currentUser,
   onNavigateToDashboardAdvice,
 }) => {
+  const [photoViewer, setPhotoViewer] = React.useState<PhotoLightboxData | null>(null);
   const percent =
     program.target > 0
       ? Math.min(100, Math.round((program.realisasi / program.target) * 100))
@@ -193,7 +193,14 @@ export const DetailView: React.FC<DetailViewProps> = ({
                     <td className="p-3 text-[#496178] max-w-sm">{h.keterangan}</td>
                     <td className="p-3 whitespace-nowrap">
                       {h.foto ? (
-                        <button
+                        (() => {
+                          const previewPhoto =
+                            h.fotoUrls && h.fotoUrls.length > 0
+                              ? h.fotoUrls[0]
+                              : h.fotoUrl ||
+                                "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=320&q=80";
+                          return (
+                            <button
                           type="button"
                           onClick={() => {
                             const photos =
@@ -204,7 +211,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
                                 : [
                                     "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=1200&q=80",
                                   ];
-                            openPhotoViewer({
+                            setPhotoViewer({
                               title: program.nama,
                               tahap: h.tahap,
                               tanggal: h.tanggal,
@@ -216,14 +223,20 @@ export const DetailView: React.FC<DetailViewProps> = ({
                             });
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#1E4E8C] hover:text-white transition shadow-xs group"
-                          title="Klik untuk membuka dokumentasi foto di halaman terpisah"
+                          title="Klik untuk melihat dokumentasi foto"
                         >
+                          <img
+                            src={previewPhoto}
+                            alt=""
+                            className="h-7 w-9 rounded object-cover"
+                          />
                           <ImageIcon className="w-3.5 h-3.5 text-[#1E4E8C] group-hover:text-white transition" />
                           <span>
                             Lihat Foto {h.fotoUrls && h.fotoUrls.length > 1 ? `(${h.fotoUrls.length})` : ""}
                           </span>
-                          <ExternalLink className="w-3 h-3 opacity-70 group-hover:opacity-100" />
                         </button>
+                          );
+                        })()
                       ) : (
                         <span className="text-[#65778B]">Tidak ada</span>
                       )}
@@ -242,6 +255,10 @@ export const DetailView: React.FC<DetailViewProps> = ({
           </table>
         </div>
       </section>
+
+      {photoViewer && (
+        <PhotoLightbox data={photoViewer} onClose={() => setPhotoViewer(null)} />
+      )}
 
       {/* Akumulasi Anggaran Kegiatan */}
       <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">

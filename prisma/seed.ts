@@ -3,24 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/modules/auth/auth.crypto";
 import { AdviceStatus, UserRole } from "@/generated/prisma/client";
 
-const password = "Password123!";
+const password = process.env.SEED_LOGIN_PASSWORD ?? "Password123!";
+
+if (process.env.NODE_ENV === "production" && !process.env.SEED_LOGIN_PASSWORD) {
+  throw new Error("SEED_LOGIN_PASSWORD wajib diisi saat menjalankan seed di production.");
+}
 
 async function main() {
   const passwordHash = await hashPassword(password);
   const [admin, operator, pimpinan] = await Promise.all([
     prisma.user.upsert({
       where: { email: "admin@kp.local" },
-      update: { nama: "Admin KP", role: UserRole.ADMIN, passwordHash },
+      update: { nama: "Admin KP", role: UserRole.ADMIN, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Admin KP", email: "admin@kp.local", role: UserRole.ADMIN, passwordHash },
     }),
     prisma.user.upsert({
       where: { email: "operator@kp.local" },
-      update: { nama: "Operator KP", role: UserRole.OPERATOR, passwordHash },
+      update: { nama: "Operator KP", role: UserRole.OPERATOR, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Operator KP", email: "operator@kp.local", role: UserRole.OPERATOR, passwordHash },
     }),
     prisma.user.upsert({
       where: { email: "pimpinan@kp.local" },
-      update: { nama: "Pimpinan KP", role: UserRole.PIMPINAN, passwordHash },
+      update: { nama: "Pimpinan KP", role: UserRole.PIMPINAN, passwordHash, isActive: true, deletedAt: null },
       create: { nama: "Pimpinan KP", email: "pimpinan@kp.local", role: UserRole.PIMPINAN, passwordHash },
     }),
   ]);
@@ -65,13 +69,38 @@ async function main() {
   const program = await prisma.program.upsert({
     where: { kode: "SEED-P-001" },
     update: {
+      nama: "Peningkatan Jalan Desa Seed",
+      namaKegiatan: "Peningkatan Jalan Desa Seed",
+      kategori: "Jalan Lingkungan",
       deletedAt: null,
       deletedById: null,
       operatorPengelolaId: operator.id,
       operatorPengelola: operator.nama,
       categoryId: category.id,
+      lokasi: "Desa Cisantana, Kecamatan Kuningan",
+      kecamatan: kecamatan.nama,
       unitId: unit.id,
       kecamatanId: kecamatan.id,
+      desaKelurahan: "Cisantana",
+      detailLokasi: "Ruas jalan utama desa",
+      pj: operator.nama,
+      penanggungJawabDinas: admin.nama,
+      periode: "2026",
+      jadwal: "Januari - Desember 2026",
+      satuan: "m'",
+      targetAwal: 10000,
+      target: 10000,
+      targetVolume: 10000,
+      status: "SELESAI_DIKERJAKAN",
+      realisasi: 10000,
+      realisasiVolume: 10000,
+      update: "Seed data publik untuk pengujian API",
+      sumber: "Seed development",
+      catatan: "Data ini dibuat untuk pengujian backend.",
+      pagu: 1000000000,
+      penggunaan: 200000000,
+      penggunaanBiaya: 200000000,
+      tanggalMulai: new Date("2026-01-15"),
     },
     create: {
       kode: "SEED-P-001",
@@ -95,10 +124,10 @@ async function main() {
       targetAwal: 10000,
       target: 10000,
       targetVolume: 10000,
-      realisasi: 2000,
-      realisasiVolume: 2000,
-      status: "SEDANG_DIKERJAKAN",
-      update: "Seed data untuk pengujian API",
+      realisasi: 10000,
+      realisasiVolume: 10000,
+      status: "SELESAI_DIKERJAKAN",
+      update: "Seed data publik untuk pengujian API",
       sumber: "Seed development",
       catatan: "Data ini dibuat untuk pengujian backend.",
       pagu: 1000000000,

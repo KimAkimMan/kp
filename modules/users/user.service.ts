@@ -3,9 +3,15 @@ import { hashPassword } from "@/modules/auth/auth.crypto";
 import { userRepository } from "./user.repository";
 import type { CreateUserInput, UpdateUserInput } from "./user.types";
 
+export type UserListFilters = {
+  search?: string;
+  role?: "Admin" | "Operator" | "Pimpinan";
+  pagination?: { skip: number; pageSize: number };
+};
+
 export const userService = {
-  list(pagination?: { skip: number; pageSize: number }) {
-    return userRepository.findMany(pagination);
+  list(filters?: UserListFilters) {
+    return userRepository.findMany(filters);
   },
 
   async create(input: CreateUserInput) {

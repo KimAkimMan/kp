@@ -1,5 +1,6 @@
 import type { CreateProgramInput, UpdateProgramInput } from "@/modules/programs/program.types";
 import type { SurveyInput } from "@/modules/surveys/survey.types";
+import type { AdviceStatus } from "@/generated/prisma/client";
 import type { CreateUserInput, UpdateUserInput } from "@/modules/users/user.types";
 
 export type ApiUser = {
@@ -37,6 +38,26 @@ export type ApiProgram = Record<string, unknown> & {
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
 };
 
+export type PublicProgram = {
+  id: number;
+  kode: string;
+  nama: string;
+  kategori: string;
+  lokasi: string;
+  kecamatan: string;
+  desaKelurahan?: string | null;
+  detailLokasi?: string | null;
+  status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
+  target: number;
+  realisasi: number;
+  satuan: string;
+  pagu: number;
+  penggunaan: number;
+  operatorPengelola?: string | null;
+  operatorPengelolaId?: number | null;
+  updatedAt: string;
+};
+
 export type ApiSurvey = Record<string, unknown> & {
   id: string;
   kodeSurvey: string;
@@ -68,9 +89,27 @@ export type ProgramFilters = {
   search?: string;
 };
 
-export type UserFilters = { page?: number; pageSize?: number };
-export type SurveyFilters = { page?: number; pageSize?: number };
-export type AdviceFilters = { page?: number; pageSize?: number };
+export type UserFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: "Admin" | "Operator" | "Pimpinan";
+};
+
+export type SurveyFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+  kecamatan?: string;
+};
+
+export type AdviceFilters = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: AdviceStatus;
+};
 
 export type CreateProgressInput = {
   tanggal: string;

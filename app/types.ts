@@ -11,7 +11,8 @@ export type PageType =
   | "history"
   | "reports"
   | "profile"
-  | "detail";
+  | "detail"
+  | "masteractivitydetail";
 
 export interface User {
   id: number;

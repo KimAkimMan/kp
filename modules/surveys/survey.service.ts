@@ -6,8 +6,11 @@ import { prisma } from "@/lib/prisma";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 export const surveyService = {
-  list(pagination?: { skip: number; pageSize: number }, user?: AuthenticatedUser) {
-    return surveyRepository.findMany(pagination, user?.role === "OPERATOR" ? user.id : undefined);
+  list(filters?: { search?: string; status?: SurveyInput["status"]; kecamatan?: string; pagination?: { skip: number; pageSize: number } }, user?: AuthenticatedUser) {
+    return surveyRepository.findMany({
+      ...filters,
+      surveyorId: user?.role === "OPERATOR" ? user.id : undefined,
+    });
   },
 
   async get(id: string) {

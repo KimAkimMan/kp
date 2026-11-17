@@ -7,13 +7,15 @@ export const openapiDocument = {
   },
   servers: [{ url: "/api", description: "Current application" }],
   tags: [
-    { name: "Auth", description: "Autentikasi dan session" },
-    { name: "Users", description: "Manajemen pengguna" },
-    { name: "Programs", description: "Program dan progres kegiatan" },
-    { name: "Surveys", description: "Survey lapangan" },
-    { name: "Advice", description: "Saran dan arahan pimpinan" },
-    { name: "Reports", description: "Ringkasan laporan" },
-  ],
+      { name: "Auth", description: "Autentikasi dan session" },
+      { name: "Users", description: "Manajemen pengguna" },
+      { name: "Programs", description: "Program dan progres kegiatan" },
+      { name: "Surveys", description: "Survey lapangan" },
+      { name: "Advice", description: "Saran dan arahan pimpinan" },
+      { name: "Reports", description: "Ringkasan laporan" },
+      { name: "Storage", description: "File upload dan storage" },
+      { name: "Reference Data", description: "Master data untuk form" },
+    ],
   components: {
     parameters: {
       Id: { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } },
@@ -258,9 +260,194 @@ export const openapiDocument = {
           bukti: { type: "boolean" },
         },
       },
+      ProgramAssignment: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          programId: { type: "integer" },
+          operatorId: { type: "integer" },
+          assignedById: { type: "integer", nullable: true },
+          status: { type: "string", enum: ["DITUGASKAN", "DITERIMA", "DITOLAK", "DILEPAS"] },
+          notes: { type: "string", nullable: true },
+          assignedAt: { type: "string", format: "date-time" },
+          acceptedAt: { type: "string", format: "date-time", nullable: true },
+          releasedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      ProgramHistory: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          programId: { type: "integer" },
+          tanggal: { type: "string", format: "date-time" },
+          tahap: { type: "string" },
+          nilai: { type: "number" },
+          satuan: { type: "string" },
+          keterangan: { type: "string" },
+          foto: { type: "boolean" },
+          penginput: { type: "string" },
+          status: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      ProgramProgress: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          programId: { type: "integer" },
+          tanggal: { type: "string", format: "date-time" },
+          tahap: { type: "string" },
+          volume: { type: "number" },
+          satuan: { type: "string" },
+          persentase: { type: "number", nullable: true },
+          keterangan: { type: "string" },
+          status: { type: "string", enum: ["DRAFT", "DIAJUKAN", "DIVERIFIKASI", "DITOLAK"] },
+          verifiedAt: { type: "string", format: "date-time", nullable: true },
+          rejectionReason: { type: "string", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      ProgramCost: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          programId: { type: "integer" },
+          tanggal: { type: "string", format: "date-time" },
+          uraian: { type: "string" },
+          nominal: { type: "number" },
+          input: { type: "string" },
+          bukti: { type: "boolean" },
+          kategori: { type: "string", nullable: true },
+          status: { type: "string", enum: ["DRAFT", "DIAJUKAN", "DIVERIFIKASI", "DITOLAK"] },
+          verifiedAt: { type: "string", format: "date-time", nullable: true },
+          rejectionReason: { type: "string", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      ProgramCostDocument: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          costId: { type: "integer" },
+          storageKey: { type: "string" },
+          originalName: { type: "string" },
+          mimeType: { type: "string" },
+          fileSize: { type: "integer" },
+          url: { type: "string", format: "uri" },
+          uploadedById: { type: "integer", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      SurveyPhoto: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          surveyId: { type: "string" },
+          storageKey: { type: "string" },
+          originalName: { type: "string" },
+          mimeType: { type: "string" },
+          fileSize: { type: "integer" },
+          url: { type: "string", format: "uri" },
+          caption: { type: "string", nullable: true },
+          latitude: { type: "number", nullable: true },
+          longitude: { type: "number", nullable: true },
+          uploadedById: { type: "integer", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      SurveyReview: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          surveyId: { type: "string" },
+          reviewerId: { type: "integer" },
+          decision: { type: "string", enum: ["DISETUJUI", "DITOLAK", "PERLU_REVISI"] },
+          notes: { type: "string", nullable: true },
+          reviewedAt: { type: "string", format: "date-time" },
+        },
+      },
+      SurveyStatusHistory: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          surveyId: { type: "string" },
+          fromStatus: { type: "string", nullable: true },
+          toStatus: { type: "string" },
+          changedById: { type: "integer", nullable: true },
+          reason: { type: "string", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      SurveyProgramLink: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          surveyId: { type: "string" },
+          programId: { type: "integer" },
+          linkedById: { type: "integer", nullable: true },
+          relationType: { type: "string" },
+          linkedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AdviceReply: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          adviceId: { type: "string" },
+          authorId: { type: "integer" },
+          isi: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
     },
   },
   paths: {
+    "/public/programs": {
+      get: {
+        tags: ["Programs"],
+        summary: "Daftar program untuk landing publik dengan field terbatas",
+        parameters: [
+          { $ref: "#/components/parameters/Page" },
+          { $ref: "#/components/parameters/PageSize" },
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["BELUM_DIKERJAKAN", "SEDANG_DIKERJAKAN", "SELESAI_DIKERJAKAN"] } },
+          { name: "kecamatan", in: "query", required: false, schema: { type: "string" } },
+          { name: "search", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Daftar program publik" } },
+      },
+    },
+    "/surveys/{id}/photos/presign": {
+      post: { tags: ["Surveys"], summary: "Buat URL upload foto langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["originalName", "mimeType", "fileSize"], properties: { originalName: { type: "string" }, mimeType: { type: "string" }, fileSize: { type: "integer", minimum: 1 } } } } } }, responses: { "200": { description: "Presigned upload URL" } } },
+    },
+    "/surveys/{id}/photos/complete": {
+      post: { tags: ["Surveys"], summary: "Simpan metadata foto setelah direct upload selesai", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], responses: { "201": { description: "Foto terdaftar" } } },
+    },
+    "/surveys/photos/{photoId}/download": {
+      get: { tags: ["Surveys"], summary: "Buat URL preview/download foto private", security: [{ sessionCookie: [] }], parameters: [{ name: "photoId", in: "path", required: true, schema: { type: "string" } }], responses: { "200": { description: "Presigned download URL" } } },
+    },
+    "/costs/{costId}/documents/presign": {
+      post: { tags: ["Programs"], summary: "Buat URL upload dokumen biaya langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Presigned upload URL" } } },
+    },
+    "/costs/{costId}/documents/complete": {
+      post: { tags: ["Programs"], summary: "Simpan metadata dokumen biaya setelah direct upload selesai", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: "Dokumen terdaftar" } } },
+    },
+    "/costs/{costId}/documents/{documentId}/download": {
+      get: { tags: ["Programs"], summary: "Buat URL preview/download dokumen private", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }, { name: "documentId", in: "path", required: true, schema: { type: "string" } }], responses: { "200": { description: "Presigned download URL" } } },
+    },
+    "/auth/profile": {
+      patch: { tags: ["Auth"], summary: "Ubah profil sendiri", security: [{ sessionCookie: [] }], responses: { "200": { description: "Profil diperbarui" } } },
+    },
+    "/auth/change-password": {
+      post: { tags: ["Auth"], summary: "Ubah password sendiri", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["currentPassword", "newPassword"], properties: { currentPassword: { type: "string", minLength: 8 }, newPassword: { type: "string", minLength: 8 } } } } } }, responses: { "200": { description: "Password diubah" } } },
+    },
+    "/users/{id}/reset-password": {
+      post: { tags: ["Users"], summary: "Admin reset password pengguna", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Password direset" } } },
+    },
+    "/reference-data/categories": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Kategori program" } } } },
+    "/reference-data/units": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Satuan" } } } },
+    "/reference-data/periods": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Periode aktif" } } } },
+    "/reference-data/districts": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Kecamatan" } } } },
+    "/reference-data/villages": { get: { tags: ["Reference Data"], security: [{ sessionCookie: [] }], parameters: [{ name: "kecamatanId", in: "query", required: true, schema: { type: "integer", minimum: 1 } }], responses: { "200": { description: "Desa/kelurahan" } } } },
     "/auth/login": {
       post: {
         tags: ["Auth"],
@@ -302,11 +489,22 @@ export const openapiDocument = {
       delete: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Program dihapus" } } },
     },
     "/programs/{id}/claim": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Program diambil operator" } } } },
-    "/programs/{id}/progress": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProgressInput" } } } }, responses: { "201": { description: "Progres dicatat" } } } },
-    "/programs/{id}/costs": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CostInput" } } } }, responses: { "201": { description: "Biaya dicatat" } } } },
+    "/programs/{id}/progress": { get: { tags: ["Programs"], summary: "Daftar progres", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar progres program" } } }, post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProgressInput" } } } }, responses: { "201": { description: "Progres dicatat" } } } },
+    "/programs/{id}/costs": { get: { tags: ["Programs"], summary: "Daftar biaya", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar biaya program" } } }, post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CostInput" } } } }, responses: { "201": { description: "Biaya dicatat" } } } },
     "/programs/{id}/complete": { post: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Program selesai" } } } },
     "/surveys": {
-      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar survey" } } },
+      get: {
+        tags: ["Surveys"],
+        security: [{ sessionCookie: [] }],
+        parameters: [
+          { $ref: "#/components/parameters/Page" },
+          { $ref: "#/components/parameters/PageSize" },
+          { name: "search", in: "query", required: false, schema: { type: "string" } },
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] } },
+          { name: "kecamatan", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Daftar survey" } },
+      },
       post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/SurveyInput" } } } }, responses: { "201": { description: "Survey dibuat" } } },
     },
     "/surveys/{id}": {
@@ -328,5 +526,69 @@ export const openapiDocument = {
       delete: { tags: ["Advice"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Arahan dihapus" } } },
     },
     "/reports/summary": { get: { tags: ["Reports"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Ringkasan laporan" } } } },
-  },
-} as const;
+    "/programs/{id}/assignments": {
+      get: { tags: ["Programs"], summary: "Daftar assignment", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar assignment program" } } },
+      post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["operatorId"], properties: { operatorId: { type: "integer" }, notes: { type: "string" } } } } } }, responses: { "201": { description: "Assignment dibuat" } } },
+    },
+    "/programs/{id}/assignments/{assignmentId}": {
+      parameters: [{ $ref: "#/components/parameters/Id" }, { name: "assignmentId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Assignment diubah" } } },
+      delete: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Assignment dihapus" } } },
+    },
+    "/programs/{id}/history": {
+      get: { tags: ["Programs"], summary: "Riwayat program", security: [{ sessionCookie: [] }], responses: { "200": { description: "Riwayat perubahan program" } } },
+    },
+    "/progress/{progressId}/verify": {
+      parameters: [{ name: "progressId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Progress diverifikasi" } } },
+    },
+    "/costs/{costId}/verify": {
+      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Biaya diverifikasi" } } },
+    },
+    "/costs/{costId}/documents": {
+      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      get: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar dokumen biaya" } } },
+      post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { "201": { description: "Dokumen diupload" } } },
+    },
+    "/costs/{costId}/documents/{documentId}": {
+      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }, { name: "documentId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
+      delete: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Dokumen dihapus" } } },
+    },
+    "/surveys/{id}/photos": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }],
+      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar foto survey" } } },
+      post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" }, caption: { type: "string" }, latitude: { type: "number" }, longitude: { type: "number" } } } } } }, responses: { "201": { description: "Foto diupload" } } },
+    },
+    "/surveys/{id}/photos/{photoId}": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }, { name: "photoId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
+      delete: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Foto dihapus" } } },
+    },
+    "/surveys/{id}/reviews": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }],
+      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar review survey" } } },
+    },
+    "/surveys/{id}/status-history": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }],
+      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Riwayat status survey" } } },
+    },
+    "/surveys/{id}/links": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }],
+      get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar link survey-program" } } },
+      post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["programId"], properties: { programId: { type: "integer" }, relationType: { type: "string" } } } } } }, responses: { "201": { description: "Link dibuat" } } },
+    },
+    "/surveys/links/{linkId}": {
+      parameters: [{ name: "linkId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
+      delete: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Link dihapus" } } },
+    },
+    "/advice/{id}/replies": {
+      parameters: [{ $ref: "#/components/parameters/StringId" }],
+      get: { tags: ["Advice"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar balasan arahan" } } },
+      post: { tags: ["Advice"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["isi"], properties: { isi: { type: "string" } } } } } }, responses: { "201": { description: "Balasan dibuat" } } },
+    },
+    "/advice/replies/{replyId}": {
+      parameters: [{ name: "replyId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
+      delete: { tags: ["Advice"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Balasan dihapus" } } },
+    }
+  }
+}

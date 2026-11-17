@@ -10,8 +10,6 @@ import {
   ClipboardCheck,
   Trash2,
   Search,
-  Calendar,
-  Layers,
 } from "lucide-react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey } from "../../types";
 import {
@@ -27,6 +25,7 @@ import {
 import { SimpleBarChart } from "../Charts";
 import { PimpinanAchievementSection } from "../PimpinanAchievementSection";
 import { standardCategories } from "../../data/initialData";
+import { ActivityFilters } from "./ActivityFilters";
 
 interface DashboardViewProps {
   currentUser: User;
@@ -688,62 +687,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
 
-        {/* Category Pills by Year on Dashboard */}
-        <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-[#EAF0F4]">
-          <span className="text-[11px] font-bold text-[#65778B] flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-[#1E4E8C]" /> Kategori Tahun:
-          </span>
-          <button
-            type="button"
-            onClick={() => setDashboardYearFilter("")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-              !dashboardYearFilter
-                ? "bg-[#1E4E8C] text-white shadow-xs"
-                : "bg-[#F0F4F8] text-[#496178] hover:bg-[#E2EAF2]"
-            }`}
-          >
-            Semua Tahun ({displayPrograms.length})
-          </button>
-          {availableYears.map((yr) => {
-            const count = displayPrograms.filter((p) => getProgramYear(p) === yr).length;
-            const isActive = dashboardYearFilter === yr;
-            return (
-              <button
-                key={yr}
-                type="button"
-                onClick={() => setDashboardYearFilter(isActive ? "" : yr)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-[#1E4E8C] text-white shadow-xs"
-                    : "bg-[#F0F4F8] text-[#496178] hover:bg-[#E2EAF2]"
-                }`}
-              >
-                <span>Tahun {yr}</span>
-                <span className="text-[10px] opacity-80">({count})</span>
-              </button>
-            );
-          })}
-
-          {availableCategories.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-auto">
-              <span className="text-[11px] font-bold text-[#65778B] hidden md:inline-flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-[#148B87]" /> Bidang:
-              </span>
-              <select
-                value={dashboardCategoryFilter}
-                onChange={(e) => setDashboardCategoryFilter(e.target.value)}
-                className="border border-[#CCD9E4] rounded-lg px-2.5 py-1 text-xs bg-white text-[#35536F] font-semibold"
-              >
-                <option value="">Semua Bidang</option>
-                {availableCategories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+        <ActivityFilters
+          years={availableYears}
+          categories={availableCategories}
+          yearFilter={dashboardYearFilter}
+          categoryFilter={dashboardCategoryFilter}
+          totalCount={displayPrograms.length}
+          onYearChange={setDashboardYearFilter}
+          onCategoryChange={setDashboardCategoryFilter}
+          className="mb-4"
+        />
 
         {filteredDashboardPrograms.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
