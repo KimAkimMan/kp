@@ -163,4 +163,95 @@ export const programRepository = {
       select: { id: true, deletedAt: true },
     });
   },
+
+  async findDocumentationPhotos() {
+    // Program yang sudah selesai dan memiliki operator pengelola (dapat divisualisasikan publik)
+    const programs = await prisma.program.findMany({
+      where: {
+        deletedAt: null,
+        status: "SELESAI_DIKERJAKAN",
+        operatorPengelolaId: { not: null },
+      },
+      select: {
+        id: true,
+        kode: true,
+        nama: true,
+        kategori: true,
+        lokasi: true,
+        kecamatan: true,
+        desaKelurahan: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+    });
+
+    if (programs.length === 0) return [];
+
+    const programIds = programs.map((p) => p.id);
+
+    // Ambil survey yang terhubung ke program (lewat surveyProgramLink atau programId langsung)
+    const surveyLinks = await prisma.surveyProgramLink.findMany({
+      where: {
+        programId: { in: programIds },
+      },
+      select: {
+        surveyId: true,
+        programId: true,
+      },
+    });
+
+    // Jika tidak ada link, coba survey dengan programId langsung (fallback kompatibel)
+    const surveysByProgramId = await prisma.fieldSurvey.findMany({
+      where: {
+        programId: { in: programIds },
+        deletedAt: null,
+        status: { in: ["DIVERIFIKASI", "DIKONVERSI"] },
+      },
+      select: {
+        id: true,
+        programId: true,
+      },
+    });
+
+    const allSurveyIds = new Set<string>();
+    for (const link of surveyLinks) allSurveyIds.add(link.surveyId);
+    for (const s of surveysByProgramId) allSurveyIds.add(s.id);
+
+    const surveyIds = Array.from(allSurveyIds);
+    if (surveyIds.length === 0) return [];
+
+    const photos = await prisma.surveyPhoto.findMany({
+      where: {
+        surveyId: { in: surveyIds },
+      },
+      select: {
+        id: true,
+        storageKey: true,
+        originalName: true,
+        mimeType: true,
+        caption: true,
+        surveyId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    // Map survey → program untuk menampilkan info kegiatan
+    const surveyToProgram = new Map<string, { id: number; kode: string; nama: string; kategori: string; lokasi: string }>();
+    for (const link of surveyLinks) {
+      const program = programs.find((p) => p.id === link.programId);
+      if (program) surveyToProgram.set(link.surveyId, program);
+    }
+    for (const s of surveysByProgramId) {
+      const program = programs.find((p) => p.id === s.programId);
+      if (program && !surveyToProgram.has(s.id)) surveyToProgram.set(s.id, program);
+    }
+
+    return photos.map((photo) => ({
+      ...photo,
+      program: surveyToProgram.get(photo.surveyId) ?? null,
+    }));
+  },
 };

@@ -3,7 +3,11 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
-import { programApi, type PublicProgram } from "@/lib/api";
+import {
+  programApi,
+  type DocumentationPhoto,
+  type PublicProgram,
+} from "@/lib/api";
 import { mapPublicProgramToProgram } from "../utils/api-mappers";
 import {
   calculateSummary,
@@ -37,37 +41,79 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Hero slideshow
-  const heroSlides = [
-    {
-      src: "/dokumentasi/hero-jalan-ancaran.jpg",
-      alt: "Pembangunan jalan lingkungan di Ancaran, Kecamatan Kuningan",
-      caption: "Jalan Lingkungan — Ancaran, Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/hero-jalan-ciporang.jpg",
-      alt: "Jalan lingkungan Ciporang, Kecamatan Sindangagung",
-      caption: "Jalan Lingkungan — Ciporang, Kec. Sindangagung",
-    },
-    {
-      src: "/dokumentasi/jalan-lingkungan.jpg",
-      alt: "Pembangunan jalan lingkungan Kabupaten Kuningan",
-      caption: "Jalan Lingkungan — Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/drainase-tpt.jpg",
-      alt: "Pembangunan drainase permukiman Kabupaten Kuningan",
-      caption: "Drainase / TPT — Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/konstruksi-lainnya.jpg",
-      alt: "Konstruksi tembok penahan tanah Kabupaten Kuningan",
-      caption: "Konstruksi Lainnya — Kec. Kuningan",
-    },
-  ];
   const [heroIndex, setHeroIndex] = useState(0);
 
+  // Dokumentasi foto dari object storage (R2) via API, bukan aset statis.
+  const [documentationPhotos, setDocumentationPhotos] = useState<DocumentationPhoto[]>([]);
+
+  // Map PublicProgram (DTO API) → Program (tipe tampilan) untuk helpers UI
+  const displayPrograms = programs.map(mapPublicProgramToProgram);
+
+  // Kartu dokumentasi dihasilkan dari foto di object storage melalui API.
+  // Jika API gagal atau tidak ada data, gunakan fallback gambar statis.
+  const documentationCards =
+    documentationPhotos.length > 0
+      ? documentationPhotos.slice(0, 6).map((photo) => ({
+          key: photo.id,
+          src: photo.downloadUrl,
+          alt: photo.caption ?? photo.originalName,
+          title: photo.program?.nama ?? photo.originalName,
+          location: photo.program?.lokasi ?? "Kabupaten Kuningan",
+          year: new Date(photo.createdAt).getFullYear().toString(),
+          status: "Selesai Dikerjakan",
+          badgeClass: "selesai",
+          onClick: photo.program ? () => onSelectProgram(photo.program!.id) : undefined,
+        }))
+      : [
+          {
+            key: "fallback-jalan",
+            src: "/dokumentasi/jalan-lingkungan.jpg",
+            alt: "Jalan lingkungan hasil pembangunan Disperkimtan Kuningan",
+            title: "Jalan Lingkungan",
+            location: "Kecamatan Kuningan, Kabupaten Kuningan",
+            year: "2026",
+            status: "-",
+            badgeClass: "belum",
+            onClick: undefined,
+          },
+          {
+            key: "fallback-drainase",
+            src: "/dokumentasi/drainase-tpt.jpg",
+            alt: "Saluran drainase dan tembok penahan tanah hasil pembangunan",
+            title: "Drainase / TPT",
+            location: "Kecamatan Kuningan, Kabupaten Kuningan",
+            year: "2026",
+            status: "-",
+            badgeClass: "belum",
+            onClick: undefined,
+          },
+          {
+            key: "fallback-konstruksi",
+            src: "/dokumentasi/konstruksi-lainnya.jpg",
+            alt: "Konstruksi tembok penahan tanah dan infrastruktur permukiman",
+            title: "Konstruksi Lainnya",
+            location: "Kecamatan Kuningan, Kabupaten Kuningan",
+            year: "2026",
+            status: "-",
+            badgeClass: "belum",
+            onClick: undefined,
+          },
+        ];
+
+  // Hero slideshow dihasilkan dari foto dokumentasi object storage (API), bukan dummy.
+  // Tidak akan merender slide bila tidak ada data dari server.
+  const heroSlides =
+    documentationPhotos.length > 0
+      ? documentationPhotos.slice(0, 5).map((photo) => ({
+          src: photo.downloadUrl,
+          alt: photo.caption ?? photo.originalName,
+          caption: `${photo.program?.nama ?? photo.originalName} — ${photo.program?.lokasi ?? "Kabupaten Kuningan"}`,
+          id: photo.id,
+        }))
+      : [];
+
   useEffect(() => {
+    if (heroSlides.length === 0) return;
     const timer = setInterval(() => {
       setHeroIndex((i) => (i + 1) % heroSlides.length);
     }, 4000);
@@ -101,88 +147,34 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     }
   }, []);
 
+  const fetchDocumentationPhotos = useCallback(async () => {
+    try {
+      const { data } = await programApi.documentation();
+      setDocumentationPhotos(data ?? []);
+    } catch (err) {
+      // Fallback gambar statis akan ditampilkan bila API gagal.
+      console.error("Gagal memuat foto dokumentasi:", err);
+    }
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       await fetchPrograms();
+      await fetchDocumentationPhotos();
     };
 
     load();
-    const interval = setInterval(fetchPrograms, 30000);
+    const interval = setInterval(() => {
+      void fetchPrograms();
+      void fetchDocumentationPhotos();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [fetchPrograms, refreshKey]);
+  }, [fetchPrograms, fetchDocumentationPhotos, refreshKey]);
 
   const triggerRefresh = () => {
     setRefreshKey((k) => k + 1);
   };
 
-  // Map PublicProgram (DTO API) → Program (tipe tampilan) untuk helpers UI
-  const displayPrograms = programs.map(mapPublicProgramToProgram);
-
-  // Gambar dokumentasi per kategori, sesuai aset dokumentasi publik yang ada.
-  const documentationImageFor = (kategori?: string | null): string => {
-    const k = (kategori ?? "").toLowerCase();
-    if (k.includes("jalan")) return "/dokumentasi/jalan-lingkungan.jpg";
-    if (k.includes("drainase")) return "/dokumentasi/drainase-tpt.jpg";
-    return "/dokumentasi/konstruksi-lainnya.jpg";
-  };
-
-  // Kartu dokumentasi dihasilkan dari data kegiatan publik (API), dengan
-  // gambar statis sebagai fallback bila data publik belum tersedia.
-  const DOCUMENTATION_FALLBACKS = [
-    {
-      key: "fallback-jalan",
-      src: "/dokumentasi/jalan-lingkungan.jpg",
-      alt: "Jalan lingkungan hasil pembangunan Disperkimtan Kuningan",
-      title: "Jalan Lingkungan",
-      location: "Kecamatan Kuningan, Kabupaten Kuningan",
-      year: "2026",
-      status: "-",
-      badgeClass: "belum",
-      onClick: undefined,
-    },
-    {
-      key: "fallback-drainase",
-      src: "/dokumentasi/drainase-tpt.jpg",
-      alt: "Saluran drainase dan tembok penahan tanah hasil pembangunan",
-      title: "Drainase / TPT",
-      location: "Kecamatan Kuningan, Kabupaten Kuningan",
-      year: "2026",
-      status: "-",
-      badgeClass: "belum",
-      onClick: undefined,
-    },
-    {
-      key: "fallback-konstruksi",
-      src: "/dokumentasi/konstruksi-lainnya.jpg",
-      alt: "Konstruksi tembok penahan tanah dan infrastruktur permukiman",
-      title: "Konstruksi Lainnya",
-      location: "Kecamatan Kuningan, Kabupaten Kuningan",
-      year: "2026",
-      status: "-",
-      badgeClass: "belum",
-      onClick: undefined,
-    },
-  ];
-
-  const documentationCards =
-    !loading && displayPrograms.length > 0
-      ? displayPrograms.slice(0, 6).map((p) => ({
-          key: `doc-${p.id}`,
-          src: documentationImageFor(p.kategori),
-          alt: `Dokumentasi ${p.nama}`,
-          title: p.nama,
-          location: `${getProgramDesa(p)}, ${getProgramKecamatan(p)}`.replace(/^, /, "").replace(/,$/, "") || "Kabupaten Kuningan",
-          year: getProgramYear(p),
-          status: p.status,
-          badgeClass:
-            p.status === "Belum Dikerjakan"
-              ? "belum"
-              : p.status === "Sedang Dikerjakan"
-                ? "sedang"
-                : "selesai",
-          onClick: () => onSelectProgram(p.id),
-        }))
-      : DOCUMENTATION_FALLBACKS;
 
   const availableYears = Array.from(
     new Set([
@@ -297,7 +289,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 
       {!loading && (
         <>
-          {/* Hero Section — Slideshow */}
+          {heroSlides.length > 0 && (
       <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
         {/* Slides */}
         {heroSlides.map((slide, i) => (
@@ -365,7 +357,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           ))}
         </div>
       </section>
-
+          )}
       {/* Floating Public Stats */}
       <section className="px-[5%] -mt-10 sm:-mt-12 relative z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

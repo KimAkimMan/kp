@@ -5,6 +5,28 @@ import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { prisma } from "@/lib/prisma";
 import type { ProgramActor } from "./program.types";
+import {
+  presignDownload,
+  type DirectUploadInput,
+} from "@/modules/storage/direct-upload.service";
+
+export type DocumentationPhoto = {
+  id: string;
+  storageKey: string;
+  originalName: string;
+  mimeType: string;
+  caption?: string | null;
+  surveyId: string;
+  createdAt: string;
+  downloadUrl: string;
+  program: {
+    id: number;
+    kode: string;
+    nama: string;
+    kategori: string;
+    lokasi: string;
+  } | null;
+};
 
 export const programService = {
   list(filters: ProgramListFilters = {}) {
@@ -107,6 +129,28 @@ export const programService = {
         details: { reason: "API admin delete" },
       },
     });
+    return result;
+  },
+
+  async getDocumentationPhotos() {
+    const photos = await programRepository.findDocumentationPhotos();
+
+    // Generate presigned download URL dari object storage (R2) untuk setiap foto,
+    // sehingga dapat ditampilkan di halaman publik tanpa autentikasi.
+    const result: DocumentationPhoto[] = [];
+    for (const photo of photos) {
+      const { downloadUrl } = await presignDownload(
+        photo.storageKey,
+        photo.originalName,
+        photo.mimeType,
+      );
+      result.push({
+        ...photo,
+        createdAt: photo.createdAt.toISOString(),
+        downloadUrl,
+        program: photo.program ?? null,
+      });
+    }
     return result;
   },
 };

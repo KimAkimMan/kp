@@ -10,6 +10,7 @@ import type {
   PublicProgram,
   PublicProgramFilters,
 } from "@/lib/api/types";
+import type { DocumentationPhoto } from "./program.service";
 
 export const programApi = {
   list(filters?: ProgramFilters) {
@@ -29,6 +30,9 @@ export const programApi = {
   },
   public(filters?: PublicProgramFilters) {
     return apiClient.get<PaginatedResponse<PublicProgram>>("/public/programs", filters);
+  },
+  documentation() {
+    return apiClient.get<{ data: DocumentationPhoto[] }>("/public/documentation");
   },
   claim(id: number) {
     return apiClient.post<ApiResponse<ApiProgram>>(`/programs/${id}/claim`);
@@ -57,4 +61,4 @@ export const programApi = {
   removeCostDocument(costId: number, documentId: string) { return apiClient.delete<ApiResponse<unknown>>(`/costs/${costId}/documents/${encodeURIComponent(documentId)}`); },
 };
 
-export type { ConvertSurveyInput };
+export type { ConvertSurveyInput, DocumentationPhoto };

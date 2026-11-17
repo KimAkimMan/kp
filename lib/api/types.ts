@@ -144,3 +144,4 @@ export type ConvertSurveyInput = {
 };
 
 export type { CreateProgramInput, UpdateProgramInput, SurveyInput, CreateUserInput, UpdateUserInput };
+export type { DocumentationPhoto } from "@/modules/programs/program.service";
