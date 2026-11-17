@@ -45,6 +45,12 @@ View / component
 - `ApiClient` mengatur transport, cookie/token, query, JSON, dan error.
 - Backend mengatur authorization, validasi, aturan bisnis, dan database.
 
+Mapping DTO API ke tipe tampilan (enum backend `UPPER_SNAKE`, label status,
+angka `Decimal` yang sudah diserialisasi menjadi `number`) diletakkan di
+[`app/utils/api-mappers.ts`](../app/utils/api-mappers.ts), bukan di dalam
+repository atau service. Contoh penerapan: `LoginScreen` (auth) dan
+`PublicLanding` (public programs).
+
 Jangan memindahkan aturan authorization ke frontend. UI boleh menyembunyikan
 aksi yang tidak relevan, tetapi backend tetap wajib menolak akses yang tidak
 diizinkan.

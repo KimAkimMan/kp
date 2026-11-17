@@ -2,58 +2,79 @@
 
 import React, { useState } from "react";
 import { Landmark, Building2, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { ApiClientError, authApi } from "@/lib/api";
+import { mapApiUserToUser } from "../utils/api-mappers";
 import { Role, User } from "../types";
 
 interface LoginScreenProps {
-  users: User[];
   onLoginSuccess: (user: User) => void;
   onBackToLanding: () => void;
 }
 
+/**
+ * Akun demo mengikuti seed backend (`npm run db:seed`). Selector role hanya
+ * mengisi kredensial agar demo cepat; sumber kebenaran role setelah login
+ * tetap berasal dari API (`data.user.role`).
+ */
+const DEMO_ACCOUNTS: Record<Role, { email: string; password: string }> = {
+  Admin: { email: "admin@kp.local", password: "Password123!" },
+  Operator: { email: "operator@kp.local", password: "Password123!" },
+  Pimpinan: { email: "pimpinan@kp.local", password: "Password123!" },
+};
+
+function getLoginErrorMessage(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    if (error.code === "RATE_LIMITED") {
+      const retryAfterSeconds = (error.details as { retryAfterSeconds?: number } | undefined)
+        ?.retryAfterSeconds;
+      return retryAfterSeconds
+        ? `Terlalu banyak percobaan login. Coba lagi dalam ${retryAfterSeconds} detik.`
+        : "Terlalu banyak percobaan login. Silakan coba lagi nanti.";
+    }
+    return error.message;
+  }
+
+  return "Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba lagi.";
+}
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({
-  users,
   onLoginSuccess,
   onBackToLanding,
 }) => {
   const [selectedRole, setSelectedRole] = useState<Role>("Admin");
-  const [email, setEmail] = useState("ahmad.suryana@kuningankab.go.id");
-  const [password, setPassword] = useState("demo123");
+  const [email, setEmail] = useState(DEMO_ACCOUNTS.Admin.email);
+  const [password, setPassword] = useState(DEMO_ACCOUNTS.Admin.password);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRoleChange = (role: Role) => {
     setSelectedRole(role);
     setErrorMessage("");
-    const matchedUser = users.find((u) => u.role === role);
-    if (matchedUser) {
-      setEmail(matchedUser.email);
-      setPassword(matchedUser.password || "demo123");
-    }
+    setEmail(DEMO_ACCOUNTS[role].email);
+    setPassword(DEMO_ACCOUNTS[role].password);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage("");
+    if (isSubmitting) return;
 
+    setErrorMessage("");
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !password) {
       setErrorMessage("Username/email dan kata sandi wajib diisi.");
       return;
     }
 
-    const matched = users.find(
-      (u) =>
-        u.email.trim().toLowerCase() === trimmedEmail &&
-        u.role === selectedRole &&
-        u.password === password
-    );
-
-    if (!matched) {
-      setErrorMessage("Username/email, role, atau kata sandi tidak sesuai.");
-      return;
+    setIsSubmitting(true);
+    try {
+      const { data } = await authApi.login({ email: trimmedEmail, password });
+      onLoginSuccess(mapApiUserToUser(data.user));
+    } catch (error) {
+      setErrorMessage(getLoginErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onLoginSuccess(matched);
   };
 
   return (
@@ -116,8 +137,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
           <div className="text-xs bg-[#F2F7FC] border-l-4 border-[#148B87] p-3 rounded-r-lg text-[#45627C] mb-5">
             Akun demo {selectedRole}:{" "}
-            <span className="font-semibold">{email}</span> · kata sandi:{" "}
-            <span className="font-mono">demo123</span>
+            <span className="font-semibold">{DEMO_ACCOUNTS[selectedRole].email}</span> ·
+            kata sandi: <span className="font-mono">Password123!</span>
           </div>
 
           <div className="mb-4">
@@ -130,6 +151,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-[#CCD9E4] rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
               placeholder="Masukkan username atau email"
+              autoComplete="username"
+              disabled={isSubmitting}
               required
             />
           </div>
@@ -145,6 +168,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full border border-[#CCD9E4] rounded-xl px-3.5 py-2.5 pr-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
                 placeholder="Masukkan kata sandi"
+                autoComplete="current-password"
+                disabled={isSubmitting}
                 required
               />
               <button
@@ -170,9 +195,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-md"
+            disabled={isSubmitting}
+            className="w-full py-3 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Masuk ke Aplikasi
+            {isSubmitting ? "Memproses..." : "Masuk ke Aplikasi"}
           </button>
 
           <button

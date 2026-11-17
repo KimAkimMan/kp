@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
 import { programApi, type PublicProgram } from "@/lib/api";
-import { Program } from "../types";
+import { mapPublicProgramToProgram } from "../utils/api-mappers";
 import {
   calculateSummary,
   statusCount,
@@ -22,6 +22,9 @@ interface PublicLandingProps {
   onOpenLogin: () => void;
   onSelectProgram: (id: number) => void;
 }
+
+/** Batas maksimum `pageSize` pada kontrak pagination backend. */
+const PUBLIC_PROGRAMS_PAGE_SIZE = 100;
 
 export const PublicLanding: React.FC<PublicLandingProps> = ({
   onOpenLogin,
@@ -75,13 +78,22 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     setLoading(true);
     setError(null);
     try {
-      // Use direct fetch with proper error handling for modular setup
-      // If API is not yet ready, this will fail gracefully
-      const res = await programApi.public();
-      setPrograms(res.data ?? []);
-    } catch (err: unknown) {
-      // Only set error if it's not a fetch/environment issue
-      // during modular refactoring phase
+      // Ringkasan publik (pagu, capaian, filter tahun/kategori) dihitung dari
+      // seluruh data, jadi seluruh halaman diambil — bukan hanya halaman pertama.
+      const firstPage = await programApi.public({
+        page: 1,
+        pageSize: PUBLIC_PROGRAMS_PAGE_SIZE,
+      });
+      const items: PublicProgram[] = [...firstPage.data];
+      for (let page = 2; page <= firstPage.meta.totalPages; page += 1) {
+        const nextPage = await programApi.public({
+          page,
+          pageSize: PUBLIC_PROGRAMS_PAGE_SIZE,
+        });
+        items.push(...nextPage.data);
+      }
+      setPrograms(items);
+    } catch (err) {
       setError("Gagal memuat data kegiatan dari server.");
       console.error(err);
     } finally {
@@ -103,49 +115,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     setRefreshKey((k) => k + 1);
   };
 
-  // Map PublicProgram (API enum status) → Program (display label status) for helpers
-  const toProgram = (p: PublicProgram): Program => ({
-    id: p.id,
-    kode: p.kode,
-    nama: p.nama,
-    namaKegiatan: p.nama,
-    kategori: p.kategori,
-    lokasi: p.lokasi,
-    kecamatan: p.kecamatan ?? "",
-    desaKelurahan: p.desaKelurahan ?? "",
-    detailLokasi: p.detailLokasi ?? "",
-    pj: p.operatorPengelola ?? "Belum Ditugaskan",
-    operatorPengelola: p.operatorPengelola ?? null,
-    operatorPengelolaId: p.operatorPengelolaId ?? null,
-    penanggungJawabDinas: null,
-    periode: "2026",
-    satuan: p.satuan,
-    targetAwal: p.target,
-    target: p.target,
-    targetVolume: p.target,
-    realisasi: p.realisasi,
-    realisasiVolume: p.realisasi,
-    status: (() => {
-      switch (p.status) {
-        case "SELESAI_DIKERJAKAN":
-          return "Selesai Dikerjakan";
-        case "SEDANG_DIKERJAKAN":
-          return "Sedang Dikerjakan";
-        default:
-          return "Belum Dikerjakan";
-      }
-    })(),
-    update: p.updatedAt,
-    sumber: "Dokumentasi Transparansi",
-    catatan: "",
-    pagu: Number(p.pagu) || 0,
-    penggunaan: Number(p.penggunaan) || 0,
-    penggunaanBiaya: Number(p.penggunaan) || 0,
-    histories: [],
-    costs: [],
-  });
-
-  const displayPrograms = programs.map(toProgram);
+  // Map PublicProgram (DTO API) → Program (tipe tampilan) untuk helpers UI
+  const displayPrograms = programs.map(mapPublicProgramToProgram);
 
   const availableYears = Array.from(
     new Set([

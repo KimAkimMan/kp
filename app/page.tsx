@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey, HistoryItem } from "./types";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
+import { authApi } from "@/lib/api";
+import { mapApiUserToUser } from "./utils/api-mappers";
 import {
   operatorAssignment,
   isAssignedToCurrentOperator,
@@ -55,6 +57,27 @@ export default function Home() {
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
   const [adviceRecords, setAdviceRecords] = useState<AdviceRecord[]>([]);
   const [surveys, setSurveys] = useState<FieldSurvey[]>(initialSurveys);
+
+  // Pulihkan sesi aktif (cookie `kp_session`) agar refresh tidak memaksa login ulang
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      try {
+        const { data } = await authApi.me();
+        if (cancelled) return;
+        setCurrentUser((previous) => previous ?? mapApiUserToUser(data));
+        setScreen((previous) => (previous === "landing" ? "app" : previous));
+      } catch {
+        // 401/UNAUTHENTICATED berarti belum (atau tidak lagi) login: tetap di landing.
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Sync with browser storage once mounted
   useEffect(() => {
@@ -256,6 +279,8 @@ export default function Home() {
 
   // Logout handler
   const handleLogout = () => {
+    // Hapus sesi server (cookie `kp_session`) tanpa memblokir perpindahan layar.
+    void authApi.logout().catch(() => undefined);
     setCurrentUser(null);
     setScreen("landing");
     showToast("Anda telah keluar dari aplikasi.");
@@ -722,7 +747,6 @@ export default function Home() {
     return (
       <>
         <LoginScreen
-          users={users}
           onLoginSuccess={handleLoginSuccess}
           onBackToLanding={() => setScreen("landing")}
         />

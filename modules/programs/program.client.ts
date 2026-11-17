@@ -8,6 +8,7 @@ import type {
   CreateProgramInput,
   UpdateProgramInput,
   PublicProgram,
+  PublicProgramFilters,
 } from "@/lib/api/types";
 
 export const programApi = {
@@ -26,8 +27,8 @@ export const programApi = {
   remove(id: number) {
     return apiClient.delete<ApiResponse<ApiProgram>>(`/programs/${id}`);
   },
-  public() {
-    return apiClient.get<{ data: PublicProgram[]; meta: { page: number; pageSize: number; skip: number; total: number; totalPages: number } }>("/public/programs");
+  public(filters?: PublicProgramFilters) {
+    return apiClient.get<PaginatedResponse<PublicProgram>>("/public/programs", filters);
   },
   claim(id: number) {
     return apiClient.post<ApiResponse<ApiProgram>>(`/programs/${id}/claim`);

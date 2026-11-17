@@ -44,7 +44,7 @@ export type PublicProgram = {
   nama: string;
   kategori: string;
   lokasi: string;
-  kecamatan: string;
+  kecamatan: string | null;
   desaKelurahan?: string | null;
   detailLokasi?: string | null;
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
@@ -56,6 +56,11 @@ export type PublicProgram = {
   operatorPengelola?: string | null;
   operatorPengelolaId?: number | null;
   updatedAt: string;
+};
+
+export type PublicProgramFilters = {
+  page?: number;
+  pageSize?: number;
 };
 
 export type ApiSurvey = Record<string, unknown> & {
