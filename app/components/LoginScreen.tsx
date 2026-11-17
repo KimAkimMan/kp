@@ -12,15 +12,10 @@ interface LoginScreenProps {
 }
 
 /**
- * Akun demo mengikuti seed backend (`npm run db:seed`). Selector role hanya
- * mengisi kredensial agar demo cepat; sumber kebenaran role setelah login
- * tetap berasal dari API (`data.user.role`).
+ * Selector role hanya menunjukkan niat login; kredensial tidak diisi
+ * otomatis dan harus diisi manual oleh pengguna. Sumber kebenaran role
+ * setelah login tetap berasal dari API (`data.user.role`).
  */
-const DEMO_ACCOUNTS: Record<Role, { email: string; password: string }> = {
-  Admin: { email: "admin@kp.local", password: "Password123!" },
-  Operator: { email: "operator@kp.local", password: "Password123!" },
-  Pimpinan: { email: "pimpinan@kp.local", password: "Password123!" },
-};
 
 function getLoginErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
@@ -42,8 +37,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   onBackToLanding,
 }) => {
   const [selectedRole, setSelectedRole] = useState<Role>("Admin");
-  const [email, setEmail] = useState(DEMO_ACCOUNTS.Admin.email);
-  const [password, setPassword] = useState(DEMO_ACCOUNTS.Admin.password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,8 +46,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const handleRoleChange = (role: Role) => {
     setSelectedRole(role);
     setErrorMessage("");
-    setEmail(DEMO_ACCOUNTS[role].email);
-    setPassword(DEMO_ACCOUNTS[role].password);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,12 +126,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 {role}
               </button>
             ))}
-          </div>
-
-          <div className="text-xs bg-[#F2F7FC] border-l-4 border-[#148B87] p-3 rounded-r-lg text-[#45627C] mb-5">
-            Akun demo {selectedRole}:{" "}
-            <span className="font-semibold">{DEMO_ACCOUNTS[selectedRole].email}</span> ·
-            kata sandi: <span className="font-mono">Password123!</span>
           </div>
 
           <div className="mb-4">

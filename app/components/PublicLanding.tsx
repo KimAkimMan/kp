@@ -118,6 +118,72 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   // Map PublicProgram (DTO API) → Program (tipe tampilan) untuk helpers UI
   const displayPrograms = programs.map(mapPublicProgramToProgram);
 
+  // Gambar dokumentasi per kategori, sesuai aset dokumentasi publik yang ada.
+  const documentationImageFor = (kategori?: string | null): string => {
+    const k = (kategori ?? "").toLowerCase();
+    if (k.includes("jalan")) return "/dokumentasi/jalan-lingkungan.jpg";
+    if (k.includes("drainase")) return "/dokumentasi/drainase-tpt.jpg";
+    return "/dokumentasi/konstruksi-lainnya.jpg";
+  };
+
+  // Kartu dokumentasi dihasilkan dari data kegiatan publik (API), dengan
+  // gambar statis sebagai fallback bila data publik belum tersedia.
+  const DOCUMENTATION_FALLBACKS = [
+    {
+      key: "fallback-jalan",
+      src: "/dokumentasi/jalan-lingkungan.jpg",
+      alt: "Jalan lingkungan hasil pembangunan Disperkimtan Kuningan",
+      title: "Jalan Lingkungan",
+      location: "Kecamatan Kuningan, Kabupaten Kuningan",
+      year: "2026",
+      status: "-",
+      badgeClass: "belum",
+      onClick: undefined,
+    },
+    {
+      key: "fallback-drainase",
+      src: "/dokumentasi/drainase-tpt.jpg",
+      alt: "Saluran drainase dan tembok penahan tanah hasil pembangunan",
+      title: "Drainase / TPT",
+      location: "Kecamatan Kuningan, Kabupaten Kuningan",
+      year: "2026",
+      status: "-",
+      badgeClass: "belum",
+      onClick: undefined,
+    },
+    {
+      key: "fallback-konstruksi",
+      src: "/dokumentasi/konstruksi-lainnya.jpg",
+      alt: "Konstruksi tembok penahan tanah dan infrastruktur permukiman",
+      title: "Konstruksi Lainnya",
+      location: "Kecamatan Kuningan, Kabupaten Kuningan",
+      year: "2026",
+      status: "-",
+      badgeClass: "belum",
+      onClick: undefined,
+    },
+  ];
+
+  const documentationCards =
+    !loading && displayPrograms.length > 0
+      ? displayPrograms.slice(0, 6).map((p) => ({
+          key: `doc-${p.id}`,
+          src: documentationImageFor(p.kategori),
+          alt: `Dokumentasi ${p.nama}`,
+          title: p.nama,
+          location: `${getProgramDesa(p)}, ${getProgramKecamatan(p)}`.replace(/^, /, "").replace(/,$/, "") || "Kabupaten Kuningan",
+          year: getProgramYear(p),
+          status: p.status,
+          badgeClass:
+            p.status === "Belum Dikerjakan"
+              ? "belum"
+              : p.status === "Sedang Dikerjakan"
+                ? "sedang"
+                : "selesai",
+          onClick: () => onSelectProgram(p.id),
+        }))
+      : DOCUMENTATION_FALLBACKS;
+
   const availableYears = Array.from(
     new Set([
       "2026",
@@ -442,56 +508,36 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="/dokumentasi/jalan-lingkungan.jpg"
-                alt="Jalan lingkungan hasil pembangunan Disperkimtan Kuningan"
-                className="w-full h-52 object-cover"
-                loading="lazy"
-              />
-              <div className="p-4">
-                <strong className="block text-sm font-bold text-[#143965]">
-                  Jalan Lingkungan
-                </strong>
-                <span className="block text-xs text-[#65778B] mt-1">
-                  Kecamatan Kuningan, Kabupaten Kuningan
-                </span>
-              </div>
-            </article>
-
-            <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="/dokumentasi/drainase-tpt.jpg"
-                alt="Saluran drainase dan tembok penahan tanah hasil pembangunan"
-                className="w-full h-52 object-cover"
-                loading="lazy"
-              />
-              <div className="p-4">
-                <strong className="block text-sm font-bold text-[#143965]">
-                  Drainase / TPT
-                </strong>
-                <span className="block text-xs text-[#65778B] mt-1">
-                  Kecamatan Kuningan, Kabupaten Kuningan
-                </span>
-              </div>
-            </article>
-
-            <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition">
-              <img
-                src="/dokumentasi/konstruksi-lainnya.jpg"
-                alt="Konstruksi tembok penahan tanah dan infrastruktur permukiman"
-                className="w-full h-52 object-cover"
-                loading="lazy"
-              />
-              <div className="p-4">
-                <strong className="block text-sm font-bold text-[#143965]">
-                  Konstruksi Lainnya
-                </strong>
-                <span className="block text-xs text-[#65778B] mt-1">
-                  Kecamatan Kuningan, Kabupaten Kuningan
-                </span>
-              </div>
-            </article>
+            {documentationCards.map((card) => (
+              <article
+                key={card.key}
+                onClick={card.onClick}
+                className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition flex flex-col ${
+                  card.onClick ? "cursor-pointer" : ""
+                }`}
+              >
+                <img
+                  src={card.src}
+                  alt={card.alt}
+                  className="w-full h-52 object-cover"
+                  loading="lazy"
+                />
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
+                      TA {card.year}
+                    </span>
+                    <span className={`badge ${card.badgeClass}`}>{card.status}</span>
+                  </div>
+                  <strong className="block text-sm font-bold text-[#143965] mt-2">
+                    {card.title}
+                  </strong>
+                  <span className="block text-xs text-[#65778B] mt-1">
+                    {card.location}
+                  </span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
