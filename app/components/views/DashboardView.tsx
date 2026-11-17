@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus,
   FileBarChart,
@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Trash2,
   Search,
+  RefreshCw,
 } from "lucide-react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey } from "../../types";
 import {
@@ -26,6 +27,17 @@ import { SimpleBarChart } from "../Charts";
 import { PimpinanAchievementSection } from "../PimpinanAchievementSection";
 import { standardCategories } from "../../data/initialData";
 import { ActivityFilters } from "./ActivityFilters";
+import {
+  programApi,
+  surveyApi,
+  adviceApi,
+  ApiClientError,
+} from "@/lib/api";
+import {
+  mapApiProgramToProgram,
+  mapApiSurveyToSurvey,
+  mapApiAdviceToAdvice,
+} from "../../utils/api-mappers";
 
 interface DashboardViewProps {
   currentUser: User;
@@ -58,13 +70,83 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const isPimpinan = currentUser.role === "Pimpinan";
   const isAdmin = currentUser.role === "Admin";
 
+  // Live state from API with props as initial fallback
+  const [livePrograms, setLivePrograms] = useState<Program[]>(programs);
+  const [liveSurveys, setLiveSurveys] = useState<FieldSurvey[]>(surveys);
+  const [liveAdviceRecords, setLiveAdviceRecords] = useState<AdviceRecord[]>(adviceRecords);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+  // Fetch fresh data from backend APIs on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialData() {
+      try {
+        const [progsRes, surveysRes, adviceRes] = await Promise.allSettled([
+          programApi.list({ pageSize: 100 }),
+          surveyApi.list({ pageSize: 100 }),
+          adviceApi.list({ pageSize: 100 }),
+        ]);
+
+        if (cancelled) return;
+
+        if (progsRes.status === "fulfilled" && progsRes.value?.data) {
+          setLivePrograms(progsRes.value.data.map(mapApiProgramToProgram));
+        }
+        if (surveysRes.status === "fulfilled" && surveysRes.value?.data) {
+          setLiveSurveys(surveysRes.value.data.map(mapApiSurveyToSurvey));
+        }
+        if (adviceRes.status === "fulfilled" && adviceRes.value?.data) {
+          setLiveAdviceRecords(adviceRes.value.data.map(mapApiAdviceToAdvice));
+        }
+      } catch (err) {
+        console.error("Dashboard API refresh error:", err);
+      }
+    }
+
+    void loadInitialData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refreshDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    setFeedbackError(null);
+    try {
+      const [progsRes, surveysRes, adviceRes] = await Promise.allSettled([
+        programApi.list({ pageSize: 100 }),
+        surveyApi.list({ pageSize: 100 }),
+        adviceApi.list({ pageSize: 100 }),
+      ]);
+
+      if (progsRes.status === "fulfilled" && progsRes.value?.data) {
+        setLivePrograms(progsRes.value.data.map(mapApiProgramToProgram));
+      }
+      if (surveysRes.status === "fulfilled" && surveysRes.value?.data) {
+        setLiveSurveys(surveysRes.value.data.map(mapApiSurveyToSurvey));
+      }
+      if (adviceRes.status === "fulfilled" && adviceRes.value?.data) {
+        setLiveAdviceRecords(adviceRes.value.data.map(mapApiAdviceToAdvice));
+      }
+    } catch (err) {
+      console.error("Dashboard API refresh error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Filter accessible programs for Operator
   const displayPrograms = isOperator
-    ? programs.filter((p) => {
+    ? livePrograms.filter((p) => {
         const owner = operatorAssignment(p);
         return !owner || (owner.explicitId ? owner.id === String(currentUser.id) : owner.name === currentUser.nama);
       })
-    : programs;
+    : livePrograms;
 
   const summary = calculateSummary(displayPrograms);
   const activeCount = statusCount(displayPrograms, "Sedang Dikerjakan");
@@ -97,10 +179,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Filter advice for Operator
   const operatorAdvice = isOperator
-    ? adviceRecords.filter(
+    ? liveAdviceRecords.filter(
         (a) =>
           a.operatorPenerima === currentUser.nama ||
-          a.operatorPenerima === "Belum ditugaskan"
+          a.operatorPenerima === "Belum ditugaskan" ||
+          (a as AdviceRecord & { operatorId?: number | null }).operatorId === currentUser.id
       )
     : [];
   const pendingAdvice = operatorAdvice.filter(
@@ -111,11 +194,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
   const [adviceText, setAdviceText] = useState("");
   const [adviceError, setAdviceError] = useState("");
-  const adviceSectionRef = React.useRef<HTMLElement>(null);
+  const adviceSectionRef = useRef<HTMLElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialAdviceProgramId) {
-      setSelectedAdviceProgramId(initialAdviceProgramId);
       setTimeout(() => {
         adviceSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
@@ -123,47 +205,104 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [initialAdviceProgramId, onClearInitialAdviceProgramId]);
 
-  const selectedAdviceProgram = programs.find((p) => p.id === selectedAdviceProgramId);
+  const selectedAdviceProgram = livePrograms.find((p) => p.id === selectedAdviceProgramId);
   const recipientOperator = selectedAdviceProgram
     ? operatorAssignment(selectedAdviceProgram)?.name || selectedAdviceProgram.pj || "Belum ditugaskan"
     : "";
 
-  const handleAdviceSubmit = (e: React.FormEvent) => {
+  const handleAdviceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAdviceProgramId || !adviceText.trim()) {
       setAdviceError("Kegiatan dan isi saran wajib diisi.");
       return;
     }
 
-    onAddAdvice({
-      idKegiatan: selectedAdviceProgram!.id,
-      namaKegiatan: selectedAdviceProgram!.nama,
-      identitasPimpinan: currentUser.nama,
-      operatorPenerima: recipientOperator,
-      isi: adviceText.trim(),
-    });
+    try {
+      setIsSubmittingAdvice(true);
+      setAdviceError("");
+      const operatorId = selectedAdviceProgram?.operatorPengelolaId
+        ? Number(selectedAdviceProgram.operatorPengelolaId)
+        : null;
 
-    setSelectedAdviceProgramId("");
-    setAdviceText("");
-    setAdviceError("");
-  };
+      await adviceApi.create({
+        idKegiatan: selectedAdviceProgram!.id,
+        namaKegiatan: selectedAdviceProgram!.nama,
+        operatorPenerima: recipientOperator,
+        operatorId,
+        isi: adviceText.trim(),
+      });
 
-  const handleConfirmDeleteProgram = () => {
-    if (confirmDeleteProgram && onDeleteProgram) {
-      onDeleteProgram(confirmDeleteProgram);
-      setConfirmDeleteProgram(null);
+      // Fetch fresh advice list from API
+      try {
+        const fresh = await adviceApi.list({ pageSize: 100 });
+        setLiveAdviceRecords(fresh.data.map(mapApiAdviceToAdvice));
+      } catch {
+        // Fallback optimistic update
+      }
+
+      onAddAdvice({
+        idKegiatan: selectedAdviceProgram!.id,
+        namaKegiatan: selectedAdviceProgram!.nama,
+        identitasPimpinan: currentUser.nama,
+        operatorPenerima: recipientOperator,
+        isi: adviceText.trim(),
+      });
+
+      setSelectedAdviceProgramId("");
+      setAdviceText("");
+      setFeedbackNotice("Saran dan arahan berhasil dikirim ke backend.");
+      setTimeout(() => setFeedbackNotice(null), 3500);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setAdviceError(err.message);
+      } else {
+        setAdviceError("Gagal menyimpan saran. Silakan periksa koneksi Anda.");
+      }
+    } finally {
+      setIsSubmittingAdvice(false);
     }
   };
 
-  const handleConfirmDeleteSurvey = () => {
-    if (confirmDeleteSurveyId && onDeleteSurvey) {
-      onDeleteSurvey(confirmDeleteSurveyId);
+  const handleConfirmDeleteProgram = async () => {
+    if (!confirmDeleteProgram) return;
+    try {
+      setIsDeleting(true);
+      await programApi.remove(confirmDeleteProgram.id);
+      setLivePrograms((prev) => prev.filter((p) => p.id !== confirmDeleteProgram.id));
+      if (onDeleteProgram) onDeleteProgram(confirmDeleteProgram);
+      setConfirmDeleteProgram(null);
+      setFeedbackNotice(`Kegiatan "${confirmDeleteProgram.nama}" berhasil dihapus.`);
+      setTimeout(() => setFeedbackNotice(null), 3500);
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : "Gagal menghapus kegiatan.";
+      setFeedbackError(msg);
+      setTimeout(() => setFeedbackError(null), 4000);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmDeleteSurvey = async () => {
+    if (!confirmDeleteSurveyId) return;
+    try {
+      setIsDeleting(true);
+      await surveyApi.remove(confirmDeleteSurveyId);
+      setLiveSurveys((prev) => prev.filter((s) => s.id !== confirmDeleteSurveyId));
+      if (onDeleteSurvey) onDeleteSurvey(confirmDeleteSurveyId);
       setConfirmDeleteSurveyId(null);
+      setFeedbackNotice("Data survey lapangan berhasil dihapus.");
+      setTimeout(() => setFeedbackNotice(null), 3500);
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : "Gagal menghapus survey.";
+      setFeedbackError(msg);
+      setTimeout(() => setFeedbackError(null), 4000);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const adminFilteredPrograms = isAdmin
-    ? programs.filter((p) => {
+    ? livePrograms.filter((p) => {
         const matchesQuery = (p.nama + " " + p.kode + " " + (p.penyedia || "") + " " + (p.pj || ""))
           .toLowerCase()
           .includes(adminSearchTerm.toLowerCase());
@@ -175,14 +314,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Notifications */}
+      {feedbackNotice && (
+        <div className="p-3.5 rounded-xl bg-[#E7F6ED] border border-[#C8E8D5] text-xs font-semibold text-[#258050] flex items-center justify-between shadow-xs">
+          <span>{feedbackNotice}</span>
+          <button type="button" onClick={() => setFeedbackNotice(null)} className="text-[#258050] hover:underline text-[11px]">
+            Tutup
+          </button>
+        </div>
+      )}
+      {feedbackError && (
+        <div className="p-3.5 rounded-xl bg-[#FDEEED] border border-[#F8C8C4] text-xs font-semibold text-[#BD493B] flex items-center justify-between shadow-xs">
+          <span>{feedbackError}</span>
+          <button type="button" onClick={() => setFeedbackError(null)} className="text-[#BD493B] hover:underline text-[11px]">
+            Tutup
+          </button>
+        </div>
+      )}
+
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#143965]">
-            {isAdmin && "Dashboard Admin"}
-            {isOperator && "Dashboard Operator"}
-            {isPimpinan && "Dashboard Pimpinan"}
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-2xl font-bold text-[#143965]">
+              {isAdmin && "Dashboard Admin"}
+              {isOperator && "Dashboard Operator"}
+              {isPimpinan && "Dashboard Pimpinan"}
+            </h2>
+            {isLoading ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#E8F2F8] text-[#1E4E8C] animate-pulse">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Memuat API...
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void refreshDashboardData()}
+                title="Segarkan data dari backend"
+                className="p-1 rounded-lg text-[#65778B] hover:text-[#1E4E8C] hover:bg-[#E8F2F8] transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-[#65778B] mt-0.5">
             {isAdmin && "Kelola master kegiatan, sortir kategori tahun anggaran, serta pantau target dan realisasi."}
             {isOperator && "Pantau kegiatan yang Anda kelola per kategori tahun, realisasi lapangan, dan jadwal."}
@@ -245,7 +418,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Admin: Banner Hasil Survey Operator Menunggu */}
-      {isAdmin && surveys.length > 0 && (
+      {isAdmin && liveSurveys.length > 0 && (
         <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-[#EAF0F4]">
             <div className="flex items-center gap-3">
@@ -258,7 +431,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     Hasil Survey Lapangan Operator
                   </h3>
                   <span className="badge belum bg-[#FFF0E2] text-[#E78A31] border border-[#FCDDC0] font-bold text-[11px]">
-                    {surveys.filter((s) => !s.programId).length} Belum Jadi Kegiatan
+                    {liveSurveys.filter((s) => !s.programId).length} Belum Jadi Kegiatan
                   </span>
                 </div>
                 <p className="text-xs text-[#65778B] mt-0.5">
@@ -276,7 +449,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {surveys.slice(0, 3).map((srv) => (
+            {liveSurveys.slice(0, 3).map((srv) => (
               <div
                 key={srv.id}
                 onClick={() => onNavigate("adminsurvey")}
@@ -286,19 +459,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className="font-mono text-[#65778B]">{srv.kodeSurvey}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-[#1E4E8C]">{srv.kategori}</span>
-                    {onDeleteSurvey && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmDeleteSurveyId(srv.id);
-                        }}
-                        className="p-1 rounded text-[#BD493B] hover:bg-[#FDEEED] transition"
-                        title="Hapus survey ini"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteSurveyId(srv.id);
+                      }}
+                      className="p-1 rounded text-[#BD493B] hover:bg-[#FDEEED] transition"
+                      title="Hapus survey ini"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
                 <h4 className="text-xs font-bold text-[#143965] line-clamp-1">
@@ -394,24 +565,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="p-3.5 rounded-xl border border-[#DFEAF0] bg-[#FBFDFE]">
               <span className="text-[11px] text-[#65778B] font-semibold block">Total Data Survey</span>
               <strong className="text-lg font-bold text-[#143965] block mt-0.5">
-                {surveys.length} Titik Lokasi
+                {liveSurveys.length} Titik Lokasi
               </strong>
             </div>
             <div className="p-3.5 rounded-xl border border-[#DFEAF0] bg-[#FBFDFE]">
               <span className="text-[11px] text-[#65778B] font-semibold block">Kondisi Rusak Berat/Sedang</span>
               <strong className="text-lg font-bold text-[#BD493B] block mt-0.5">
-                {surveys.filter((s) => s.kondisi === "Rusak Berat" || s.kondisi === "Rusak Sedang").length} Lokasi
+                {liveSurveys.filter((s) => s.kondisi === "Rusak Berat" || s.kondisi === "Rusak Sedang").length} Lokasi
               </strong>
             </div>
             <div className="p-3.5 rounded-xl border border-[#DFEAF0] bg-[#FBFDFE]">
               <span className="text-[11px] text-[#65778B] font-semibold block">Estimasi Kebutuhan Usulan</span>
               <strong className="text-lg font-bold text-[#148B87] block mt-0.5 truncate">
-                {currency(surveys.reduce((acc, curr) => acc + (curr.estimasiBiaya || 0), 0))}
+                {currency(liveSurveys.reduce((acc, curr) => acc + (curr.estimasiBiaya || 0), 0))}
               </strong>
             </div>
           </div>
 
-          {surveys.length > 0 ? (
+          {liveSurveys.length > 0 ? (
             <div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-bold text-[#35536F] uppercase tracking-wider">
@@ -420,7 +591,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {surveys.slice(0, 3).map((srv) => {
+                {liveSurveys.slice(0, 3).map((srv) => {
                   const badgeKondisi =
                     srv.kondisi === "Baik"
                       ? "bg-[#E7F6ED] text-[#258050] border-[#C8E8D5]"
@@ -544,17 +715,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
+              disabled={isSubmittingAdvice}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Send className="w-4 h-4" /> Simpan Saran
+              <Send className="w-4 h-4" /> {isSubmittingAdvice ? "Menyimpan ke API..." : "Simpan Saran"}
             </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-[#EAF0F4]">
             <h4 className="text-sm font-bold text-[#143965] mb-3">
-              Riwayat Arahan Tersimpan ({adviceRecords.length})
+              Riwayat Arahan Tersimpan ({liveAdviceRecords.length})
             </h4>
-            {adviceRecords.length > 0 ? (
+            {liveAdviceRecords.length > 0 ? (
               <div className="overflow-x-auto border border-[#E3EBF0] rounded-xl">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-[#F6F9FB] text-[#61738A] uppercase font-bold text-[11px]">
@@ -567,7 +739,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EAF0F4]">
-                    {adviceRecords
+                    {liveAdviceRecords
                       .slice()
                       .reverse()
                       .map((r) => (
@@ -577,7 +749,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <td className="p-3 text-[#18304B]">{r.isi}</td>
                           <td className="p-3 text-[#65778B] whitespace-nowrap">{r.tanggal}</td>
                           <td className="p-3">
-                            <span className="badge belum">{r.status}</span>
+                            <span className={`badge ${r.status === "Sudah ditindaklanjuti" ? "selesai" : "belum"}`}>
+                              {r.status}
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -726,7 +900,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </span>
                         <span className={`badge ${badgeClass}`}>{p.status}</span>
                       </div>
-                      {isAdmin && onDeleteProgram && (
+                      {isAdmin && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -771,7 +945,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </section>
 
       {/* Admin: Dedicated Quick Delete Data Panel */}
-      {isAdmin && onDeleteProgram && (
+      {isAdmin && (
         <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-[#EAF0F4]">
             <div className="flex items-center gap-3">
@@ -874,20 +1048,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <p className="text-sm text-[#65778B] mb-5">
               Apakah Anda yakin ingin menghapus kegiatan{" "}
-              <strong className="text-[#143965]">{confirmDeleteProgram.nama}</strong>? Data ini akan dihapus secara permanen.
+              <strong className="text-[#143965]">{confirmDeleteProgram.nama}</strong>? Data ini akan dihapus secara permanen dari server.
             </p>
             <div className="flex gap-3 justify-end">
               <button
+                disabled={isDeleting}
                 onClick={() => setConfirmDeleteProgram(null)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition disabled:opacity-60"
               >
                 Batal
               </button>
               <button
+                disabled={isDeleting}
                 onClick={handleConfirmDeleteProgram}
-                className="px-4 py-2 rounded-xl text-sm font-bold bg-[#BD493B] text-white hover:bg-[#9E3B2F] transition"
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-[#BD493B] text-white hover:bg-[#9E3B2F] transition disabled:opacity-60"
               >
-                Ya, Hapus
+                {isDeleting ? "Menghapus..." : "Ya, Hapus"}
               </button>
             </div>
           </div>
@@ -909,16 +1085,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </p>
             <div className="flex gap-3 justify-end">
               <button
+                disabled={isDeleting}
                 onClick={() => setConfirmDeleteSurveyId(null)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition disabled:opacity-60"
               >
                 Batal
               </button>
               <button
+                disabled={isDeleting}
                 onClick={handleConfirmDeleteSurvey}
-                className="px-4 py-2 rounded-xl text-sm font-bold bg-[#BD493B] text-white hover:bg-[#9E3B2F] transition"
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-[#BD493B] text-white hover:bg-[#9E3B2F] transition disabled:opacity-60"
               >
-                Ya, Hapus
+                {isDeleting ? "Menghapus..." : "Ya, Hapus"}
               </button>
             </div>
           </div>
