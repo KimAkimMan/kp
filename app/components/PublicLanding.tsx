@@ -197,10 +197,10 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           </div>
           <div>
             <strong className="block text-[#143965] font-bold text-base leading-tight">
-              SIMP-KUNINGAN
+              SIPANTAU
             </strong>
             <small className="block text-[#65778B] text-xs">
-              Bidang Kawasan Permukiman Kab.Kuningan
+              Penyimpanan Data & Pemantauan Kegiatan PSU
             </small>
           </div>
         </div>
@@ -307,15 +307,15 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         {/* Content */}
         <div className="relative z-10 px-[7%] py-16 md:py-20 max-w-3xl">
           <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
-            SISTEM INFORMASI MONITORING PERMUKIMAN
+            SIPANTAU — SISTEM INFORMASI PENYIMPANAN DATA DAN PEMANTAUAN KEGIATAN PSU
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-white mb-4">
-            Pembangunan permukiman yang dapat dipantau bersama.
+            Data Tersimpan, Progres Terpantau.
           </h1>
           <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl">
+            Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU Kabupaten Kuningan.
             Pantau kegiatan, target, realisasi, dokumentasi, dan penggunaan
-            anggaran pembangunan permukiman Kabupaten Kuningan secara terbuka,
-            akuntabel, dan terukur.
+            anggaran secara terbuka, akuntabel, dan terukur.
           </p>
         </div>
 
@@ -357,13 +357,13 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         {/* Empty state content */}
         <div className="relative z-10 px-[7%] py-20 md:py-24 max-w-3xl mx-auto text-center">
           <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
-            SISTEM INFORMASI MONITORING PERMUKIMAN
+            SIPANTAU — SISTEM INFORMASI PENYIMPANAN DATA DAN PEMANTAUAN KEGIATAN PSU
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight text-white mb-4">
-            Belum ada dokumentasi yang tersedia
+            Data Tersimpan, Progres Terpantau.
           </h1>
           <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl mx-auto">
-            Dokumentasi kegiatan akan ditampilkan di sini setelah survey
+            Dokumentasi kegiatan PSU akan ditampilkan di sini setelah survey
             diunggah dan program selesai dikerjakan.
           </p>
         </div>
@@ -622,10 +622,10 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
           <div>
             <strong className="block text-white font-bold text-base">
-              SIMP-KUNINGAN - Sistem Informasi Monitoring Permukiman
+              SIPANTAU - Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU
             </strong>
             <p className="text-xs sm:text-sm text-[#B8D0E4] mt-1">
-              Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten
+              Data Tersimpan, Progres Terpantau · Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten
               Kuningan © 2026. Seluruh hak cipta dilindungi undang-undang.
             </p>
           </div>

@@ -78,13 +78,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <Landmark className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-4xl xl:text-5xl font-extrabold leading-tight mb-4">
-            Sistem Monitoring Permukiman Kuningan
+          <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-2">
+            SIPANTAU
+          </span>
+          <h1 className="text-3xl xl:text-4xl font-extrabold leading-tight mb-3">
+            Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU
           </h1>
-          <p className="text-[#D9EBFA] text-lg max-w-lg leading-relaxed">
-            Platform terpadu untuk memantau target capaian fisik, realisasi
-            lapangan, pagu, dan penyerapan anggaran Dinas PKPP Kabupaten
-            Kuningan.
+          <p className="text-white font-semibold text-lg mb-2 text-[#E2F0FD]">
+            &ldquo;Data Tersimpan, Progres Terpantau&rdquo;
+          </p>
+          <p className="text-[#D9EBFA] text-sm xl:text-base max-w-lg leading-relaxed">
+            Platform terpadu penyimpanan data teknis dan pemantauan target capaian fisik, realisasi
+            lapangan, pagu, dan penyerapan anggaran PSU Dinas PKPP Kabupaten Kuningan.
           </p>
         </div>
         <div className="text-xs text-[#BED8F0]">
@@ -104,10 +109,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </div>
 
           <h2 className="text-2xl font-bold text-[#143965] mb-1">
-            Masuk ke Sistem
+            Masuk ke SIPANTAU
           </h2>
           <p className="text-sm text-[#64758A] mb-6">
-            Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten Kuningan
+            Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU
           </p>
 
           {/* Role selector buttons */}

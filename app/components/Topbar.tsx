@@ -15,7 +15,7 @@ interface TopbarProps {
 const pageTitles: Record<PageType, { title: string; subtitle: string }> = {
   dashboard: {
     title: "Dashboard",
-    subtitle: "Ringkasan monitoring permukiman",
+    subtitle: "Ringkasan pemantauan kegiatan PSU",
   },
   users: {
     title: "Manajemen Pengguna",

@@ -8,9 +8,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SIMP-KUNINGAN - Sistem Informasi Monitoring Permukiman Kuningan",
+  title: "SIPANTAU - Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU",
   description:
-    "Sistem Monitoring dan Pelaporan Capaian Program Berbasis Web (Studi Kasus: Dinas Perumahan Kawasan Permukiman dan Pertanahan Kab. Kuningan)",
+    "SIPANTAU - Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU. Tagline: Data Tersimpan, Progres Terpantau. Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kab. Kuningan",
 };
 
 export default function RootLayout({

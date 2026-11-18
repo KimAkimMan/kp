@@ -91,10 +91,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div>
                 <strong className="block text-white font-bold text-base leading-tight">
-                  SIMP-Kuningan
+                  SIPANTAU
                 </strong>
                 <small className="block text-[#C8DCEC] text-xs">
-                  Dinas PKPP Kab. Kuningan
+                  Pemantauan PSU Kuningan
                 </small>
               </div>
             </div>
