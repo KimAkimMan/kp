@@ -818,6 +818,7 @@ export default function Home() {
               }}
               onSaveProgress={handleSaveProgress}
               onMarkComplete={handleMarkComplete}
+              onNotify={(msg, type) => showToast(msg, type)}
             />
           )}
 
@@ -847,6 +848,7 @@ export default function Home() {
                 setTargetAdviceProgramId(programId);
                 setCurrentPage("dashboard");
               }}
+              onNotify={(msg, type) => showToast(msg, type)}
             />
           )}
 
@@ -857,6 +859,7 @@ export default function Home() {
                 program={selectedProgram}
                 currentUser={currentUser}
                 onBack={() => setCurrentPage("masteractivities")}
+                onNotify={(msg, type) => showToast(msg, type)}
               />
             )}
 

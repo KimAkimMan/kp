@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   X,
   Upload,
+  FileDown,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -39,6 +40,7 @@ interface ScheduleViewProps {
     fotoUrls?: string[];
   }) => void;
   onMarkComplete: (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => void;
+  onNotify: (message: string, type?: "success" | "error") => void;
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
@@ -50,6 +52,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   onOpenScheduleModal,
   onSaveProgress,
   onMarkComplete,
+  onNotify,
 }) => {
   const accessiblePrograms = programs.filter((p) => {
     const owner = operatorAssignment(p);
@@ -80,6 +83,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [updateNote, setUpdateNote] = useState(program?.catatan || "");
   const [photos, setPhotos] = useState<string[]>([]);
   const [progressError, setProgressError] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,6 +194,20 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     onMarkComplete(program, true, photos);
   };
 
+  const handleDownloadPdf = async () => {
+    setIsExporting(true);
+    try {
+      const { downloadActivityPdf } = await import("../../utils/activity-export");
+      downloadActivityPdf(program, `${currentUser.nama} (${currentUser.role})`);
+      onNotify("Detail kegiatan berhasil diunduh dalam format PDF.");
+    } catch (error) {
+      const details = error instanceof Error ? `: ${error.message}` : "";
+      onNotify(`Gagal menyiapkan PDF kegiatan${details}`, "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top action */}
@@ -236,15 +254,25 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
               ))}
             </select>
           </div>
-
-          {!isLocked && (
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+            {!isLocked && (
+              <button
+                onClick={() => onOpenScheduleModal(program)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
+              >
+                <Calendar className="w-4 h-4" /> Pengaturan Jadwal &amp; Target
+              </button>
+            )}
             <button
-              onClick={() => onOpenScheduleModal(program)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
+              type="button"
+              onClick={() => void handleDownloadPdf()}
+              disabled={isExporting}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#E7F6ED] text-[#258050] hover:bg-[#D4EFE0] disabled:opacity-60 disabled:cursor-wait transition border border-[#BCE5CC]"
             >
-              <Calendar className="w-4 h-4" /> Pengaturan Jadwal &amp; Target
+              <FileDown className="w-4 h-4" />
+              {isExporting ? "Menyiapkan..." : "Unduh PDF"}
             </button>
-          )}
+          </div>
         </div>
 
         {/* Target Metrics Grid */}
