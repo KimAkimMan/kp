@@ -67,25 +67,52 @@ export default function Home() {
     setToast({ message, type });
   };
 
-  const refreshPrograms = useCallback(async () => {
-    const response = await programApi.list({ pageSize: 100 });
-    setPrograms(response.data.map(mapApiProgramToProgram));
+  const fetchAllPages = useCallback(async <T,>(
+    loader: (page: number, pageSize: number) => Promise<{
+      data: T[];
+      meta: { page: number; totalPages: number };
+    }>,
+  ) => {
+    const pageSize = 100;
+    const items: T[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const response = await loader(page, pageSize);
+      items.push(...response.data);
+      totalPages = response.meta.totalPages;
+      page += 1;
+    } while (page <= totalPages);
+    return items;
   }, []);
+
+  const refreshPrograms = useCallback(async () => {
+    const response = await fetchAllPages((page, pageSize) =>
+      programApi.list({ page, pageSize }),
+    );
+    setPrograms(response.map(mapApiProgramToProgram));
+  }, [fetchAllPages]);
 
   const refreshUsers = useCallback(async () => {
-    const response = await userApi.list({ pageSize: 100 });
-    setUsers(response.data.map(mapApiUserToUser));
-  }, []);
+    const response = await fetchAllPages((page, pageSize) =>
+      userApi.list({ page, pageSize }),
+    );
+    setUsers(response.map(mapApiUserToUser));
+  }, [fetchAllPages]);
 
   const refreshSurveys = useCallback(async () => {
-    const response = await surveyApi.list({ pageSize: 100 });
-    setSurveys(response.data.map(mapApiSurveyToSurvey));
-  }, []);
+    const response = await fetchAllPages((page, pageSize) =>
+      surveyApi.list({ page, pageSize }),
+    );
+    setSurveys(response.map(mapApiSurveyToSurvey));
+  }, [fetchAllPages]);
 
   const refreshAdvice = useCallback(async () => {
-    const response = await adviceApi.list({ pageSize: 100 });
-    setAdviceRecords(response.data.map(mapApiAdviceToAdvice));
-  }, []);
+    const response = await fetchAllPages((page, pageSize) =>
+      adviceApi.list({ page, pageSize }),
+    );
+    setAdviceRecords(response.map(mapApiAdviceToAdvice));
+  }, [fetchAllPages]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -93,18 +120,20 @@ export default function Home() {
     let cancelled = false;
     void (async () => {
       try {
-        const [programResponse, surveyResponse, adviceResponse] = await Promise.all([
-          programApi.list({ pageSize: 100 }),
-          surveyApi.list({ pageSize: 100 }),
-          adviceApi.list({ pageSize: 100 }),
+        const [programItems, surveyItems, adviceItems] = await Promise.all([
+          fetchAllPages((page, pageSize) => programApi.list({ page, pageSize })),
+          fetchAllPages((page, pageSize) => surveyApi.list({ page, pageSize })),
+          fetchAllPages((page, pageSize) => adviceApi.list({ page, pageSize })),
         ]);
         if (!cancelled) {
-          setPrograms(programResponse.data.map(mapApiProgramToProgram));
-          setSurveys(surveyResponse.data.map(mapApiSurveyToSurvey));
-          setAdviceRecords(adviceResponse.data.map(mapApiAdviceToAdvice));
+          setPrograms(programItems.map(mapApiProgramToProgram));
+          setSurveys(surveyItems.map(mapApiSurveyToSurvey));
+          setAdviceRecords(adviceItems.map(mapApiAdviceToAdvice));
           if (currentUser.role === "Admin") {
-            const userResponse = await userApi.list({ pageSize: 100 });
-            if (!cancelled) setUsers(userResponse.data.map(mapApiUserToUser));
+            const userItems = await fetchAllPages((page, pageSize) =>
+              userApi.list({ page, pageSize }),
+            );
+            if (!cancelled) setUsers(userItems.map(mapApiUserToUser));
           }
         }
       } catch (error) {
@@ -120,7 +149,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser]);
+  }, [currentUser, fetchAllPages]);
 
   // Pulihkan sesi aktif (cookie `kp_session`) agar refresh tidak memaksa login ulang
   useEffect(() => {
@@ -172,10 +201,11 @@ export default function Home() {
       Sedang: "SEDANG",
       "Tinggi / Mendesak": "TINGGI_MENDESAK",
     };
-    const statusMap: Record<FieldSurvey["status"], "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI"> = {
+    const statusMap: Record<FieldSurvey["status"], "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI" | "DIKONVERSI"> = {
       Draft: "DRAFT",
       "Selesai Survey": "SELESAI_SURVEY",
       Diverifikasi: "DIVERIFIKASI",
+      Dikonversi: "DIKONVERSI",
     };
     const parsedDate = survey.tanggal ? new Date(survey.tanggal) : new Date();
     const tanggal = Number.isNaN(parsedDate.getTime())
@@ -302,6 +332,15 @@ export default function Home() {
 
   // Add / Edit User (Admin)
   const handleSaveUser = async (userData: Partial<User>) => {
+    const password = userData.password;
+    if (!editingUser && (!password || password.length < 8)) {
+      showToast("Password pengguna baru minimal 8 karakter.", "error");
+      return;
+    }
+    if (password && password.length < 8) {
+      showToast("Password minimal 8 karakter.", "error");
+      return;
+    }
     try {
       if (editingUser) {
         await userApi.update(editingUser.id, {
@@ -316,7 +355,7 @@ export default function Home() {
           nama: userData.nama || "",
           email: userData.email || "",
           role: userData.role || "Operator",
-          password: userData.password || "demo123",
+          password: userData.password!,
         });
         showToast("Pengguna baru berhasil ditambahkan.");
       }
@@ -430,10 +469,27 @@ export default function Home() {
   };
 
   // Convert Survey to Master Activity (Admin)
+  const handleVerifySurvey = async (survey: FieldSurvey) => {
+    try {
+      await surveyApi.verify(survey.id, survey.programId ?? null);
+      await refreshSurveys();
+      showToast(`Survey ${survey.kodeSurvey} berhasil diverifikasi.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError ? error.message : "Verifikasi survey gagal.",
+        "error",
+      );
+    }
+  };
+
   const handleCreateProgramFromSurvey = async (
     survey: FieldSurvey,
     customData?: Partial<Program>
   ) => {
+    if (survey.status !== "Diverifikasi") {
+      showToast("Survey harus diverifikasi sebelum dikonversi menjadi kegiatan.", "error");
+      return;
+    }
     const newKode = `PKP-2026-${String(Date.now()).slice(-6)}`;
     try {
       await surveyApi.convert(survey.id, {
@@ -664,7 +720,9 @@ export default function Home() {
               surveys={surveys}
               onNavigate={(page) => setCurrentPage(page)}
               onSelectProgram={handleViewProgram}
+              onDeleteProgram={handleDeleteActivity}
               onDeleteSurvey={handleDeleteSurvey}
+              onAdviceCreated={refreshAdvice}
               initialAdviceProgramId={targetAdviceProgramId}
               onClearInitialAdviceProgramId={() => setTargetAdviceProgramId(null)}
             />
@@ -737,6 +795,7 @@ export default function Home() {
               currentUser={currentUser}
               surveys={surveys}
               programs={programs}
+              onVerifySurvey={handleVerifySurvey}
               onCreateProgramFromSurvey={handleCreateProgramFromSurvey}
               onViewProgram={handleViewProgram}
             />

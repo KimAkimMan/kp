@@ -132,7 +132,9 @@ export function mapApiSurveyToSurvey(s: Record<string, unknown>): FieldSurvey {
 
   const statusKey = String(s.status || "").toUpperCase();
   const status: FieldSurvey["status"] =
-    statusKey === "DIVERIFIKASI" || statusKey === "DIKONVERSI" || s.status === "Diverifikasi"
+    statusKey === "DIKONVERSI" || s.status === "Dikonversi"
+      ? "Dikonversi"
+      : statusKey === "DIVERIFIKASI" || s.status === "Diverifikasi"
       ? "Diverifikasi"
       : statusKey === "SELESAI_SURVEY" || statusKey === "MENUNGGU_VERIFIKASI" || s.status === "Selesai Survey"
       ? "Selesai Survey"

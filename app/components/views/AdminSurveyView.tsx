@@ -35,6 +35,7 @@ interface AdminSurveyViewProps {
   currentUser: User;
   surveys: FieldSurvey[];
   programs: Program[];
+  onVerifySurvey: (survey: FieldSurvey) => void | Promise<void>;
   onCreateProgramFromSurvey: (
     survey: FieldSurvey,
     customData?: Partial<Program>
@@ -46,6 +47,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   currentUser,
   surveys,
   programs,
+  onVerifySurvey,
   onCreateProgramFromSurvey,
   onViewProgram,
 }) => {
@@ -132,7 +134,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   // Filtering surveys for list view
   const filteredSurveys = surveys.filter((s) => {
     const connected = getConnectedProgram(s);
-    const isConverted = !!connected || s.status === "Diverifikasi";
+    const isConverted = !!connected || s.status === "Dikonversi";
 
     if (filterStatusKonversi === "unconverted" && isConverted) return false;
     if (filterStatusKonversi === "converted" && !isConverted) return false;
@@ -159,13 +161,13 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   // Metrics
   const totalSurveys = surveys.length;
   const unconvertedCount = surveys.filter(
-    (s) => !getConnectedProgram(s) && s.status !== "Diverifikasi"
+    (s) => !getConnectedProgram(s) && s.status !== "Dikonversi"
   ).length;
   const convertedCount = surveys.filter(
-    (s) => !!getConnectedProgram(s) || s.status === "Diverifikasi"
+    (s) => !!getConnectedProgram(s) || s.status === "Dikonversi"
   ).length;
   const totalEstimasiUnconverted = surveys
-    .filter((s) => !getConnectedProgram(s) && s.status !== "Diverifikasi")
+    .filter((s) => !getConnectedProgram(s) && s.status !== "Dikonversi")
     .reduce((acc, curr) => acc + (curr.estimasiBiaya || 0), 0);
 
   // =========================================================================
@@ -173,7 +175,8 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   // =========================================================================
   if (detailSurvey) {
     const connectedProgram = getConnectedProgram(detailSurvey);
-    const isConverted = !!connectedProgram || detailSurvey.status === "Diverifikasi";
+    const isConverted = !!connectedProgram || detailSurvey.status === "Dikonversi";
+    const isVerified = detailSurvey.status === "Diverifikasi";
 
     const badgeKondisi =
       detailSurvey.kondisi === "Baik"
@@ -241,22 +244,36 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 <Sparkles className="w-5 h-5 text-[#E78A31] shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-sm font-bold text-[#BD6C1E]">
-                    Hasil Survey Lapangan Menunggu Konversi
+                    {isVerified
+                      ? "Hasil Survey Siap Dikonversi"
+                      : "Hasil Survey Menunggu Verifikasi"}
                   </h4>
                   <p className="text-xs text-[#7A4B1A] mt-0.5">
-                    Usulan survey ini siap dijadikan kegiatan resmi di Master Kegiatan
-                    dengan data teknis, estimasi pagu, dan lokasi yang telah terdata.
+                    {isVerified
+                      ? "Survey telah diverifikasi dan dapat dijadikan kegiatan resmi."
+                      : "Survey harus diverifikasi Admin sebelum dapat dikonversi menjadi kegiatan."}
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleOpenConversionModal(detailSurvey)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs flex items-center gap-1.5 shrink-0"
-              >
-                <FolderPlus className="w-4 h-4" />
-                Buat Kegiatan Baru
-              </button>
+              {isVerified ? (
+                <button
+                  type="button"
+                  onClick={() => handleOpenConversionModal(detailSurvey)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs flex items-center gap-1.5 shrink-0"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  Buat Kegiatan Baru
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void onVerifySurvey(detailSurvey)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#258050] text-white hover:bg-[#1D6840] shadow-xs flex items-center gap-1.5 shrink-0"
+                >
+                  <FileCheck2 className="w-4 h-4" />
+                  Verifikasi Survey
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -630,7 +647,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                         onChange={(e) => setConvertedSatuan(e.target.value)}
                         className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                       >
-                        <option value="m'">m'</option>
+                        <option value="m'">m&#39;</option>
                         <option value="m2">m2</option>
                         <option value="m3">m3</option>
                         <option value="Unit">Unit</option>
@@ -855,7 +872,8 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
           {filteredSurveys.length > 0 ? (
             filteredSurveys.map((srv) => {
               const connectedProgram = getConnectedProgram(srv);
-              const isConverted = !!connectedProgram || srv.status === "Diverifikasi";
+              const isConverted = !!connectedProgram || srv.status === "Dikonversi";
+              const isVerified = srv.status === "Diverifikasi";
 
               const badgeKondisi =
                 srv.kondisi === "Baik"
@@ -980,7 +998,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                           <Eye className="w-3.5 h-3.5" /> Cek Detail Lengkap
                         </button>
 
-                        {!isConverted && (
+                        {!isConverted && (isVerified ? (
                           <button
                             type="button"
                             onClick={(e) => handleOpenConversionModal(srv, e)}
@@ -989,7 +1007,19 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                             <FolderPlus className="w-3.5 h-3.5" />
                             Buat Kegiatan Baru
                           </button>
-                        )}
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void onVerifySurvey(srv);
+                            }}
+                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#258050] text-white hover:bg-[#1D6840] shadow-xs transition flex items-center gap-1.5"
+                          >
+                            <FileCheck2 className="w-3.5 h-3.5" />
+                            Verifikasi Survey
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -1181,7 +1211,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                       onChange={(e) => setConvertedSatuan(e.target.value)}
                       className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                     >
-                      <option value="m'">m'</option>
+                      <option value="m'">m&#39;</option>
                       <option value="m2">m2</option>
                       <option value="m3">m3</option>
                       <option value="Unit">Unit</option>

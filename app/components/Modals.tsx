@@ -64,6 +64,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [nama, setNama] = useState(user?.nama || "");
   const [email, setEmail] = useState(user?.email || "");
   const [role, setRole] = useState<Role>(user?.role || "Operator");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,7 +73,20 @@ export const UserModal: React.FC<UserModalProps> = ({
       setError("Nama lengkap dan email wajib diisi.");
       return;
     }
-    onSave({ nama: nama.trim(), email: email.trim(), role });
+    if (!user && password.length < 8) {
+      setError("Password pengguna baru minimal 8 karakter.");
+      return;
+    }
+    if (password && password.length < 8) {
+      setError("Password minimal 8 karakter.");
+      return;
+    }
+    onSave({
+      nama: nama.trim(),
+      email: email.trim(),
+      role,
+      ...(password ? { password } : {}),
+    });
   };
 
   return (
@@ -122,6 +136,21 @@ export const UserModal: React.FC<UserModalProps> = ({
             <option value="Operator">Operator</option>
             <option value="Pimpinan">Pimpinan</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
+            {user ? "Password Baru (opsional)" : "Password"}
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
+            placeholder={user ? "Kosongkan jika tidak ingin mengubah" : "Minimal 8 karakter"}
+            minLength={8}
+            required={!user}
+          />
         </div>
 
         {error && (

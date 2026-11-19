@@ -7,5 +7,6 @@ export { programApi } from "@/modules/programs/program.client";
 export { surveyApi } from "@/modules/surveys/survey.client";
 export { userApi } from "@/modules/users/user.client";
 export { reportApi } from "@/modules/reports/report.client";
+export type { ReportSummary } from "@/modules/reports/report.client";
 export { systemApi } from "@/modules/system/system.client";
 export { referenceDataApi } from "@/modules/reference-data/reference-data.client";

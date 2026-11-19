@@ -108,21 +108,68 @@ body {
 }
 
 /* Print view optimization */
+@page report-landscape {
+  size: A3 landscape;
+  margin: 9mm;
+}
+
 @media print {
   aside,
   header,
   .no-print {
     display: none !important;
   }
-  
+
   body, main {
     background: #fff !important;
     padding: 0 !important;
     margin: 0 !important;
   }
 
-  .print-area {
+  .report-print-root {
+    page: report-landscape;
     display: block !important;
     width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #18304B !important;
+  }
+
+  .report-print-root section {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .report-print-table-wrapper {
+    overflow: visible !important;
+    border: 0 !important;
+  }
+
+  .report-print-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    font-size: 7pt !important;
+  }
+
+  .report-print-table thead {
+    display: table-header-group;
+  }
+
+  .report-print-table tr {
+    break-inside: avoid;
+  }
+
+  .report-print-table th,
+  .report-print-table td {
+    padding: 4px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    color: #18304B !important;
+  }
+
+  .report-print-root .grid {
+    break-inside: avoid;
   }
 }

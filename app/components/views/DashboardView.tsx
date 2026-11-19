@@ -39,6 +39,22 @@ import {
   mapApiAdviceToAdvice,
 } from "../../utils/api-mappers";
 
+async function fetchAllApiPages<T>(loader: (page: number, pageSize: number) => Promise<{
+  data: T[];
+  meta: { page: number; totalPages: number };
+}>): Promise<T[]> {
+  const items: T[] = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const response = await loader(page, 100);
+    items.push(...response.data);
+    totalPages = response.meta.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+  return items;
+}
+
 interface DashboardViewProps {
   currentUser: User;
   programs: Program[];
@@ -46,7 +62,9 @@ interface DashboardViewProps {
   surveys?: FieldSurvey[];
   onNavigate: (page: PageType) => void;
   onSelectProgram: (id: number) => void;
+  onDeleteProgram?: (program: Program) => void | Promise<void>;
   onDeleteSurvey?: (surveyId: string) => void;
+  onAdviceCreated?: () => void | Promise<void>;
   initialAdviceProgramId?: number | null;
   onClearInitialAdviceProgramId?: () => void;
 }
@@ -58,7 +76,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   surveys = [],
   onNavigate,
   onSelectProgram,
+  onDeleteProgram,
   onDeleteSurvey,
+  onAdviceCreated,
   initialAdviceProgramId,
   onClearInitialAdviceProgramId,
 }) => {
@@ -83,21 +103,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     async function loadInitialData() {
       try {
         const [progsRes, surveysRes, adviceRes] = await Promise.allSettled([
-          programApi.list({ pageSize: 100 }),
-          surveyApi.list({ pageSize: 100 }),
-          adviceApi.list({ pageSize: 100 }),
+          fetchAllApiPages((page, pageSize) => programApi.list({ page, pageSize })),
+          fetchAllApiPages((page, pageSize) => surveyApi.list({ page, pageSize })),
+          fetchAllApiPages((page, pageSize) => adviceApi.list({ page, pageSize })),
         ]);
 
         if (cancelled) return;
 
-        if (progsRes.status === "fulfilled" && progsRes.value?.data) {
-          setLivePrograms(progsRes.value.data.map(mapApiProgramToProgram));
+        if (progsRes.status === "fulfilled") {
+          setLivePrograms(progsRes.value.map(mapApiProgramToProgram));
         }
-        if (surveysRes.status === "fulfilled" && surveysRes.value?.data) {
-          setLiveSurveys(surveysRes.value.data.map(mapApiSurveyToSurvey));
+        if (surveysRes.status === "fulfilled") {
+          setLiveSurveys(surveysRes.value.map(mapApiSurveyToSurvey));
         }
-        if (adviceRes.status === "fulfilled" && adviceRes.value?.data) {
-          setLiveAdviceRecords(adviceRes.value.data.map(mapApiAdviceToAdvice));
+        if (adviceRes.status === "fulfilled") {
+          setLiveAdviceRecords(adviceRes.value.map(mapApiAdviceToAdvice));
         }
       } catch (err) {
         console.error("Dashboard API refresh error:", err);
@@ -115,19 +135,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setFeedbackError(null);
     try {
       const [progsRes, surveysRes, adviceRes] = await Promise.allSettled([
-        programApi.list({ pageSize: 100 }),
-        surveyApi.list({ pageSize: 100 }),
-        adviceApi.list({ pageSize: 100 }),
+        fetchAllApiPages((page, pageSize) => programApi.list({ page, pageSize })),
+        fetchAllApiPages((page, pageSize) => surveyApi.list({ page, pageSize })),
+        fetchAllApiPages((page, pageSize) => adviceApi.list({ page, pageSize })),
       ]);
 
-      if (progsRes.status === "fulfilled" && progsRes.value?.data) {
-        setLivePrograms(progsRes.value.data.map(mapApiProgramToProgram));
+      if (progsRes.status === "fulfilled") {
+        setLivePrograms(progsRes.value.map(mapApiProgramToProgram));
       }
-      if (surveysRes.status === "fulfilled" && surveysRes.value?.data) {
-        setLiveSurveys(surveysRes.value.data.map(mapApiSurveyToSurvey));
+      if (surveysRes.status === "fulfilled") {
+        setLiveSurveys(surveysRes.value.map(mapApiSurveyToSurvey));
       }
-      if (adviceRes.status === "fulfilled" && adviceRes.value?.data) {
-        setLiveAdviceRecords(adviceRes.value.data.map(mapApiAdviceToAdvice));
+      if (adviceRes.status === "fulfilled") {
+        setLiveAdviceRecords(adviceRes.value.map(mapApiAdviceToAdvice));
       }
     } catch (err) {
       console.error("Dashboard API refresh error:", err);
@@ -228,10 +248,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         isi: adviceText.trim(),
       });
 
+      await onAdviceCreated?.();
+
       // Fetch fresh advice list from API
       try {
-        const fresh = await adviceApi.list({ pageSize: 100 });
-        setLiveAdviceRecords(fresh.data.map(mapApiAdviceToAdvice));
+        const fresh = await fetchAllApiPages((page, pageSize) =>
+          adviceApi.list({ page, pageSize }),
+        );
+        setLiveAdviceRecords(fresh.map(mapApiAdviceToAdvice));
       } catch {
         // Fallback optimistic update
       }
@@ -257,6 +281,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       setIsDeleting(true);
       await programApi.remove(confirmDeleteProgram.id);
       setLivePrograms((prev) => prev.filter((p) => p.id !== confirmDeleteProgram.id));
+      await onDeleteProgram?.(confirmDeleteProgram);
       setConfirmDeleteProgram(null);
       setFeedbackNotice(`Kegiatan "${confirmDeleteProgram.nama}" berhasil dihapus.`);
       setTimeout(() => setFeedbackNotice(null), 3500);

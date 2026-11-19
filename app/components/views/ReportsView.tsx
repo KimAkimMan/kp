@@ -1,13 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  FileDown,
-  Sheet,
-  Printer,
-  Search,
-  RotateCcw,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { FileDown, Search, RotateCcw } from "lucide-react";
 import { Program, User } from "../../types";
 import { standardCategories } from "../../data/initialData";
 import {
@@ -15,13 +9,18 @@ import {
   currency,
   quantity,
   matchProgram,
-  downloadBlob,
   operatorAssignment,
   getProgramYear,
   getProgramDesa,
   getProgramKecamatan,
 } from "../../utils/helpers";
+import {
+  downloadReportExcel,
+  downloadReportPdf,
+  downloadReportWord,
+} from "../../utils/report-export";
 import { ActivityFilters } from "./ActivityFilters";
+import { ApiClientError, reportApi, type ReportSummary } from "@/lib/api";
 
 interface ReportsViewProps {
   currentUser: User;
@@ -52,6 +51,35 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [backendSummary, setBackendSummary] = useState<ReportSummary | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<"xlsx" | "docx" | "pdf">("xlsx");
+  const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void reportApi
+      .summary({ periode: yearFilter || undefined })
+      .then((response) => {
+        if (!cancelled) {
+          setReportError(null);
+          setBackendSummary(response.data);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setBackendSummary(null);
+          setReportError(
+            error instanceof ApiClientError
+              ? error.message
+              : "Ringkasan laporan dari server gagal dimuat.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [yearFilter]);
 
   const availableYears = Array.from(
     new Set(["2026", "2025", "2024", ...accessiblePrograms.map((p) => getProgramYear(p))])
@@ -70,91 +98,31 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
   const summary = calculateSummary(filtered);
 
-  // Download TXT
-  const handleDownloadTxt = () => {
-    const lines = [
-      "================================================================================",
-      "             LAPORAN MONITORING DAN PELAPORAN CAPAIAN KEGIATAN",
-      "      DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN KABUPATEN KUNINGAN",
-      `                   KATEGORI TAHUN ANGGARAN: ${yearFilter || "SEMUA TAHUN"}`,
-      categoryFilter ? `                   KATEGORI BIDANG: ${categoryFilter}` : "",
-      "================================================================================",
-      `Dicetak oleh : ${currentUser.nama} (${currentUser.role})`,
-      `Waktu cetak  : ${new Date().toLocaleString("id-ID")}`,
-      `Total Pagu   : ${currency(summary.pagu)}`,
-      `Penggunaan   : ${currency(summary.penggunaan)}`,
-      `Sisa Pagu    : ${currency(summary.sisaAnggaran)}`,
-      "--------------------------------------------------------------------------------",
-      "",
-      ...filtered.map((p, idx) => {
-        return [
-          `${idx + 1}. [TA ${getProgramYear(p)} - ${p.kode}] ${p.nama}`,
-          `   Lokasi       : ${p.lokasi}`,
-          `   Desa/Kec     : ${getProgramDesa(p)}, Kec. ${getProgramKecamatan(p)}`,
-          `   Kategori     : ${p.kategori}`,
-          `   Penyedia     : ${p.penyedia || "-"}`,
-          `   No. Kontrak  : ${p.noKontrak || "-"}`,
-          `   Pagu         : ${currency(p.pagu)}`,
-          `   Penggunaan   : ${currency(p.penggunaan)}`,
-          `   Target       : ${quantity(p.target, p.satuan)}`,
-          `   Realisasi    : ${quantity(p.realisasi, p.satuan)}`,
-          `   Status       : ${p.status}`,
-          `   Update       : ${p.update}`,
-          `   Keterangan   : ${p.catatan}`,
-          "--------------------------------------------------------------------------------",
-        ].join("\n");
-      }),
-    ].filter(Boolean);
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const options = {
+        programs: filtered,
+        yearFilter,
+        categoryFilter,
+        generatedBy: `${currentUser.nama} (${currentUser.role})`,
+      };
 
-    downloadBlob("Laporan-Monitoring-Permukiman-Kuningan.txt", lines.join("\n"));
-    onNotify("File laporan (TXT) berhasil disiapkan dan diunduh.");
-  };
+      if (exportFormat === "xlsx") {
+        await downloadReportExcel(options);
+      } else if (exportFormat === "docx") {
+        await downloadReportWord(options);
+      } else {
+        downloadReportPdf(options);
+      }
 
-  // Download CSV
-  const handleDownloadCsv = () => {
-    const headers = [
-      "Tahun Anggaran",
-      "Kode Kegiatan",
-      "Nama Kegiatan",
-      "Kategori",
-      "Desa / Kelurahan",
-      "Kecamatan",
-      "Penanggung Jawab",
-      "Penyedia",
-      "No. Kontrak",
-      "Pagu Anggaran (Rp)",
-      "Penggunaan Biaya (Rp)",
-      "Sisa Anggaran (Rp)",
-      "Target",
-      "Realisasi",
-      "Satuan",
-      "Status",
-      "Update Terakhir",
-    ];
-
-    const rows = filtered.map((p) => [
-      `"${getProgramYear(p)}"`,
-      `"${p.kode}"`,
-      `"${p.nama.replace(/"/g, '""')}"`,
-      `"${p.kategori}"`,
-      `"${getProgramDesa(p)}"`,
-      `"${getProgramKecamatan(p)}"`,
-      `"${p.pj}"`,
-      `"${(p.penyedia || "").replace(/"/g, '""')}"`,
-      `"${p.noKontrak || ""}"`,
-      p.pagu,
-      p.penggunaan,
-      p.pagu - p.penggunaan,
-      p.target,
-      p.realisasi,
-      `"${p.satuan}"`,
-      `"${p.status}"`,
-      `"${p.update}"`,
-    ]);
-
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
-    downloadBlob("Laporan-Capaian-Permukiman-Kuningan.csv", csvContent, "text/csv;charset=utf-8;");
-    onNotify("File laporan (Excel / CSV) berhasil diunduh.");
+      onNotify(`Laporan berhasil diunduh dalam format ${exportFormat.toUpperCase()}.`);
+    } catch (error) {
+      const details = error instanceof Error ? `: ${error.message}` : "";
+      onNotify(`Gagal menyiapkan laporan ${exportFormat.toUpperCase()}${details}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const resetFilters = () => {
@@ -164,7 +132,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 report-print-root">
       {/* Head */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
         <div>
@@ -175,23 +143,31 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleDownloadTxt}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition shadow-xs"
+          <label className="sr-only" htmlFor="report-export-format">
+            Format unduhan laporan
+          </label>
+          <select
+            id="report-export-format"
+            value={exportFormat}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value === "xlsx" || value === "docx" || value === "pdf") {
+                setExportFormat(value);
+              }
+            }}
+            className="px-3 py-2 rounded-xl text-xs font-semibold border border-[#CCD9E4] bg-white text-[#1E4E8C] focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
           >
-            <FileDown className="w-4 h-4" /> Unduh Dokumen
-          </button>
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="docx">Word (.docx)</option>
+            <option value="pdf">PDF (.pdf)</option>
+          </select>
           <button
-            onClick={handleDownloadCsv}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition shadow-xs"
+            onClick={() => void handleExport()}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] disabled:opacity-60 disabled:cursor-wait transition shadow-xs"
           >
-            <Sheet className="w-4 h-4" /> Unduh Excel
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
-          >
-            <Printer className="w-4 h-4" /> Cetak
+            <FileDown className="w-4 h-4" />
+            {isExporting ? "Menyiapkan..." : "Unduh Laporan"}
           </button>
         </div>
       </div>
@@ -246,37 +222,64 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           )}
         </div>
 
+        {(backendSummary || reportError) && (
+          <div className={`mb-4 text-xs rounded-xl px-3.5 py-2.5 border no-print ${
+            reportError
+              ? "bg-[#FDEEED] border-[#F8C8C4] text-[#BD493B]"
+              : "bg-[#F6F9FB] border-[#E1E9F0] text-[#65778B]"
+          }`}>
+            {reportError
+              ? reportError
+              : `Ringkasan backend: ${backendSummary?.count ?? 0} kegiatan${
+                  yearFilter ? ` pada periode ${yearFilter}` : ""
+                }.`}
+          </div>
+        )}
+
         {/* Budget Summary Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-[#F8FAFC] p-4 rounded-xl border border-[#DFEAF0]">
           <div>
             <p className="text-[11px] text-[#65778B] font-medium m-0">Pagu Total</p>
             <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5 truncate">
-              {currency(summary.pagu)}
+              {currency(
+                backendSummary?.totals._sum.pagu
+                  ? Number(backendSummary.totals._sum.pagu)
+                  : summary.pagu,
+              )}
             </strong>
           </div>
           <div>
             <p className="text-[11px] text-[#65778B] font-medium m-0">Penggunaan</p>
             <strong className="block text-sm sm:text-base font-bold text-[#148B87] mt-0.5 truncate">
-              {currency(summary.penggunaan)}
+              {currency(
+                backendSummary?.totals._sum.penggunaan
+                  ? Number(backendSummary.totals._sum.penggunaan)
+                  : summary.penggunaan,
+              )}
             </strong>
           </div>
           <div>
             <p className="text-[11px] text-[#65778B] font-medium m-0">Sisa Anggaran</p>
             <strong className="block text-sm sm:text-base font-bold text-[#E78A31] mt-0.5 truncate">
-              {currency(summary.sisaAnggaran)}
+              {backendSummary
+                ? currency(
+                    Number(backendSummary.totals._sum.pagu ?? 0) -
+                      Number(backendSummary.totals._sum.penggunaan ?? 0),
+                  )
+                : currency(summary.sisaAnggaran)}
             </strong>
           </div>
           <div>
             <p className="text-[11px] text-[#65778B] font-medium m-0">Total Kegiatan</p>
             <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5">
-              {filtered.length} Kegiatan
+              {(backendSummary?.count ?? filtered.length)} Kegiatan
             </strong>
           </div>
         </div>
 
         {/* Report Table */}
-        <div className="overflow-x-auto border border-[#E3EBF0] rounded-xl">
-          <table className="w-full text-xs text-left min-w-[1000px]">
+        <div className="overflow-x-auto border border-[#E3EBF0] rounded-xl report-print-table-wrapper">
+          <table className="w-full text-xs text-left min-w-[1000px] report-print-table">
             <thead className="bg-[#F6F9FB] text-[#61738A] uppercase font-bold text-[11px]">
               <tr>
                 <th className="p-3">Tahun / Kode</th>

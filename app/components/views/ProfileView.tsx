@@ -242,7 +242,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               Pembaruan Ringkasan Otomatis Aktif
             </strong>
             <p className="text-[#65778B] m-0 leading-relaxed">
-              Data target, realisasi kumulatif, penggunaan biaya, dan sisa anggaran disegarkan secara otomatis dan tersimpan di penyimpanan lokal browser saat Operator menyimpan data.
+              Data target, realisasi kumulatif, penggunaan biaya, dan sisa anggaran disegarkan dari backend saat akun dimuat atau data diperbarui.
             </p>
           </div>
 
