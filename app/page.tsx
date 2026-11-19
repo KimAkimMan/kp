@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey, HistoryItem } from "./types";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
-import { authApi } from "@/lib/api";
-import { mapApiUserToUser } from "./utils/api-mappers";
+import { ApiClientError, authApi, programApi } from "@/lib/api";
+import { mapApiProgramToProgram, mapApiUserToUser } from "./utils/api-mappers";
 import {
   operatorAssignment,
   isAssignedToCurrentOperator,
@@ -57,6 +57,42 @@ export default function Home() {
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
   const [adviceRecords, setAdviceRecords] = useState<AdviceRecord[]>([]);
   const [surveys, setSurveys] = useState<FieldSurvey[]>(initialSurveys);
+  const [toast, setToast] = useState<{
+    message: string | null;
+    type?: "success" | "error";
+  }>({ message: null, type: "success" });
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+  };
+
+  const refreshPrograms = useCallback(async () => {
+    const response = await programApi.list({ pageSize: 100 });
+    setPrograms(response.data.map(mapApiProgramToProgram));
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await programApi.list({ pageSize: 100 });
+        if (!cancelled) setPrograms(response.data.map(mapApiProgramToProgram));
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof ApiClientError
+            ? error.message
+            : "Daftar kegiatan gagal dimuat dari server.";
+          showToast(message, "error");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
 
   // Pulihkan sesi aktif (cookie `kp_session`) agar refresh tidak memaksa login ulang
   useEffect(() => {
@@ -208,16 +244,6 @@ export default function Home() {
   const [targetProgramForCost, setTargetProgramForCost] =
     useState<Program | null>(null);
 
-  // Toast state
-  const [toast, setToast] = useState<{
-    message: string | null;
-    type?: "success" | "error";
-  }>({ message: null, type: "success" });
-
-  const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-  };
-
   // Save programs whenever changed
   const saveProgramsState = (newPrograms: Program[]) => {
     setPrograms(newPrograms);
@@ -305,7 +331,7 @@ export default function Home() {
   };
 
   // Claim program for Operator
-  const handleClaimProgram = (id: number) => {
+  const handleClaimProgram = async (id: number) => {
     if (!currentUser || currentUser.role !== "Operator") return;
     const target = programs.find((p) => p.id === id);
     if (!target) return;
@@ -315,26 +341,23 @@ export default function Home() {
       showToast("Kegiatan ini telah diambil oleh Operator lain.", "error");
       return;
     }
+    try {
+      await programApi.claim(id);
+      await refreshPrograms();
+      showToast("Kegiatan berhasil diambil. Anda dapat melengkapi datanya.");
 
-    const updated = programs.map((p) => {
-      if (p.id === id) {
-        return {
-          ...p,
-          operatorPengelola: currentUser.nama,
-          operatorPengelolaId: currentUser.id,
-          pj: currentUser.nama,
-        };
-      }
-      return p;
-    });
-
-    saveProgramsState(updated);
-    showToast("Kegiatan berhasil diambil. Anda dapat melengkapi datanya.");
-
-    const claimed = updated.find((p) => p.id === id);
-    if (claimed) {
-      setTargetProgramForSchedule(claimed);
+      const claimed = (await programApi.get(id)).data;
+      setTargetProgramForSchedule(
+        mapApiProgramToProgram(claimed as unknown as Record<string, unknown>),
+      );
       setScheduleModalOpen(true);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Kegiatan gagal diambil.",
+        "error",
+      );
     }
   };
 
@@ -367,58 +390,94 @@ export default function Home() {
   };
 
   // Delete Master Activity (Admin)
-  const handleDeleteActivity = (program: Program) => {
-    saveProgramsState(programs.filter((p) => p.id !== program.id));
-    showToast(`Kegiatan "${program.nama}" berhasil dihapus dari Master Kegiatan.`);
+  const handleDeleteActivity = async (program: Program) => {
+    try {
+      await programApi.remove(program.id);
+      await refreshPrograms();
+      showToast(`Kegiatan "${program.nama}" berhasil dihapus dari Master Kegiatan.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Kegiatan gagal dihapus.",
+        "error",
+      );
+    }
   };
 
   // Add / Edit Master Activity (Admin)
-  const handleSaveActivity = (data: Partial<Program>) => {
-    if (editingActivity) {
-      const updated = programs.map((p) =>
-        p.id === editingActivity.id ? { ...p, ...data } : p
+  const handleSaveActivity = async (data: Partial<Program>) => {
+    try {
+      if (editingActivity) {
+        await programApi.update(editingActivity.id, {
+          nama: data.nama,
+          namaKegiatan: data.nama,
+          kategori: data.kategori,
+          lokasi: data.lokasi,
+          kecamatan: data.kecamatan,
+          desaKelurahan: data.desaKelurahan,
+          detailLokasi: data.detailLokasi,
+          pagu: data.pagu,
+          pj: data.pj,
+          operatorPengelola: data.operatorPengelola,
+          operatorPengelolaId: data.operatorPengelolaId === null
+            ? null
+            : data.operatorPengelolaId === undefined
+              ? undefined
+              : Number(data.operatorPengelolaId),
+        });
+        await refreshPrograms();
+        showToast("Master kegiatan berhasil diperbarui.");
+      } else {
+        const uniqueSuffix = String(Date.now()).slice(-6);
+        const created = await programApi.create({
+          kode: `PKP-2026-${uniqueSuffix}`,
+          nama: data.nama || "",
+          kategori: data.kategori || "Jalan Lingkungan",
+          lokasi: data.lokasi || "Kabupaten Kuningan",
+          pj: data.pj || "Belum Ditugaskan",
+          periode: "Januari–Desember 2026",
+          satuan: "Unit",
+          target: data.target ?? 0,
+          pagu: data.pagu ?? 0,
+        });
+
+        if (
+          data.operatorPengelolaId ||
+          data.kecamatan ||
+          data.desaKelurahan ||
+          data.detailLokasi
+        ) {
+          await programApi.update(created.data.id, {
+            pj: data.pj,
+            operatorPengelola: data.operatorPengelola,
+            operatorPengelolaId: data.operatorPengelolaId
+              ? Number(data.operatorPengelolaId)
+              : null,
+            kecamatan: data.kecamatan,
+            desaKelurahan: data.desaKelurahan,
+            detailLokasi: data.detailLokasi,
+            lokasi: data.lokasi,
+          });
+        }
+
+        await refreshPrograms();
+        showToast(
+          data.operatorPengelolaId
+            ? "Master kegiatan baru berhasil ditugaskan."
+            : "Master kegiatan baru berhasil tersedia untuk Operator.",
+        );
+      }
+      setActivityModalOpen(false);
+      setEditingActivity(null);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Master kegiatan gagal disimpan.",
+        "error",
       );
-      saveProgramsState(updated);
-      showToast("Master kegiatan berhasil diperbarui.");
-    } else {
-      const newId = Date.now();
-      const newProgram: Program = {
-        id: newId,
-        kode: `PKP-2026-${String(newId).slice(-4)}`,
-        nama: data.nama || "",
-        namaKegiatan: data.nama || "",
-        kategori: data.kategori || "Jalan Lingkungan",
-        pagu: data.pagu || 0,
-        penggunaan: 0,
-        penggunaanBiaya: 0,
-        targetAwal: 0,
-        target: 0,
-        targetVolume: 0,
-        realisasi: 0,
-        realisasiVolume: 0,
-        satuan: "Unit",
-        lokasi: data.lokasi || "Kabupaten Kuningan",
-        kecamatan: data.kecamatan || "",
-        desaKelurahan: data.desaKelurahan || "",
-        detailLokasi: data.detailLokasi || "",
-        pj: data.pj || "Belum Ditugaskan",
-        operatorPengelola: data.operatorPengelola || null,
-        operatorPengelolaId: data.operatorPengelolaId || null,
-        penanggungJawabDinas: null,
-        periode: "Januari–Desember 2026",
-        jadwal: "Januari–Desember 2026",
-        status: "Belum Dikerjakan",
-        update: "Belum ada pembaruan",
-        sumber: "Belum ada sumber pembaruan",
-        catatan: "Master kegiatan baru dari Admin.",
-        histories: [],
-        costs: [],
-      };
-      saveProgramsState([newProgram, ...programs]);
-      showToast("Master kegiatan baru berhasil disimpan.");
     }
-    setActivityModalOpen(false);
-    setEditingActivity(null);
   };
 
   // Convert Survey to Master Activity (Admin)

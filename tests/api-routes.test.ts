@@ -347,6 +347,14 @@ describe("API route contracts", () => {
     expect(forbidden.status).toBe(403);
     expect(forbidden.body.error).toMatchObject({ code: "FORBIDDEN" });
 
+    const operatorList = await json(await programsRoute.GET(
+      request("/api/programs?page=1&pageSize=100", "GET"),
+    ));
+    expect(operatorList.status).toBe(200);
+    expect(serviceMethods.list).toHaveBeenCalledWith(
+      expect.objectContaining({ operatorId: 7 }),
+    );
+
     state.user.role = "ADMIN";
     const paginated = await json(await programsRoute.GET(
       request("/api/programs?page=2&pageSize=10", "GET"),
