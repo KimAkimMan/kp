@@ -12,6 +12,10 @@ import type {
 } from "@/lib/api/types";
 import type { DocumentationPhoto } from "./program.service";
 
+/**
+ * Klien API untuk domain program dan kegiatan.
+ * Semua method melempar `ApiClientError` jika backend mengembalikan status non-2xx.
+ */
 export const programApi = {
   list(filters?: ProgramFilters) {
     return apiClient.get<PaginatedResponse<ApiProgram>>("/programs", filters);
