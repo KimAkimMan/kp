@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api/client";
+import { apiClient, type ApiResponse } from "@/lib/api/client";
 
 export type HealthStatus = {
   status: string;
@@ -6,9 +6,9 @@ export type HealthStatus = {
 
 export const systemApi = {
   health() {
-    return apiClient.get<HealthStatus>("/health");
+    return apiClient.get<ApiResponse<HealthStatus>>("/health");
   },
   ready() {
-    return apiClient.get<HealthStatus>("/ready");
+    return apiClient.get<ApiResponse<HealthStatus>>("/ready");
   },
 };

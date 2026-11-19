@@ -39,11 +39,14 @@ export type ApiClientOptions = {
   baseUrl?: string;
   accessToken?: string;
   fetcher?: typeof fetch;
+  timeout?: number;
 };
 
-export type RequestOptions = Omit<RequestInit, "body"> & {
+export type RequestOptions = Omit<RequestInit, "body" | "signal"> & {
   body?: unknown;
   query?: Record<string, string | number | boolean | null | undefined>;
+  signal?: AbortSignal;
+  timeout?: number;
 };
 
 function getBaseUrl(baseUrl?: string) {
@@ -69,6 +72,7 @@ export class ApiClient {
   private readonly baseUrl: string;
   private readonly accessToken?: string;
   private readonly fetcher: typeof fetch;
+  private readonly defaultTimeout: number;
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = getBaseUrl(options.baseUrl);
@@ -76,10 +80,20 @@ export class ApiClient {
     // Keep the native fetch receiver intact in browsers. Calling a detached
     // `window.fetch` function can throw an "Illegal invocation" TypeError.
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
+    this.defaultTimeout = options.timeout ?? 30_000;
+  }
+
+  private createAbortController(timeout?: number): AbortController {
+    const controller = new AbortController();
+    const ms = timeout ?? this.defaultTimeout;
+    const timer = setTimeout(() => controller.abort(), ms);
+    // Jangan biarkan timer mencegah Node.js keluar dari event loop.
+    timer.unref?.();
+    return controller;
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-      const { body, query, headers, ...init } = options;
+      const { body, query, headers, signal, timeout, ...init } = options;
       const requestHeaders = new Headers(headers);
       // Don't set content-type for FormData - browser will set with boundary
       if (body !== undefined && !(body instanceof FormData)) {
@@ -88,17 +102,28 @@ export class ApiClient {
       if (this.accessToken) requestHeaders.set("authorization", `Bearer ${this.accessToken}`);
 
       const url = createUrl(this.baseUrl, path, query);
+
+      // Gabungkan signal eksternal dengan timeout internal: jika salah satu
+      // membatalkan, request dibatalkan.
+      const controller = this.createAbortController(timeout);
+      const combinedSignal = this.combineSignals(signal, controller.signal);
+
       const requestInit: RequestInit = {
         ...init,
         credentials: init.credentials ?? "include",
         headers: requestHeaders,
         body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+        signal: combinedSignal,
       };
 
       let response: Response;
       try {
         response = await this.fetcher(url, requestInit);
       } catch (error) {
+        // Jika error disebabkan oleh abort (timeout atau signal eksternal),
+        // jangan pernah mencoba retry — bahkan untuk GET.
+        if (this.isAbortError(error)) throw error;
+
         const method = (init.method ?? "GET").toUpperCase();
         const canRetry = method === "GET" || method === "HEAD" || method === "OPTIONS";
         if (!canRetry) throw error;
@@ -119,6 +144,30 @@ export class ApiClient {
     }
 
     return payload as T;
+  }
+
+  private combineSignals(
+    external: AbortSignal | undefined,
+    internal: AbortSignal,
+  ): AbortSignal | undefined {
+    if (!external) return internal;
+    if (external.aborted || internal.aborted) {
+      // Buat controller baru yang langsung diabort agar signal sudah terminal.
+      const merged = new AbortController();
+      merged.abort();
+      return merged.signal;
+    }
+    const merged = new AbortController();
+    const abort = () => merged.abort();
+    external.addEventListener("abort", abort, { once: true });
+    internal.addEventListener("abort", abort, { once: true });
+    return merged.signal;
+  }
+
+  private isAbortError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === "AbortError") return true;
+    if (error instanceof Error && error.name === "AbortError") return true;
+    return false;
   }
 
   get<T>(path: string, query?: RequestOptions["query"]) {

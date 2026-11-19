@@ -31,11 +31,26 @@ export type Advice = {
   status: "BELUM_DITINDAKLANJUTI" | "SUDAH_DITINDAKLANJUTI";
 };
 
-export type ApiProgram = Record<string, unknown> & {
+export type ApiProgram = {
   id: number;
   kode: string;
   nama: string;
+  kategori?: string;
+  lokasi?: string;
+  kecamatan?: string | null;
+  desaKelurahan?: string | null;
+  detailLokasi?: string | null;
+  operatorPengelola?: string | null;
+  operatorPengelolaId?: number | null;
+  pj?: string;
+  periode?: string;
+  satuan?: string;
+  target?: number;
+  realisasi?: number;
+  pagu?: number;
+  penggunaan?: number;
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
+  updatedAt: string;
 };
 
 export type PublicProgram = {
