@@ -44,10 +44,8 @@ interface DashboardViewProps {
   programs: Program[];
   adviceRecords: AdviceRecord[];
   surveys?: FieldSurvey[];
-  onAddAdvice: (record: Omit<AdviceRecord, "id" | "tanggal" | "status">) => void;
   onNavigate: (page: PageType) => void;
   onSelectProgram: (id: number) => void;
-  onDeleteProgram?: (p: Program) => void;
   onDeleteSurvey?: (surveyId: string) => void;
   initialAdviceProgramId?: number | null;
   onClearInitialAdviceProgramId?: () => void;
@@ -58,10 +56,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   programs,
   adviceRecords,
   surveys = [],
-  onAddAdvice,
   onNavigate,
   onSelectProgram,
-  onDeleteProgram,
   onDeleteSurvey,
   initialAdviceProgramId,
   onClearInitialAdviceProgramId,
@@ -240,14 +236,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         // Fallback optimistic update
       }
 
-      onAddAdvice({
-        idKegiatan: selectedAdviceProgram!.id,
-        namaKegiatan: selectedAdviceProgram!.nama,
-        identitasPimpinan: currentUser.nama,
-        operatorPenerima: recipientOperator,
-        isi: adviceText.trim(),
-      });
-
       setSelectedAdviceProgramId("");
       setAdviceText("");
       setFeedbackNotice("Saran dan arahan berhasil dikirim ke backend.");
@@ -269,7 +257,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       setIsDeleting(true);
       await programApi.remove(confirmDeleteProgram.id);
       setLivePrograms((prev) => prev.filter((p) => p.id !== confirmDeleteProgram.id));
-      if (onDeleteProgram) onDeleteProgram(confirmDeleteProgram);
       setConfirmDeleteProgram(null);
       setFeedbackNotice(`Kegiatan "${confirmDeleteProgram.nama}" berhasil dihapus.`);
       setTimeout(() => setFeedbackNotice(null), 3500);

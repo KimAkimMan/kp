@@ -49,6 +49,8 @@ export type RequestOptions = Omit<RequestInit, "body" | "signal"> & {
   timeout?: number;
   /** Callback pelacak progres upload (hanya berlaku di browser untuk FormData). */
   onUploadProgress?: (loaded: number, total: number) => void;
+  /** Kunci idempotensi untuk mencegah duplikasi request mutasi (POST/PATCH/DELETE). */
+  idempotencyKey?: string;
 };
 
 export type RawApiResponse<T> = {
@@ -111,6 +113,9 @@ export class ApiClient {
   // Menyimpan promise request read-only (GET/HEAD) yang sedang berlangsung
   // untuk mencegah duplikasi request yang sama ke backend.
   private readonly inflight = new Map<string, Promise<unknown>>();
+  // Menyimpan respons yang sudah diproses berdasarkan kunci idempotensi
+  // untuk mencegah duplikasi request mutasi (POST/PATCH/DELETE).
+  private readonly idempotencyCache = new Map<string, { payload: unknown; status: number }>();
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = getBaseUrl(options.baseUrl);
@@ -243,9 +248,18 @@ export class ApiClient {
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { body, query, headers, signal, timeout, onUploadProgress, ...init } = options;
+    const { body, query, headers, signal, timeout, onUploadProgress, idempotencyKey, ...init } = options;
     validateQuery(query);
     const method = (init.method ?? "GET").toUpperCase();
+
+    // Jika ada kunci idempotensi dan respons sudah tersimpan, kembalikan langsung
+    // tanpa memanggul backend lagi (mencegah duplikasi dari double-submit/retry).
+    if (idempotencyKey) {
+      const cached = this.idempotencyCache.get(idempotencyKey);
+      if (cached) {
+        return cached.payload as T;
+      }
+    }
 
     if (method === "GET" || method === "HEAD") {
       const url = createUrl(this.baseUrl, path, query);
@@ -256,7 +270,18 @@ export class ApiClient {
       }
     }
 
-    const result = await this.executeRequest<T>(path, { ...options, ...init } as RequestOptions);
+    // Tambahkan header Idempotency-Key untuk request mutasi agar backend dapat
+    // mendeteksi dan menolak duplikasi pada sisi server.
+    const requestHeaders = new Headers(headers);
+    if (idempotencyKey) {
+      requestHeaders.set("Idempotency-Key", idempotencyKey);
+    }
+
+    const result = await this.executeRequest<T>(path, {
+      ...options,
+      ...init,
+      headers: requestHeaders,
+    } as RequestOptions);
 
     if (!result.response.ok) {
       const error = result.payload as ApiErrorPayload | undefined;
@@ -264,6 +289,11 @@ export class ApiClient {
         code: "UNKNOWN_API_ERROR",
         message: `Request gagal dengan status ${result.response.status}.`,
       });
+    }
+
+    // Simpan ke cache idempotensi untuk request mutasi.
+    if (idempotencyKey && (method === "POST" || method === "PATCH" || method === "DELETE" || method === "PUT")) {
+      this.idempotencyCache.set(idempotencyKey, { payload: result.payload, status: result.response.status });
     }
 
     if (method === "GET" || method === "HEAD") {
@@ -320,8 +350,8 @@ export class ApiClient {
     return this.request<T>(path, { method: "GET", query });
   }
 
-  post<T>(path: string, body?: unknown) {
-    return this.request<T>(path, { method: "POST", body });
+  post<T>(path: string, body?: unknown, options?: RequestOptions) {
+    return this.request<T>(path, { ...options, method: "POST", body });
   }
 
   patch<T>(path: string, body?: unknown) {

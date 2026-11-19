@@ -26,8 +26,8 @@ export const programApi = {
     return apiClient.get<ApiResponse<ApiProgram>>(`/programs/${id}`);
   },
   /** Membuat program baru. */
-  create(input: CreateProgramInput) {
-    return apiClient.post<ApiResponse<ApiProgram>>("/programs", input);
+  create(input: CreateProgramInput, options?: { idempotencyKey?: string }) {
+    return apiClient.post<ApiResponse<ApiProgram>>("/programs", input, options);
   },
   /** Memperbarui data atau status program berdasarkan ID. */
   update(id: number, input: UpdateProgramInput) {

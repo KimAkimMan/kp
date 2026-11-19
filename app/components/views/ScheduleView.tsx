@@ -62,9 +62,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   });
 
   const program =
-    programs.find((p) => p.id === selectedProgramId) ||
-    accessiblePrograms[0] ||
-    programs[0];
+    (currentUser.role === "Operator"
+      ? accessiblePrograms.find((p) => p.id === selectedProgramId) ?? accessiblePrograms[0]
+      : programs.find((p) => p.id === selectedProgramId) ?? programs[0]);
 
   const isLocked = program?.status === "Selesai Dikerjakan";
 
