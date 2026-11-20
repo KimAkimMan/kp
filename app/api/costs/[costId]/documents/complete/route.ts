@@ -9,10 +9,14 @@ import { programCostService } from "@/modules/programs/program-cost.service";
 type Context = { params: Promise<{ costId: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    const { costId } = await context.params;
-    const input = parseCompletedUploadInput(await parseRequestBody(request));
-    return successResponse(await programCostService.completeDirect(parsePositiveId(costId, "costId"), input, user), 201);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      const { costId } = await context.params;
+      const input = parseCompletedUploadInput(await parseRequestBody(request));
+      return successResponse(await programCostService.completeDirect(parsePositiveId(costId, "costId"), input, user), 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/costs/[costId]/documents/complete" } },
+  );
 }

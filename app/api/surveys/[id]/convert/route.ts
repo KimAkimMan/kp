@@ -9,15 +9,19 @@ import { surveyService } from "@/modules/surveys/survey.service";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    return successResponse(
-      await surveyService.convertToProgram(
-        (await context.params).id,
-        parseConvertSurveyInput(await parseRequestBody(request)),
-        user.id,
-      ),
-      201,
-    );
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      return successResponse(
+        await surveyService.convertToProgram(
+          (await context.params).id,
+          parseConvertSurveyInput(await parseRequestBody(request)),
+          user.id,
+        ),
+        201,
+      );
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/surveys/[id]/convert" } },
+  );
 }

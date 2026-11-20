@@ -21,15 +21,19 @@ export async function GET(request: NextRequest, context: Context) {
 }
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
-    const result = await programActions.addProgress(
-      parsePositiveId((await context.params).id),
-      parseProgressInput(await parseRequestBody(request)),
-      user.id,
-      user.nama,
-    );
-    return successResponse(result, 201);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
+      const result = await programActions.addProgress(
+        parsePositiveId((await context.params).id),
+        parseProgressInput(await parseRequestBody(request)),
+        user.id,
+        user.nama,
+      );
+      return successResponse(result, 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs/[id]/progress" } },
+  );
 }

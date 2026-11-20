@@ -16,16 +16,24 @@ export async function GET(_request: NextRequest, context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    const id = parsePositiveId((await context.params).id);
-    return successResponse(await userService.update(id, parseUpdateUserInput(await parseRequestBody(request))));
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      const id = parsePositiveId((await context.params).id);
+      return successResponse(await userService.update(id, parseUpdateUserInput(await parseRequestBody(request))));
+    },
+    undefined,
+    { idempotencyScope: { method: "PATCH", path: "/api/users/[id]" } },
+  );
 }
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    return successResponse(await userService.remove(parsePositiveId((await context.params).id)));
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      return successResponse(await userService.remove(parsePositiveId((await context.params).id)));
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/users/[id]" } },
+  );
 }

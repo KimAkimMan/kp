@@ -8,9 +8,13 @@ import { programService } from "@/modules/programs/program.service";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("OPERATOR");
-    const id = parsePositiveId((await context.params).id);
-    return successResponse(await programService.claim(id, user));
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("OPERATOR");
+      const id = parsePositiveId((await context.params).id);
+      return successResponse(await programService.claim(id, user));
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs/[id]/claim" } },
+  );
 }

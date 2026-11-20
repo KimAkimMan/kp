@@ -5,10 +5,15 @@ import { ApiError } from "./api-error";
 
 export const DEFAULT_ROUTE_TIMEOUT_MS = 30_000;
 
-// Cache idempotensi di server (in-memory). Kunci: Idempotency-Key header.
-// Nilai: { status, body } dari response yang sudah diproses.
-// TTL 24 jam untuk mencegah pertumbuhan tak terbatas.
+// Metode yang dimutasi dan layak disimpan ke cache idempotensi.
+const MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+
+// Cache idempotensi di server (in-memory).
+// Kunci: <metode>|<path>|<Idempotency-Key>, sehingga kunci yang sama pada
+// endpoint berbeda tidak saling menimpa. Nilai: { status, body } dari response
+// yang sudah diproses. TTL 24 jam untuk mencegah pertumbuhan tak terbatas.
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+type IdempotencyScope = { method: string; path: string };
 const idempotencyCache = new Map<string, {
   status: number;
   body: unknown;
@@ -24,9 +29,15 @@ async function getIdempotencyKey(): Promise<string | null> {
   }
 }
 
+function cacheKey(scope: IdempotencyScope | undefined, key: string): string {
+  if (!scope) return key;
+  return `${scope.method.toUpperCase()}|${scope.path}|${key}`;
+}
+
 export async function handleRoute(
   handler: () => Promise<Response>,
   timeoutMs = DEFAULT_ROUTE_TIMEOUT_MS,
+  options: { idempotencyScope?: IdempotencyScope } = {},
 ): Promise<Response> {
   const effectiveTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs > 0
     ? timeoutMs
@@ -47,10 +58,17 @@ export async function handleRoute(
   }
 
   const idempotencyKey = await getIdempotencyKey();
+  const { idempotencyScope } = options;
 
   // Jika kunci idempotensi sudah diproses sebelumnya, kembalikan cache.
-  if (idempotencyKey) {
-    const cached = idempotencyCache.get(idempotencyKey);
+  // Hanya berlaku untuk request mutasi dengan scope yang ditetapkan, sehingga
+  // kunci pada endpoint yang berbeda tidak saling bentrok.
+  if (
+    idempotencyKey &&
+    idempotencyScope &&
+    MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
+  ) {
+    const cached = idempotencyCache.get(cacheKey(idempotencyScope, idempotencyKey));
     if (cached) {
       return new Response(JSON.stringify(cached.body), {
         status: cached.status,
@@ -80,11 +98,15 @@ export async function handleRoute(
     if (timeoutId) clearTimeout(timeoutId);
     response.headers.set("x-request-id", requestId);
 
-    // Simpan ke cache idempotensi untuk request mutasi (status non-GET).
-    if (idempotencyKey) {
+    // Simpan ke cache idempotensi untuk request mutasi dengan scope.
+    if (
+      idempotencyKey &&
+      idempotencyScope &&
+      MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
+    ) {
       try {
         const body = await response.clone().json();
-        idempotencyCache.set(idempotencyKey, {
+        idempotencyCache.set(cacheKey(idempotencyScope, idempotencyKey), {
           status: response.status,
           body,
           expiresAt: now + IDEMPOTENCY_TTL_MS,

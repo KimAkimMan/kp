@@ -12,6 +12,7 @@ const { state, serviceMethods, programActions, cookieStore } = vi.hoisted(() => 
     get: vi.fn(async () => ({ id: 1 })),
     create: vi.fn(async (input: unknown) => input),
     update: vi.fn(async (_id: unknown, input: unknown) => input),
+    upsert: vi.fn(async (input: unknown) => ({ program: input, created: true })),
     remove: vi.fn(async () => ({ deleted: true })),
     verify: vi.fn(async () => ({ verified: true })),
     convertToProgram: vi.fn(async () => ({ id: 1 })),
@@ -245,6 +246,10 @@ describe("API route contracts", () => {
       [userRoute.PATCH(request("/api/users/1", "PATCH", { nama: "Operator Diperbarui" }), context), 200],
       [programsRoute.POST(request("/api/programs", "POST", {
         kode: "P-001", nama: "Jalan Desa", kategori: "Infrastruktur", lokasi: "Desa A",
+        pj: "Penguji", periode: "2026", satuan: "KM", target: 10, pagu: 100000,
+      })), 201],
+      [programsRoute.PUT(request("/api/programs", "PUT", {
+        kode: "P-002", nama: "Jalan Desa 2", kategori: "Infrastruktur", lokasi: "Desa B",
         pj: "Penguji", periode: "2026", satuan: "KM", target: 10, pagu: 100000,
       })), 201],
       [programRoute.PATCH(request("/api/programs/1", "PATCH", { nama: "Jalan Diperbarui" }), context), 200],

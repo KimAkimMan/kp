@@ -7,10 +7,14 @@ import { programCostService } from "@/modules/programs/program-cost.service";
 type Context = { params: Promise<{ costId: string; documentId: string }> };
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    const { documentId } = await context.params;
-    const result = await programCostService.deleteDocument(documentId, user);
-    return successResponse(result);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      const { documentId } = await context.params;
+      const result = await programCostService.deleteDocument(documentId, user);
+      return successResponse(result);
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/costs/[costId]/documents/[documentId]" } },
+  );
 }

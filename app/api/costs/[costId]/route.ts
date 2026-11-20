@@ -9,40 +9,48 @@ import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 type Context = { params: Promise<{ costId: string }> };
 
 export async function PATCH(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    const costId = parsePositiveId((await context.params).costId);
-    const body = await request.json();
-    const { decision, rejectionReason } = body;
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      const costId = parsePositiveId((await context.params).costId);
+      const body = await request.json();
+      const { decision, rejectionReason } = body;
 
-    if (!decision || !["APPROVED", "REJECTED"].includes(decision)) {
-      throw new Error("Decision harus 'APPROVED' atau 'REJECTED'.");
-    }
+      if (!decision || !["APPROVED", "REJECTED"].includes(decision)) {
+        throw new Error("Decision harus 'APPROVED' atau 'REJECTED'.");
+      }
 
-    const result = await programCostService.verify(
-      costId,
-      decision,
-      user as AuthenticatedUser,
-      rejectionReason,
-    );
-    return successResponse(result);
-  });
+      const result = await programCostService.verify(
+        costId,
+        decision,
+        user as AuthenticatedUser,
+        rejectionReason,
+      );
+      return successResponse(result);
+    },
+    undefined,
+    { idempotencyScope: { method: "PATCH", path: "/api/costs/[costId]" } },
+  );
 }
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    const costId = parsePositiveId((await context.params).costId);
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      const costId = parsePositiveId((await context.params).costId);
+      const formData = await request.formData();
+      const file = formData.get("file") as File | null;
 
-    if (!file) {
-      throw new Error("File tidak ditemukan.");
-    }
+      if (!file) {
+        throw new Error("File tidak ditemukan.");
+      }
 
-    const result = await programCostService.addDocument(costId, file, user.id);
-    return successResponse(result, 201);
-  });
+      const result = await programCostService.addDocument(costId, file, user.id);
+      return successResponse(result, 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/costs/[costId]" } },
+  );
 }
 
 export async function GET(_request: NextRequest, context: Context) {

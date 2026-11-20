@@ -16,19 +16,27 @@ export async function GET(_request: NextRequest, context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    return successResponse(await surveyService.update(
-      (await context.params).id,
-      parseSurveyInput(await parseRequestBody(request), true),
-      user,
-    ));
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      return successResponse(await surveyService.update(
+        (await context.params).id,
+        parseSurveyInput(await parseRequestBody(request), true),
+        user,
+      ));
+    },
+    undefined,
+    { idempotencyScope: { method: "PATCH", path: "/api/surveys/[id]" } },
+  );
 }
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    return successResponse(await surveyService.remove((await context.params).id));
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      return successResponse(await surveyService.remove((await context.params).id));
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/surveys/[id]" } },
+  );
 }

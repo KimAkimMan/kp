@@ -35,9 +35,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    const input = parseCreateUserInput(await parseRequestBody(request));
-    return successResponse(await userService.create(input), 201);
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      const input = parseCreateUserInput(await parseRequestBody(request));
+      return successResponse(await userService.create(input), 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/users" } },
+  );
 }

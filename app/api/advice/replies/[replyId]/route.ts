@@ -7,10 +7,14 @@ import { adviceReplyRepository } from "@/modules/advice/advice-reply.repository"
 type Context = { params: Promise<{ replyId: string }> };
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireUser();
-    const replyId = (await context.params).replyId;
-    const result = await adviceReplyRepository.delete(replyId, user.id, user.role);
-    return successResponse(result);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireUser();
+      const replyId = (await context.params).replyId;
+      const result = await adviceReplyRepository.delete(replyId, user.id, user.role);
+      return successResponse(result);
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/advice/replies/[replyId]" } },
+  );
 }

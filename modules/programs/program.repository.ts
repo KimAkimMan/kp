@@ -123,6 +123,68 @@ export const programRepository = {
     });
   },
 
+  async upsertByKode(input: CreateProgramInput, createdById: number) {
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.program.findFirst({
+        where: { kode: input.kode, deletedAt: null },
+      });
+
+      const data = {
+        nama: input.nama,
+        kategori: input.kategori,
+        lokasi: input.lokasi,
+        pj: input.pj,
+        periode: input.periode,
+        satuan: input.satuan,
+        target: input.target,
+        pagu: input.pagu,
+        namaKegiatan: input.namaKegiatan ?? input.nama,
+        kecamatan: input.kecamatan,
+        desaKelurahan: input.desaKelurahan,
+        detailLokasi: input.detailLokasi,
+        operatorPengelola: input.operatorPengelola,
+        operatorPengelolaId: input.operatorPengelolaId,
+        targetAwal: input.targetAwal ?? input.target,
+        targetVolume: input.targetVolume ?? input.target,
+        realisasi: input.realisasi ?? 0,
+        realisasiVolume: input.realisasiVolume ?? 0,
+        status: input.status ?? "BELUM_DIKERJAKAN",
+        update: input.update ?? "Belum ada pembaruan",
+        sumber: input.sumber ?? "Input API",
+        catatan: input.catatan ?? "",
+        penggunaan: input.penggunaan ?? 0,
+        penggunaanBiaya: input.penggunaanBiaya ?? 0,
+      };
+
+      if (existing) {
+        const updated = await tx.program.update({
+          where: { id: existing.id },
+          data,
+        });
+        return { program: updated, created: false };
+      }
+
+      const program = await tx.program.create({
+        data: { ...data, kode: input.kode, createdById },
+      });
+
+      if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
+        await tx.programAssignment.create({
+          data: {
+            programId: program.id,
+            operatorId: input.operatorPengelolaId,
+            assignedById: createdById,
+            status: "DITUGASKAN",
+            notes: input.catatan ?? null,
+            assignedAt: new Date(),
+          },
+        });
+      }
+
+      return { program, created: true };
+    });
+  },
+
   async claim(id: number, operatorId: number, operatorName: string, assignedById: number) {
     return prisma.$transaction(async (tx) => {
       const program = await tx.program.findFirst({

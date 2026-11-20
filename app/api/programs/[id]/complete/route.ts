@@ -10,17 +10,21 @@ import { programService } from "@/modules/programs/program.service";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
-    const { foto } = parseCompletionInput(await request.json().catch(() => ({})));
-    return successResponse(
-      await programActions.markComplete(
-        parsePositiveId((await context.params).id),
-        user.id,
-        user.nama,
-        foto,
-      ),
-    );
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
+      const { foto } = parseCompletionInput(await request.json().catch(() => ({})));
+      return successResponse(
+        await programActions.markComplete(
+          parsePositiveId((await context.params).id),
+          user.id,
+          user.nama,
+          foto,
+        ),
+      );
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs/[id]/complete" } },
+  );
 }

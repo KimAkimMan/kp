@@ -7,10 +7,14 @@ import { surveyPhotoService } from "@/modules/surveys/survey-photo.service";
 type Context = { params: Promise<{ photoId: string }> };
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireUser();
-    const photoId = (await context.params).photoId;
-    const result = await surveyPhotoService.deletePhoto(photoId, user);
-    return successResponse(result);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireUser();
+      const photoId = (await context.params).photoId;
+      const result = await surveyPhotoService.deletePhoto(photoId, user);
+      return successResponse(result);
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/surveys/photos/[photoId]" } },
+  );
 }

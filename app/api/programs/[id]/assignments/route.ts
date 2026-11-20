@@ -17,21 +17,25 @@ export async function GET(request: NextRequest, context: Context) {
   });
 }
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    const programId = parsePositiveId((await context.params).id);
-    const body = await request.json();
-    const { operatorId, notes } = body;
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      const programId = parsePositiveId((await context.params).id);
+      const body = await request.json();
+      const { operatorId, notes } = body;
 
-    if (!operatorId || typeof operatorId !== "number") {
-      throw new Error("operatorId wajib diisi.");
-    }
+      if (!operatorId || typeof operatorId !== "number") {
+        throw new Error("operatorId wajib diisi.");
+      }
 
-    const result = await programAssignmentService.create(
-      programId,
-      { operatorId, notes },
-      user as AuthenticatedUser,
-    );
-    return successResponse(result, 201);
-  });
+      const result = await programAssignmentService.create(
+        programId,
+        { operatorId, notes },
+        user as AuthenticatedUser,
+      );
+      return successResponse(result, 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs/[id]/assignments" } },
+  );
 }

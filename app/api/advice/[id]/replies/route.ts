@@ -16,21 +16,25 @@ export async function GET(request: NextRequest, context: Context) {
   });
 }
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
-    const adviceId = (await context.params).id;
-    const body = await request.json();
-    const { isi } = body;
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
+      const adviceId = (await context.params).id;
+      const body = await request.json();
+      const { isi } = body;
 
-    if (!isi || typeof isi !== "string" || isi.trim().length === 0) {
-      throw new Error("Isi balasan wajib diisi.");
-    }
+      if (!isi || typeof isi !== "string" || isi.trim().length === 0) {
+        throw new Error("Isi balasan wajib diisi.");
+      }
 
-    const result = await adviceReplyService.create(
-      adviceId,
-      { isi: isi.trim() },
-      user as AuthenticatedUser,
-    );
-    return successResponse(result, 201);
-  });
+      const result = await adviceReplyService.create(
+        adviceId,
+        { isi: isi.trim() },
+        user as AuthenticatedUser,
+      );
+      return successResponse(result, 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/advice/[id]/replies" } },
+  );
 }

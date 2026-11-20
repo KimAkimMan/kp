@@ -358,6 +358,10 @@ export class ApiClient {
     return this.request<T>(path, { method: "PATCH", body });
   }
 
+  put<T>(path: string, body?: unknown, options?: RequestOptions) {
+    return this.request<T>(path, { ...options, method: "PUT", body });
+  }
+
   delete<T>(path: string) {
     return this.request<T>(path, { method: "DELETE" });
   }

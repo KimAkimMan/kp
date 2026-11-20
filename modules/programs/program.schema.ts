@@ -41,6 +41,16 @@ export function parseCreateProgramInput(body: unknown): CreateProgramInput {
   };
 }
 
+/**
+ * Mengonversi body request upsert program. Kunci penggabungan adalah `kode`:
+ * jika program dengan kode tersebut sudah ada maka diperbarui, jika belum
+ * maka dibuat baru. Semua field wajib create harus tersedia agar hasil create
+ * tetap valid.
+ */
+export function parseUpsertProgramInput(body: unknown): CreateProgramInput {
+  return parseCreateProgramInput(body);
+}
+
 export function parseUpdateProgramInput(body: unknown): UpdateProgramInput {
   const input = parseJsonObject(body);
   const result: UpdateProgramInput = {};

@@ -481,6 +481,7 @@ export const openapiDocument = {
     "/programs": {
       get: { tags: ["Programs"], summary: "Daftar program", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/Search" }, { $ref: "#/components/parameters/Status" }, { $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "Daftar program" } } },
       post: { tags: ["Programs"], summary: "Tambah program", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProgramInput" } } } }, responses: { "201": { description: "Program dibuat" } } },
+      put: { tags: ["Programs"], summary: "Buat atau perbarui program berdasarkan kode", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/ProgramInput" } } } }, responses: { "200": { description: "Program diperbarui" }, "201": { description: "Program dibuat" } } },
     },
     "/programs/{id}": {
       parameters: [{ $ref: "#/components/parameters/Id" }],

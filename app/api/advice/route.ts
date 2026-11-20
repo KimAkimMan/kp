@@ -43,13 +43,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return handleRoute(async () => {
-    const user = await requireRole("PIMPINAN");
-    const input = parseCreateAdviceInput(await parseRequestBody(request));
-    return successResponse(await adviceService.create({
-      ...input,
-      pimpinanId: user.id,
-      identitasPimpinan: user.nama,
-    }), 201);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("PIMPINAN");
+      const input = parseCreateAdviceInput(await parseRequestBody(request));
+      return successResponse(await adviceService.create({
+        ...input,
+        pimpinanId: user.id,
+        identitasPimpinan: user.nama,
+      }), 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/advice" } },
+  );
 }

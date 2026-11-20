@@ -21,17 +21,21 @@ export async function GET(request: NextRequest, context: Context) {
 }
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
-    return successResponse(
-      await programActions.addCost(
-        parsePositiveId((await context.params).id),
-        parseCostInput(await parseRequestBody(request)),
-        user.id,
-        user.nama,
-      ),
-      201,
-    );
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
+      return successResponse(
+        await programActions.addCost(
+          parsePositiveId((await context.params).id),
+          parseCostInput(await parseRequestBody(request)),
+          user.id,
+          user.nama,
+        ),
+        201,
+      );
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs/[id]/costs" } },
+  );
 }

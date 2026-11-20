@@ -5,5 +5,10 @@ import { requireUser } from "@/modules/auth/auth.context";
 import { authService } from "@/modules/auth/auth.service";
 
 export async function PATCH(request: NextRequest) {
-  return handleRoute(async () => successResponse(await authService.updateProfile(await requireUser(), await request.json())));
+  return handleRoute(
+    async () =>
+      successResponse(await authService.updateProfile(await requireUser(), await request.json())),
+    undefined,
+    { idempotencyScope: { method: "PATCH", path: "/api/auth/profile" } },
+  );
 }

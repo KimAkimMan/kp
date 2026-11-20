@@ -9,10 +9,14 @@ import { parseJsonObject, passwordString } from "@/lib/validation";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    const { id } = await context.params;
-    await userService.update(parsePositiveId(id), { password: passwordString(parseJsonObject(await parseRequestBody(request))) });
-    return successResponse({ reset: true });
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      const { id } = await context.params;
+      await userService.update(parsePositiveId(id), { password: passwordString(parseJsonObject(await parseRequestBody(request))) });
+      return successResponse({ reset: true });
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/users/[id]/reset-password" } },
+  );
 }

@@ -7,10 +7,14 @@ import { surveyProgramLinkRepositoryWithSurvey } from "@/modules/surveys/survey-
 type Context = { params: Promise<{ linkId: string }> };
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    await requireRole("ADMIN");
-    const linkId = (await context.params).linkId;
-    const result = await surveyProgramLinkRepositoryWithSurvey.delete(linkId);
-    return successResponse(result);
-  });
+  return handleRoute(
+    async () => {
+      await requireRole("ADMIN");
+      const linkId = (await context.params).linkId;
+      const result = await surveyProgramLinkRepositoryWithSurvey.delete(linkId);
+      return successResponse(result);
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/surveys/links/[linkId]" } },
+  );
 }

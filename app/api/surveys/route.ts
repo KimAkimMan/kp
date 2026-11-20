@@ -38,13 +38,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    const input = parseSurveyInput(await parseRequestBody(request));
-    if (user.role === "OPERATOR") {
-      input.surveyorId = user.id;
-      input.surveyor = user.nama;
-    }
-    return successResponse(await surveyService.create(input, user), 201);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      const input = parseSurveyInput(await parseRequestBody(request));
+      if (user.role === "OPERATOR") {
+        input.surveyorId = user.id;
+        input.surveyor = user.nama;
+      }
+      return successResponse(await surveyService.create(input, user), 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/surveys" } },
+  );
 }

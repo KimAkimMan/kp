@@ -9,12 +9,16 @@ import { parseJsonObject } from "@/lib/validation";
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    const body = parseJsonObject(await parseRequestBody(request));
-    const programId = body.programId === undefined || body.programId === null
-      ? null
-      : parsePositiveId(String(body.programId), "programId");
-    return successResponse(await surveyService.verify((await context.params).id, programId, user.id));
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      const body = parseJsonObject(await parseRequestBody(request));
+      const programId = body.programId === undefined || body.programId === null
+        ? null
+        : parsePositiveId(String(body.programId), "programId");
+      return successResponse(await surveyService.verify((await context.params).id, programId, user.id));
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/surveys/[id]/verify" } },
+  );
 }

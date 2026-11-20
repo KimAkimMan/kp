@@ -47,6 +47,23 @@ export const programService = {
     return result;
   },
 
+  async upsert(input: CreateProgramInput, createdById: number) {
+    const { program, created } = await programRepository.upsertByKode(
+      input,
+      createdById,
+    );
+    await prisma.auditLog.create({
+      data: {
+        userId: createdById,
+        action: created ? "CREATE" : "UPDATE",
+        entity: "Program",
+        entityId: String(program.id),
+        details: { kode: input.kode, nama: input.nama, created },
+      },
+    });
+    return { program, created };
+  },
+
   async claim(id: number, user: ProgramActor) {
     if (user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya operator yang dapat mengambil program.", 403);

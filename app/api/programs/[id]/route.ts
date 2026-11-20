@@ -16,24 +16,32 @@ export async function GET(_request: NextRequest, context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN", "OPERATOR");
-    const id = parsePositiveId((await context.params).id);
-    await programService.assertCanEdit(id, user);
-    return successResponse(await programService.update(
-      id,
-      parseUpdateProgramInput(await parseRequestBody(request)),
-      user,
-    ));
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN", "OPERATOR");
+      const id = parsePositiveId((await context.params).id);
+      await programService.assertCanEdit(id, user);
+      return successResponse(await programService.update(
+        id,
+        parseUpdateProgramInput(await parseRequestBody(request)),
+        user,
+      ));
+    },
+    undefined,
+    { idempotencyScope: { method: "PATCH", path: "/api/programs/[id]" } },
+  );
 }
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    return successResponse(await programService.remove(
-      parsePositiveId((await context.params).id),
-      user.id,
-    ));
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      return successResponse(await programService.remove(
+        parsePositiveId((await context.params).id),
+        user.id,
+      ));
+    },
+    undefined,
+    { idempotencyScope: { method: "DELETE", path: "/api/programs/[id]" } },
+  );
 }

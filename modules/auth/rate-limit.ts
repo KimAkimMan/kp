@@ -1,7 +1,9 @@
 import type { NextRequest } from "next/server";
 
 type Entry = { failures: number; resetAt: number };
-const WINDOW_MS = 15 * 60 * 1000;
+// Jendela pemblokiran login setelah melebihi batas kegagalan. Diperpanjang
+// agar percobaan brute-force tidak dapat mencoba ulang terlalu cepat.
+const WINDOW_MS = 60 * 60 * 1000;
 const MAX_FAILURES = 5;
 const entries = new Map<string, Entry>();
 

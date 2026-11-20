@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { paginatedResponse, successResponse } from "@/lib/http/api-response";
-import { parseCreateProgramInput } from "@/modules/programs/program.schema";
+import {
+  parseCreateProgramInput,
+  parseUpsertProgramInput,
+} from "@/modules/programs/program.schema";
 import { programService } from "@/modules/programs/program.service";
 import { handleRoute } from "@/lib/http/route-handler";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
@@ -24,9 +27,29 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return handleRoute(async () => {
-    const user = await requireRole("ADMIN");
-    const input = parseCreateProgramInput(await request.json());
-    return successResponse(await programService.create(input, user.id), 201);
-  });
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      const input = parseCreateProgramInput(await request.json());
+      return successResponse(await programService.create(input, user.id), 201);
+    },
+    undefined,
+    { idempotencyScope: { method: "POST", path: "/api/programs" } },
+  );
+}
+
+export async function PUT(request: NextRequest) {
+  return handleRoute(
+    async () => {
+      const user = await requireRole("ADMIN");
+      const input = parseUpsertProgramInput(await request.json());
+      const { program, created } = await programService.upsert(input, user.id);
+      return successResponse(
+        { program, created },
+        created ? 201 : 200,
+      );
+    },
+    undefined,
+    { idempotencyScope: { method: "PUT", path: "/api/programs" } },
+  );
 }

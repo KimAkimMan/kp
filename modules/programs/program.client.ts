@@ -29,6 +29,17 @@ export const programApi = {
   create(input: CreateProgramInput, options?: { idempotencyKey?: string }) {
     return apiClient.post<ApiResponse<ApiProgram>>("/programs", input, options);
   },
+  /** Membuat program baru atau memperbarui yang sudah ada berdasarkan `kode`. */
+  upsert(
+    input: CreateProgramInput,
+    options?: { idempotencyKey?: string },
+  ) {
+    return apiClient.put<ApiResponse<{ program: ApiProgram; created: boolean }>>(
+      "/programs",
+      input,
+      options,
+    );
+  },
   /** Memperbarui data atau status program berdasarkan ID. */
   update(id: number, input: UpdateProgramInput) {
     return apiClient.patch<ApiResponse<ApiProgram>>(`/programs/${id}`, input);
