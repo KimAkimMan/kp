@@ -1,3 +1,5 @@
+ 
+ 
 import { ApiError } from "@/lib/http/api-error";
 
 export interface StorageProvider {
@@ -49,9 +51,7 @@ export interface UploadResult {
 }
 
 export type StorageConfig = {
-  provider: "vercel-blob" | "r2" | "minio" | "local" | "mock";
-  // Vercel Blob
-  vercelBlobToken?: string;
+  provider: "r2" | "minio" | "local" | "mock";
   // R2 / S3-compatible
   r2AccountId?: string;
   r2AccessKeyId?: string;
@@ -72,9 +72,6 @@ export type StorageConfig = {
 
 function validateConfig(config: StorageConfig): void {
   switch (config.provider) {
-    case "vercel-blob":
-      if (!config.vercelBlobToken) throw new Error("VERCEL_BLOB_TOKEN wajib untuk provider vercel-blob");
-      break;
     case "r2":
       if (!config.r2AccountId || !config.r2AccessKeyId || !config.r2SecretAccessKey || !config.r2Bucket)
         throw new Error("R2 config tidak lengkap: accountId, accessKeyId, secretAccessKey, bucket wajib diisi");
@@ -97,9 +94,6 @@ export function initStorage(config: StorageConfig): StorageProvider {
   _config = config;
 
   switch (config.provider) {
-    case "vercel-blob":
-      _provider = createVercelBlobProvider(config);
-      break;
     case "r2":
       _provider = createR2Provider(config);
       break;
@@ -124,7 +118,6 @@ export function getStorage(): StorageProvider {
     const provider = (process.env.STORAGE_PROVIDER as StorageConfig["provider"]) ?? "mock";
     const config: StorageConfig = {
       provider,
-      vercelBlobToken: process.env.BLOB_READ_WRITE_TOKEN,
       r2AccountId: process.env.R2_ACCOUNT_ID,
       r2AccessKeyId: process.env.R2_ACCESS_KEY_ID,
       r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
@@ -158,7 +151,7 @@ function createMockProvider(): StorageProvider {
 
   return {
     async upload({ key, contentType, body, metadata }) {
-      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as any).arrayBuffer());
+      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as BodyInit).arrayBuffer());
       store.set(key, { contentType, data: buffer, metadata });
       return { storageKey: key, url: `/api/mock-storage/${key}` };
     },
@@ -172,16 +165,18 @@ function createMockProvider(): StorageProvider {
 }
 
 function createLocalProvider(config: StorageConfig): StorageProvider {
-  const fs = require("fs");
-  const path = require("path");
-  const crypto = require("crypto");
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const fs: typeof import("fs") = require("fs");
+  const path: typeof import("path") = require("path");
+  const crypto: typeof import("crypto") = require("crypto");
+  /* eslint-enable @typescript-eslint/no-require-imports */
 
   const uploadDir = config.localUploadDir!;
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
   return {
     async upload({ key, contentType, body }) {
-      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as any).arrayBuffer());
+      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as BodyInit).arrayBuffer());
       const fullPath = path.join(uploadDir, key);
       const dir = path.dirname(fullPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -198,16 +193,18 @@ function createLocalProvider(config: StorageConfig): StorageProvider {
   };
 }
 
-function createVercelBlobProvider(config: StorageConfig): StorageProvider {
+function createVercelBlobProvider(config: StorageConfig): StorageProvider | null {
+  /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
   // Dynamic import agar tidak error jika tidak install
+  // Jika package tidak terinstall, return null supaya fallback ke provider lain
   let put: any;
   let del: any;
   try {
-    const blob = require("@vercel/blob");
+    const blob: typeof import("@vercel/blob") = require("@vercel/blob");
     put = blob.put;
     del = blob.del;
   } catch {
-    throw new Error("@vercel/blob belum diinstall. Jalankan: npm i @vercel/blob");
+    return null;
   }
 
   return {
@@ -225,22 +222,24 @@ function createVercelBlobProvider(config: StorageConfig): StorageProvider {
     },
     getPublicUrl(key) {
       // Vercel Blob URL sudah full URL
-      return key.startsWith("http") ? key : `https://${config.vercelBlobToken?.split("_")[2] || "blob"}.vercel-storage.com/${key}`;
+      return key.startsWith("http") ? key : `https://${config.vercelBlobToken?.split("_" as never)[2] || "blob"}.vercel-storage.com/${key}`;
     },
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
 }
 
 function createR2Provider(config: StorageConfig): StorageProvider {
+  /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
   let S3Client: any, PutObjectCommand: any, DeleteObjectCommand: any, GetObjectCommand: any, HeadObjectCommand: any, getSignedUrl: any;
 
   try {
-    const client = require("@aws-sdk/client-s3");
+    const client: typeof import("@aws-sdk/client-s3") = require("@aws-sdk/client-s3");
     S3Client = client.S3Client;
     PutObjectCommand = client.PutObjectCommand;
     DeleteObjectCommand = client.DeleteObjectCommand;
     GetObjectCommand = client.GetObjectCommand;
     HeadObjectCommand = client.HeadObjectCommand;
-    const presigner = require("@aws-sdk/s3-request-presigner");
+    const presigner: typeof import("@aws-sdk/s3-request-presigner") = require("@aws-sdk/s3-request-presigner");
     getSignedUrl = presigner.getSignedUrl;
   } catch {
     throw new Error("@aws-sdk/client-s3 & @aws-sdk/s3-request-presigner belum diinstall. Jalankan: npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner");
@@ -260,7 +259,7 @@ function createR2Provider(config: StorageConfig): StorageProvider {
 
   return {
     async upload({ key, contentType, body }) {
-      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as any).arrayBuffer());
+      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as BodyInit).arrayBuffer());
       await s3.send(new PutObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -295,17 +294,19 @@ function createR2Provider(config: StorageConfig): StorageProvider {
       return `${publicUrl}/${key}`;
     },
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
 }
 
 function createMinioProvider(config: StorageConfig): StorageProvider {
+  /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
   let S3Client: any, PutObjectCommand: any, DeleteObjectCommand: any, getSignedUrl: any;
 
   try {
-    const client = require("@aws-sdk/client-s3");
+    const client: typeof import("@aws-sdk/client-s3") = require("@aws-sdk/client-s3");
     S3Client = client.S3Client;
     PutObjectCommand = client.PutObjectCommand;
     DeleteObjectCommand = client.DeleteObjectCommand;
-    const presigner = require("@aws-sdk/s3-request-presigner");
+    const presigner: typeof import("@aws-sdk/s3-request-presigner") = require("@aws-sdk/s3-request-presigner");
     getSignedUrl = presigner.getSignedUrl;
   } catch {
     throw new Error("@aws-sdk/client-s3 & @aws-sdk/s3-request-presigner belum diinstall. Jalankan: npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner");
@@ -328,7 +329,7 @@ function createMinioProvider(config: StorageConfig): StorageProvider {
 
   return {
     async upload({ key, contentType, body }) {
-      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as any).arrayBuffer());
+      const buffer = body instanceof Buffer ? body : Buffer.from(await new Response(body as BodyInit).arrayBuffer());
       await s3.send(new PutObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -349,6 +350,7 @@ function createMinioProvider(config: StorageConfig): StorageProvider {
       return `${publicUrl}/${key}`;
     },
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
 }
 
 // ============================================
@@ -356,7 +358,6 @@ function createMinioProvider(config: StorageConfig): StorageProvider {
 // ============================================
 
 export function generateStorageKey(prefix: string, originalName: string): string {
-  const ext = originalName.split(".").pop()?.toLowerCase() || "bin";
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 8);
   const safeName = originalName.replace(/[^a-zA-Z0-9.-]/g, "_").substring(0, 100);

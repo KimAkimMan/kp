@@ -20,10 +20,16 @@ export const surveyService = {
   },
 
   create(input: SurveyInput, user?: AuthenticatedUser) {
-    if (user?.role === "OPERATOR" && input.status === "DIVERIFIKASI") {
+    // Auto-set status agar survey siap diverifikasi setelah dibuat
+    const surveyInput: SurveyInput = {
+      ...input,
+      status: input.status ?? "MENUNGGU_VERIFIKASI",
+    };
+
+    if (user?.role === "OPERATOR" && surveyInput.status === "DIVERIFIKASI") {
       throw new ApiError("FORBIDDEN", "Operator tidak dapat memverifikasi survey.", 403);
     }
-    return surveyRepository.create(input, input.id ?? randomUUID());
+    return surveyRepository.create(surveyInput, surveyInput.id ?? randomUUID());
   },
 
   async update(id: string, input: Partial<SurveyInput>, user?: AuthenticatedUser) {
