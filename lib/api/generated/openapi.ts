@@ -1221,7 +1221,13 @@ export interface paths {
                     page?: components["parameters"]["Page"];
                     pageSize?: components["parameters"]["PageSize"];
                     search?: string;
-                    status?: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+                    status?:
+                      | "DRAFT"
+                      | "SELESAI_SURVEY"
+                      | "MENUNGGU_VERIFIKASI"
+                      | "PERLU_REVISI"
+                      | "DIVERIFIKASI"
+                      | "DIKONVERSI";
                     kecamatan?: string;
                 };
                 header?: never;
@@ -2449,7 +2455,13 @@ export interface components {
             uraianTemuan: string;
             rekomendasi: string;
             /** @enum {string} */
-            status: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+            status:
+                | "DRAFT"
+                | "SELESAI_SURVEY"
+                | "MENUNGGU_VERIFIKASI"
+                | "PERLU_REVISI"
+                | "DIVERIFIKASI"
+                | "DIKONVERSI";
         };
         SurveyUpdateInput: {
             kodeSurvey?: string;
@@ -2457,7 +2469,13 @@ export interface components {
             tanggal?: string;
             surveyor?: string;
             /** @enum {string} */
-            status?: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+            status?:
+                | "DRAFT"
+                | "SELESAI_SURVEY"
+                | "MENUNGGU_VERIFIKASI"
+                | "PERLU_REVISI"
+                | "DIVERIFIKASI"
+                | "DIKONVERSI";
         };
         AdviceInput: {
             idKegiatan: number;

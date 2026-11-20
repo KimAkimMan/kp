@@ -2,6 +2,7 @@
 
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey } from "./types";
+import { SurveyStatus } from "@/generated/prisma/enums";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
 import { ApiClientError, adviceApi, authApi, programApi, surveyApi, userApi } from "@/lib/api";
 import {
@@ -201,11 +202,14 @@ export default function Home() {
       Sedang: "SEDANG",
       "Tinggi / Mendesak": "TINGGI_MENDESAK",
     };
-    const statusMap: Record<FieldSurvey["status"], "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI" | "DIKONVERSI"> = {
-      Draft: "DRAFT",
-      "Selesai Survey": "SELESAI_SURVEY",
-      Diverifikasi: "DIVERIFIKASI",
-      Dikonversi: "DIKONVERSI",
+    // Handle FieldSurvey Indonesian string status (from app/types.ts) -> Prisma SurveyStatus enum
+    const statusStringToSurveyStatus: Record<string, SurveyStatus> = {
+      Draft: SurveyStatus.DRAFT,
+      "Selesai Survey": SurveyStatus.SELESAI_SURVEY,
+      "Menunggu Verifikasi": SurveyStatus.MENUNGGU_VERIFIKASI,
+      "Perlu Revisi": SurveyStatus.PERLU_REVISI,
+      Diverifikasi: SurveyStatus.DIVERIFIKASI,
+      Dikonversi: SurveyStatus.DIKONVERSI,
     };
     const parsedDate = survey.tanggal ? new Date(survey.tanggal) : new Date();
     const tanggal = Number.isNaN(parsedDate.getTime())
@@ -236,7 +240,7 @@ export default function Home() {
       kontakPendamping: survey.kontakPendamping,
       foto: survey.foto,
       fotoUrl: survey.fotoUrl,
-      status: statusMap[survey.status],
+      status: statusStringToSurveyStatus[String(survey.status).toUpperCase()] ?? SurveyStatus.DRAFT,
     };
     try {
       const exists = surveys.some((s) => s.id === survey.id);

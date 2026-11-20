@@ -118,7 +118,13 @@ export type SurveyFilters = {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI";
+  status?:
+    | "DRAFT"
+    | "SELESAI_SURVEY"
+    | "MENUNGGU_VERIFIKASI"
+    | "PERLU_REVISI"
+    | "DIVERIFIKASI"
+    | "DIKONVERSI";
   kecamatan?: string;
 };
 

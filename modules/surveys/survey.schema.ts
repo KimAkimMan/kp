@@ -5,7 +5,14 @@ import type { SurveyInput } from "./survey.types";
 const enumValues = {
   kondisi: ["BAIK", "RUSAK_RINGAN", "RUSAK_SEDANG", "RUSAK_BERAT"],
   tingkatUrgensi: ["RENDAH", "SEDANG", "TINGGI_MENDESAK"],
-  status: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"],
+  status: [
+    "DRAFT",
+    "SELESAI_SURVEY",
+    "MENUNGGU_VERIFIKASI",
+    "PERLU_REVISI",
+    "DIVERIFIKASI",
+    "DIKONVERSI",
+  ],
 } as const;
 
 function enumField<T extends string>(input: Record<string, unknown>, field: string, values: readonly T[]): T {

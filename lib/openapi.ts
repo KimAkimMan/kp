@@ -203,7 +203,17 @@ export const openapiDocument = {
           tingkatUrgensi: { type: "string", enum: ["RENDAH", "SEDANG", "TINGGI_MENDESAK"] },
           uraianTemuan: { type: "string" },
           rekomendasi: { type: "string" },
-          status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
+          status: {
+            type: "string",
+            enum: [
+              "DRAFT",
+              "SELESAI_SURVEY",
+              "MENUNGGU_VERIFIKASI",
+              "PERLU_REVISI",
+              "DIVERIFIKASI",
+              "DIKONVERSI",
+            ],
+          },
         },
       },
       SurveyUpdateInput: {
@@ -213,7 +223,17 @@ export const openapiDocument = {
           kodeSurvey: { type: "string" },
           tanggal: { type: "string", format: "date" },
           surveyor: { type: "string" },
-          status: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] },
+          status: {
+            type: "string",
+            enum: [
+              "DRAFT",
+              "SELESAI_SURVEY",
+              "MENUNGGU_VERIFIKASI",
+              "PERLU_REVISI",
+              "DIVERIFIKASI",
+              "DIKONVERSI",
+            ],
+          },
         },
       },
       AdviceInput: {
