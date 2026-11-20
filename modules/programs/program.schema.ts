@@ -20,6 +20,24 @@ export function parseCreateProgramInput(body: unknown): CreateProgramInput {
     satuan: requiredString(input, "satuan"),
     target: nonNegativeNumber(input, "target") as number,
     pagu: nonNegativeNumber(input, "pagu") as number,
+    namaKegiatan: input.namaKegiatan !== undefined ? requiredString(input, "namaKegiatan") : undefined,
+    kecamatan: optionalString(input, "kecamatan"),
+    desaKelurahan: optionalString(input, "desaKelurahan"),
+    detailLokasi: optionalString(input, "detailLokasi"),
+    operatorPengelola: optionalString(input, "operatorPengelola"),
+    operatorPengelolaId: input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined
+      ? nonNegativeNumber(input, "operatorPengelolaId", false) as number | undefined
+      : null,
+    targetAwal: input.targetAwal !== undefined ? nonNegativeNumber(input, "targetAwal", false) as number | undefined : undefined,
+    targetVolume: input.targetVolume !== undefined ? nonNegativeNumber(input, "targetVolume", false) as number | undefined : null,
+    realisasi: input.realisasi !== undefined ? nonNegativeNumber(input, "realisasi", false) as number | undefined : undefined,
+    realisasiVolume: input.realisasiVolume !== undefined ? nonNegativeNumber(input, "realisasiVolume", false) as number | undefined : null,
+    status: input.status !== undefined ? requiredString(input, "status") as "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN" : undefined,
+    update: optionalString(input, "update"),
+    sumber: optionalString(input, "sumber"),
+    catatan: optionalString(input, "catatan"),
+    penggunaan: input.penggunaan !== undefined ? nonNegativeNumber(input, "penggunaan", false) as number | undefined : undefined,
+    penggunaanBiaya: input.penggunaanBiaya !== undefined ? nonNegativeNumber(input, "penggunaanBiaya", false) as number | undefined : null,
   };
 }
 

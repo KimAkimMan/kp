@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Program, User, AdviceRecord, PageType, FieldSurvey, HistoryItem } from "./types";
+import React, { useCallback, useRef, useState, useEffect } from "react";
+import { Program, User, AdviceRecord, PageType, FieldSurvey } from "./types";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
-import { authApi } from "@/lib/api";
-import { mapApiUserToUser } from "./utils/api-mappers";
+import { ApiClientError, adviceApi, authApi, programApi, surveyApi, userApi } from "@/lib/api";
+import {
+  mapApiAdviceToAdvice,
+  mapApiProgramToProgram,
+  mapApiSurveyToSurvey,
+  mapApiUserToUser,
+} from "./utils/api-mappers";
 import {
   operatorAssignment,
   isAssignedToCurrentOperator,
@@ -36,10 +41,6 @@ import {
   CostModal,
 } from "./components/Modals";
 
-const PROGRAMS_STORAGE_KEY = "simp-kuningan-programs";
-const ADVICE_STORAGE_KEY = "simp-kuningan-saran-arahan";
-const SURVEYS_STORAGE_KEY = "simp-kuningan-surveys";
-
 export default function Home() {
   // Navigation & Screen states
   const [screen, setScreen] = useState<"landing" | "login" | "app">("landing");
@@ -57,6 +58,98 @@ export default function Home() {
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
   const [adviceRecords, setAdviceRecords] = useState<AdviceRecord[]>([]);
   const [surveys, setSurveys] = useState<FieldSurvey[]>(initialSurveys);
+  const [toast, setToast] = useState<{
+    message: string | null;
+    type?: "success" | "error";
+  }>({ message: null, type: "success" });
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+  };
+
+  const fetchAllPages = useCallback(async <T,>(
+    loader: (page: number, pageSize: number) => Promise<{
+      data: T[];
+      meta: { page: number; totalPages: number };
+    }>,
+  ) => {
+    const pageSize = 100;
+    const items: T[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const response = await loader(page, pageSize);
+      items.push(...response.data);
+      totalPages = response.meta.totalPages;
+      page += 1;
+    } while (page <= totalPages);
+    return items;
+  }, []);
+
+  const refreshPrograms = useCallback(async () => {
+    const response = await fetchAllPages((page, pageSize) =>
+      programApi.list({ page, pageSize }),
+    );
+    setPrograms(response.map(mapApiProgramToProgram));
+  }, [fetchAllPages]);
+
+  const refreshUsers = useCallback(async () => {
+    const response = await fetchAllPages((page, pageSize) =>
+      userApi.list({ page, pageSize }),
+    );
+    setUsers(response.map(mapApiUserToUser));
+  }, [fetchAllPages]);
+
+  const refreshSurveys = useCallback(async () => {
+    const response = await fetchAllPages((page, pageSize) =>
+      surveyApi.list({ page, pageSize }),
+    );
+    setSurveys(response.map(mapApiSurveyToSurvey));
+  }, [fetchAllPages]);
+
+  const refreshAdvice = useCallback(async () => {
+    const response = await fetchAllPages((page, pageSize) =>
+      adviceApi.list({ page, pageSize }),
+    );
+    setAdviceRecords(response.map(mapApiAdviceToAdvice));
+  }, [fetchAllPages]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [programItems, surveyItems, adviceItems] = await Promise.all([
+          fetchAllPages((page, pageSize) => programApi.list({ page, pageSize })),
+          fetchAllPages((page, pageSize) => surveyApi.list({ page, pageSize })),
+          fetchAllPages((page, pageSize) => adviceApi.list({ page, pageSize })),
+        ]);
+        if (!cancelled) {
+          setPrograms(programItems.map(mapApiProgramToProgram));
+          setSurveys(surveyItems.map(mapApiSurveyToSurvey));
+          setAdviceRecords(adviceItems.map(mapApiAdviceToAdvice));
+          if (currentUser.role === "Admin") {
+            const userItems = await fetchAllPages((page, pageSize) =>
+              userApi.list({ page, pageSize }),
+            );
+            if (!cancelled) setUsers(userItems.map(mapApiUserToUser));
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof ApiClientError
+            ? error.message
+            : "Daftar kegiatan gagal dimuat dari server.";
+          showToast(message, "error");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, fetchAllPages]);
 
   // Pulihkan sesi aktif (cookie `kp_session`) agar refresh tidak memaksa login ulang
   useEffect(() => {
@@ -79,126 +172,13 @@ export default function Home() {
     };
   }, []);
 
-  // Sync with browser storage once mounted
-  useEffect(() => {
-    const frameId = requestAnimationFrame(() => {
-      try {
-        const stored = localStorage.getItem(PROGRAMS_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const migrated = parsed.map((p: Program) => {
-              let kategori = p.kategori;
-              if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
-                kategori = "Konstruksi Lainnya";
-              } else if (kategori === "Drainase") {
-                kategori = "Drainase/TPT";
-              } else if (kategori === "Jalan") {
-                kategori = "Jalan Lingkungan";
-              }
-              const u = String(p.satuan || "").toLowerCase();
-              if (u === "km" || u.includes("kilometer")) {
-                const factor = (p.target || 0) <= 50 ? 1000 : 1;
-                return {
-                  ...p,
-                  kategori,
-                  satuan: "m'",
-                  target: (p.target || 0) * factor,
-                  targetAwal: (p.targetAwal || 0) * factor,
-                  targetVolume: (p.targetVolume || 0) * factor,
-                  realisasi: (p.realisasi || 0) * factor,
-                  realisasiVolume: (p.realisasiVolume || 0) * factor,
-                  histories: Array.isArray(p.histories)
-                    ? p.histories.map((h) => ({
-                        ...h,
-                        satuan: "m'",
-                        nilai: (h.nilai || 0) <= 50 ? (h.nilai || 0) * 1000 : h.nilai,
-                      }))
-                    : [],
-                };
-              }
-              if (u.includes("meter lari") || u === "m'" || u === "m" || u === "meter") {
-                return {
-                  ...p,
-                  kategori,
-                  satuan: "m'",
-                  histories: Array.isArray(p.histories)
-                    ? p.histories.map((h) => ({
-                        ...h,
-                        satuan: "m'",
-                      }))
-                    : [],
-                };
-              }
-              if (u.includes("meter persegi") || u === "m²" || u === "m2") {
-                return {
-                  ...p,
-                  kategori,
-                  satuan: "m2",
-                  histories: Array.isArray(p.histories)
-                    ? p.histories.map((h) => ({
-                        ...h,
-                        satuan: "m2",
-                      }))
-                    : [],
-                };
-              }
-              return { ...p, kategori };
-            });
-            setPrograms(migrated);
-            localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(migrated));
-          }
-        }
-      } catch {
-        // Fallback to initial
-      }
-
-      try {
-        const storedAdvice = localStorage.getItem(ADVICE_STORAGE_KEY);
-        if (storedAdvice) {
-          const parsed = JSON.parse(storedAdvice);
-          if (Array.isArray(parsed)) {
-            setAdviceRecords(parsed);
-          }
-        }
-      } catch {
-        // Fallback
-      }
-
-      try {
-        const storedSurveys = localStorage.getItem(SURVEYS_STORAGE_KEY);
-        if (storedSurveys) {
-          const parsed = JSON.parse(storedSurveys);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const migratedSurveys = parsed.map((s: FieldSurvey) => {
-              let kategori = s.kategori;
-              if (kategori === "Air Bersih" || kategori === "Penataan Kawasan") {
-                kategori = "Konstruksi Lainnya";
-              } else if (kategori === "Drainase") {
-                kategori = "Drainase/TPT";
-              } else if (kategori === "Jalan") {
-                kategori = "Jalan Lingkungan";
-              }
-              return { ...s, kategori };
-            });
-            setSurveys(migratedSurveys);
-            localStorage.setItem(SURVEYS_STORAGE_KEY, JSON.stringify(migratedSurveys));
-          }
-        }
-      } catch {
-        // Fallback
-      }
-    });
-
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
   // Modals state
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Program | null>(null);
+  const activitySubmitInFlight = useRef(false);
 
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [targetProgramForSchedule, setTargetProgramForSchedule] =
@@ -208,65 +188,80 @@ export default function Home() {
   const [targetProgramForCost, setTargetProgramForCost] =
     useState<Program | null>(null);
 
-  // Toast state
-  const [toast, setToast] = useState<{
-    message: string | null;
-    type?: "success" | "error";
-  }>({ message: null, type: "success" });
-
-  const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-  };
-
-  // Save programs whenever changed
-  const saveProgramsState = (newPrograms: Program[]) => {
-    setPrograms(newPrograms);
-    try {
-      localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(newPrograms));
-    } catch {
-      showToast("Perubahan gagal disimpan ke browser.", "error");
-    }
-  };
-
-  // Save advice records whenever changed
-  const saveAdviceState = (newAdvice: AdviceRecord[]) => {
-    setAdviceRecords(newAdvice);
-    try {
-      localStorage.setItem(ADVICE_STORAGE_KEY, JSON.stringify(newAdvice));
-    } catch {
-      showToast("Saran gagal disimpan ke browser.", "error");
-    }
-  };
-
-  // Save surveys state whenever changed
-  const saveSurveysState = (newSurveys: FieldSurvey[]) => {
-    setSurveys(newSurveys);
-    try {
-      localStorage.setItem(SURVEYS_STORAGE_KEY, JSON.stringify(newSurveys));
-    } catch {
-      showToast("Data survey gagal disimpan ke browser.", "error");
-    }
-  };
-
   // Save / Update Survey Lapangan
-  const handleSaveSurvey = (survey: FieldSurvey) => {
-    const exists = surveys.some((s) => s.id === survey.id);
-    let updated: FieldSurvey[];
-    if (exists) {
-      updated = surveys.map((s) => (s.id === survey.id ? survey : s));
-      showToast(`Data survey ${survey.kodeSurvey} berhasil diperbarui.`);
-    } else {
-      updated = [survey, ...surveys];
-      showToast(`Survey lapangan ${survey.kodeSurvey} berhasil disimpan!`);
+  const handleSaveSurvey = async (survey: FieldSurvey) => {
+    const kondisiMap: Record<FieldSurvey["kondisi"], "BAIK" | "RUSAK_RINGAN" | "RUSAK_SEDANG" | "RUSAK_BERAT"> = {
+      Baik: "BAIK",
+      "Rusak Ringan": "RUSAK_RINGAN",
+      "Rusak Sedang": "RUSAK_SEDANG",
+      "Rusak Berat": "RUSAK_BERAT",
+    };
+    const urgensiMap: Record<FieldSurvey["tingkatUrgensi"], "RENDAH" | "SEDANG" | "TINGGI_MENDESAK"> = {
+      Rendah: "RENDAH",
+      Sedang: "SEDANG",
+      "Tinggi / Mendesak": "TINGGI_MENDESAK",
+    };
+    const statusMap: Record<FieldSurvey["status"], "DRAFT" | "SELESAI_SURVEY" | "DIVERIFIKASI" | "DIKONVERSI"> = {
+      Draft: "DRAFT",
+      "Selesai Survey": "SELESAI_SURVEY",
+      Diverifikasi: "DIVERIFIKASI",
+      Dikonversi: "DIKONVERSI",
+    };
+    const parsedDate = survey.tanggal ? new Date(survey.tanggal) : new Date();
+    const tanggal = Number.isNaN(parsedDate.getTime())
+      ? new Date().toISOString().slice(0, 10)
+      : parsedDate.toISOString().slice(0, 10);
+    const input = {
+      kodeSurvey: survey.kodeSurvey,
+      tanggal,
+      surveyor: survey.surveyor,
+      surveyorId: survey.surveyorId ? Number(survey.surveyorId) : undefined,
+      programId: survey.programId ?? null,
+      namaKegiatan: survey.namaKegiatan,
+      kategori: survey.kategori,
+      kecamatan: survey.kecamatan,
+      desaKelurahan: survey.desaKelurahan,
+      detailLokasi: survey.detailLokasi,
+      koordinat: survey.koordinat,
+      kondisi: kondisiMap[survey.kondisi],
+      panjang: survey.panjang,
+      lebar: survey.lebar,
+      luasVolume: survey.luasVolume,
+      satuan: survey.satuan,
+      tipeKonstruksi: survey.tipeKonstruksi,
+      estimasiBiaya: survey.estimasiBiaya,
+      tingkatUrgensi: urgensiMap[survey.tingkatUrgensi],
+      uraianTemuan: survey.uraianTemuan,
+      rekomendasi: survey.rekomendasi,
+      kontakPendamping: survey.kontakPendamping,
+      foto: survey.foto,
+      fotoUrl: survey.fotoUrl,
+      status: statusMap[survey.status],
+    };
+    try {
+      const exists = surveys.some((s) => s.id === survey.id);
+      if (exists) {
+        await surveyApi.update(survey.id, input);
+        showToast(`Data survey ${survey.kodeSurvey} berhasil diperbarui.`);
+      } else {
+        await surveyApi.create(input);
+        showToast(`Survey lapangan ${survey.kodeSurvey} berhasil disimpan!`);
+      }
+      await refreshSurveys();
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Survey gagal disimpan.", "error");
     }
-    saveSurveysState(updated);
   };
 
   // Delete Survey Lapangan
-  const handleDeleteSurvey = (id: string) => {
-    const updated = surveys.filter((s) => s.id !== id);
-    saveSurveysState(updated);
-    showToast("Data survey berhasil dihapus.");
+  const handleDeleteSurvey = async (id: string) => {
+    try {
+      await surveyApi.remove(id);
+      await refreshSurveys();
+      showToast("Data survey berhasil dihapus.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Survey gagal dihapus.", "error");
+    }
   };
 
   // Login handler
@@ -305,7 +300,7 @@ export default function Home() {
   };
 
   // Claim program for Operator
-  const handleClaimProgram = (id: number) => {
+  const handleClaimProgram = async (id: number) => {
     if (!currentUser || currentUser.role !== "Operator") return;
     const target = programs.find((p) => p.id === id);
     if (!target) return;
@@ -315,240 +310,252 @@ export default function Home() {
       showToast("Kegiatan ini telah diambil oleh Operator lain.", "error");
       return;
     }
+    try {
+      await programApi.claim(id);
+      await refreshPrograms();
+      showToast("Kegiatan berhasil diambil. Anda dapat melengkapi datanya.");
 
-    const updated = programs.map((p) => {
-      if (p.id === id) {
-        return {
-          ...p,
-          operatorPengelola: currentUser.nama,
-          operatorPengelolaId: currentUser.id,
-          pj: currentUser.nama,
-        };
-      }
-      return p;
-    });
-
-    saveProgramsState(updated);
-    showToast("Kegiatan berhasil diambil. Anda dapat melengkapi datanya.");
-
-    const claimed = updated.find((p) => p.id === id);
-    if (claimed) {
-      setTargetProgramForSchedule(claimed);
+      const claimed = (await programApi.get(id)).data;
+      setTargetProgramForSchedule(
+        mapApiProgramToProgram(claimed as unknown as Record<string, unknown>),
+      );
       setScheduleModalOpen(true);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Kegiatan gagal diambil.",
+        "error",
+      );
     }
   };
 
   // Add / Edit User (Admin)
-  const handleSaveUser = (userData: Partial<User>) => {
-    if (editingUser) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === editingUser.id ? { ...u, ...userData } : u))
-      );
-      showToast("Data pengguna berhasil diperbarui.");
-    } else {
-      const newUser: User = {
-        id: Date.now(),
-        nama: userData.nama || "",
-        email: userData.email || "",
-        role: userData.role || "Operator",
-        password: "demo123",
-      };
-      setUsers((prev) => [...prev, newUser]);
-      showToast("Pengguna baru berhasil ditambahkan.");
+  const handleSaveUser = async (userData: Partial<User>) => {
+    const password = userData.password;
+    if (!editingUser && (!password || password.length < 8)) {
+      showToast("Password pengguna baru minimal 8 karakter.", "error");
+      return;
     }
-    setUserModalOpen(false);
-    setEditingUser(null);
+    if (password && password.length < 8) {
+      showToast("Password minimal 8 karakter.", "error");
+      return;
+    }
+    try {
+      if (editingUser) {
+        await userApi.update(editingUser.id, {
+          nama: userData.nama,
+          email: userData.email,
+          role: userData.role,
+          ...(userData.password ? { password: userData.password } : {}),
+        });
+        showToast("Data pengguna berhasil diperbarui.");
+      } else {
+        await userApi.create({
+          nama: userData.nama || "",
+          email: userData.email || "",
+          role: userData.role || "Operator",
+          password: userData.password!,
+        });
+        showToast("Pengguna baru berhasil ditambahkan.");
+      }
+      await refreshUsers();
+      setUserModalOpen(false);
+      setEditingUser(null);
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Pengguna gagal disimpan.", "error");
+    }
   };
 
   // Delete User (Admin)
-  const handleDeleteUser = (user: User) => {
-    setUsers((prev) => prev.filter((u) => u.id !== user.id));
-    showToast(`Pengguna ${user.nama} berhasil dihapus.`);
+  const handleDeleteUser = async (user: User) => {
+    try {
+      await userApi.remove(user.id);
+      await refreshUsers();
+      showToast(`Pengguna ${user.nama} berhasil dihapus.`);
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Pengguna gagal dihapus.", "error");
+    }
   };
 
   // Delete Master Activity (Admin)
-  const handleDeleteActivity = (program: Program) => {
-    saveProgramsState(programs.filter((p) => p.id !== program.id));
-    showToast(`Kegiatan "${program.nama}" berhasil dihapus dari Master Kegiatan.`);
+  const handleDeleteActivity = async (program: Program) => {
+    try {
+      await programApi.remove(program.id);
+      await refreshPrograms();
+      showToast(`Kegiatan "${program.nama}" berhasil dihapus dari Master Kegiatan.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Kegiatan gagal dihapus.",
+        "error",
+      );
+    }
   };
 
   // Add / Edit Master Activity (Admin)
-  const handleSaveActivity = (data: Partial<Program>) => {
-    if (editingActivity) {
-      const updated = programs.map((p) =>
-        p.id === editingActivity.id ? { ...p, ...data } : p
+  const handleSaveActivity = async (data: Partial<Program>) => {
+    if (activitySubmitInFlight.current) return;
+    activitySubmitInFlight.current = true;
+    try {
+      if (editingActivity) {
+        await programApi.update(editingActivity.id, {
+          nama: data.nama,
+          namaKegiatan: data.nama,
+          kategori: data.kategori,
+          lokasi: data.lokasi,
+          kecamatan: data.kecamatan,
+          desaKelurahan: data.desaKelurahan,
+          detailLokasi: data.detailLokasi,
+          pagu: data.pagu,
+          pj: data.pj,
+          operatorPengelola: data.operatorPengelola,
+          operatorPengelolaId: data.operatorPengelolaId === null
+            ? null
+            : data.operatorPengelolaId === undefined
+              ? undefined
+              : Number(data.operatorPengelolaId),
+        });
+        await refreshPrograms();
+        showToast("Master kegiatan berhasil diperbarui.");
+      } else {
+        const uniqueSuffix = Math.random().toString(36).slice(-6);
+        const kode = `PKP-2026-${uniqueSuffix}`;
+        const idempotencyKey = `activity-create-${kode}-${data.nama?.trim().toLowerCase()}`;
+
+        await programApi.create(
+          {
+            kode,
+            nama: data.nama || "",
+            namaKegiatan: data.nama || "",
+            kategori: data.kategori || "Jalan Lingkungan",
+            lokasi: data.lokasi || "Kabupaten Kuningan",
+            kecamatan: data.kecamatan ?? null,
+            desaKelurahan: data.desaKelurahan ?? null,
+            detailLokasi: data.detailLokasi ?? null,
+            pj: data.pj || "Belum Ditugaskan",
+            operatorPengelola: data.operatorPengelola ?? null,
+            operatorPengelolaId: data.operatorPengelolaId
+              ? Number(data.operatorPengelolaId)
+              : null,
+            periode: "Januari–Desember 2026",
+            satuan: "Unit",
+            target: data.target ?? 0,
+            pagu: data.pagu ?? 0,
+          },
+          { idempotencyKey },
+        );
+
+        await refreshPrograms();
+        showToast(
+          data.operatorPengelolaId
+            ? "Master kegiatan baru berhasil ditugaskan."
+            : "Master kegiatan baru berhasil tersedia untuk Operator.",
+        );
+      }
+      setActivityModalOpen(false);
+      setEditingActivity(null);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError
+          ? error.message
+          : "Master kegiatan gagal disimpan.",
+        "error",
       );
-      saveProgramsState(updated);
-      showToast("Master kegiatan berhasil diperbarui.");
-    } else {
-      const newId = Date.now();
-      const newProgram: Program = {
-        id: newId,
-        kode: `PKP-2026-${String(newId).slice(-4)}`,
-        nama: data.nama || "",
-        namaKegiatan: data.nama || "",
-        kategori: data.kategori || "Jalan Lingkungan",
-        pagu: data.pagu || 0,
-        penggunaan: 0,
-        penggunaanBiaya: 0,
-        targetAwal: 0,
-        target: 0,
-        targetVolume: 0,
-        realisasi: 0,
-        realisasiVolume: 0,
-        satuan: "Unit",
-        lokasi: data.lokasi || "Kabupaten Kuningan",
-        kecamatan: data.kecamatan || "",
-        desaKelurahan: data.desaKelurahan || "",
-        detailLokasi: data.detailLokasi || "",
-        pj: data.pj || "Belum Ditugaskan",
-        operatorPengelola: data.operatorPengelola || null,
-        operatorPengelolaId: data.operatorPengelolaId || null,
-        penanggungJawabDinas: null,
-        periode: "Januari–Desember 2026",
-        jadwal: "Januari–Desember 2026",
-        status: "Belum Dikerjakan",
-        update: "Belum ada pembaruan",
-        sumber: "Belum ada sumber pembaruan",
-        catatan: "Master kegiatan baru dari Admin.",
-        histories: [],
-        costs: [],
-      };
-      saveProgramsState([newProgram, ...programs]);
-      showToast("Master kegiatan baru berhasil disimpan.");
+    } finally {
+      activitySubmitInFlight.current = false;
     }
-    setActivityModalOpen(false);
-    setEditingActivity(null);
   };
 
   // Convert Survey to Master Activity (Admin)
-  const handleCreateProgramFromSurvey = (
+  const handleVerifySurvey = async (survey: FieldSurvey) => {
+    try {
+      await surveyApi.verify(survey.id, survey.programId ?? null);
+      await refreshSurveys();
+      showToast(`Survey ${survey.kodeSurvey} berhasil diverifikasi.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError ? error.message : "Verifikasi survey gagal.",
+        "error",
+      );
+    }
+  };
+
+  const handleCreateProgramFromSurvey = async (
     survey: FieldSurvey,
     customData?: Partial<Program>
   ) => {
-    const newId = Date.now();
-    const newKode = `PKP-2026-${String(newId).slice(-4)}`;
-    const fullLokasi =
-      customData?.lokasi ||
-      (survey.detailLokasi
-        ? `${survey.detailLokasi}, Desa ${survey.desaKelurahan}, Kec. ${survey.kecamatan}`
-        : `Desa ${survey.desaKelurahan}, Kec. ${survey.kecamatan}`);
-
-    const newProgram: Program = {
-      id: newId,
-      kode: newKode,
-      nama: customData?.nama || survey.namaKegiatan,
-      namaKegiatan:
-        customData?.namaKegiatan || customData?.nama || survey.namaKegiatan,
-      kategori:
-        customData?.kategori ||
-        (survey.kategori === "Air Bersih" || survey.kategori === "Penataan Kawasan"
-          ? "Konstruksi Lainnya"
-          : survey.kategori === "Drainase"
-          ? "Drainase/TPT"
-          : survey.kategori || "Jalan Lingkungan"),
-      pagu:
-        customData?.pagu !== undefined
-          ? customData.pagu
-          : survey.estimasiBiaya || 0,
-      penggunaan: 0,
-      penggunaanBiaya: 0,
-      targetAwal:
-        customData?.target !== undefined
-          ? customData.target
-          : survey.luasVolume || survey.panjang || 1,
-      target:
-        customData?.target !== undefined
-          ? customData.target
-          : survey.luasVolume || survey.panjang || 1,
-      targetVolume:
-        customData?.targetVolume !== undefined
-          ? customData.targetVolume
-          : survey.luasVolume || survey.panjang || 1,
-      realisasi: 0,
-      realisasiVolume: 0,
-      satuan:
-        customData?.satuan ||
-        survey.satuan ||
-        (survey.kategori === "Drainase/TPT" || survey.kategori === "Jalan Lingkungan"
-          ? "m'"
-          : "m2"),
-      lokasi: fullLokasi,
-      kecamatan: customData?.kecamatan || survey.kecamatan,
-      desaKelurahan: customData?.desaKelurahan || survey.desaKelurahan,
-      detailLokasi: customData?.detailLokasi || survey.detailLokasi,
-      pj: survey.surveyor || "Belum Ditugaskan",
-      operatorPengelola: survey.surveyor || null,
-      operatorPengelolaId: survey.surveyorId || null,
-      penanggungJawabDinas: null,
-      periode: "Januari–Desember 2026",
-      jadwal: "Januari–Desember 2026",
-      status: "Belum Dikerjakan",
-      update: new Date().toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      sumber: `Hasil Survey Lapangan (${survey.kodeSurvey})`,
-      catatan: `Dibuat dari hasil survey lapangan (${survey.kodeSurvey}) oleh ${survey.surveyor}. Temuan: ${survey.uraianTemuan}. Rekomendasi: ${survey.rekomendasi}`,
-      lebarJalan: survey.lebar,
-      kondisiJalan: survey.kondisi,
-      histories: [],
-      costs: [],
-    };
-
-    const updatedPrograms = [newProgram, ...programs];
-    saveProgramsState(updatedPrograms);
-
-    const updatedSurveys = surveys.map((s) =>
-      s.id === survey.id
-        ? {
-            ...s,
-            programId: newId,
-            status: "Diverifikasi" as const,
-          }
-        : s
-    );
-    saveSurveysState(updatedSurveys);
-
-    showToast(
-      `Kegiatan baru "${newProgram.nama}" berhasil dibuat di Master Kegiatan!`
-    );
-    setCurrentPage("masteractivities");
+    if (survey.status !== "Diverifikasi") {
+      showToast("Survey harus diverifikasi sebelum dikonversi menjadi kegiatan.", "error");
+      return;
+    }
+    const newKode = `PKP-2026-${String(Date.now()).slice(-6)}`;
+    try {
+      await surveyApi.convert(survey.id, {
+        kode: newKode,
+        nama: customData?.nama || survey.namaKegiatan,
+        pj: survey.surveyor || "Belum Ditugaskan",
+        periode: "Januari–Desember 2026",
+        satuan: customData?.satuan || survey.satuan || "m2",
+        target: customData?.target ?? survey.luasVolume ?? survey.panjang ?? 1,
+        pagu: customData?.pagu ?? survey.estimasiBiaya ?? 0,
+      });
+      await Promise.all([refreshPrograms(), refreshSurveys()]);
+      showToast(
+        `Kegiatan baru dari survey "${survey.namaKegiatan}" berhasil dibuat di Master Kegiatan!`,
+      );
+      setCurrentPage("masteractivities");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Konversi survey gagal.", "error");
+    }
   };
 
   // Save Schedule / Technical Setup (Operator)
-  const handleSaveSchedule = (data: Partial<Program>) => {
+  const handleSaveSchedule = async (data: Partial<Program>) => {
     if (!targetProgramForSchedule) return;
-
-    const updated = programs.map((p) => {
-      if (p.id === targetProgramForSchedule.id) {
-        return {
-          ...p,
-          ...data,
-          operatorPengelola: p.operatorPengelola || currentUser?.nama || null,
-          operatorPengelolaId: p.operatorPengelolaId || currentUser?.id || null,
-          pj:
-            p.pj && p.pj !== "Belum Ditugaskan"
-              ? p.pj
-              : currentUser?.nama || "Operator",
-          status:
-            p.status === "Belum Dikerjakan" &&
-            ((data.target || 0) > 0 || (data.targetVolume || 0) > 0)
-              ? ("Sedang Dikerjakan" as const)
-              : p.status,
-        };
-      }
-      return p;
-    });
-    saveProgramsState(updated);
-    showToast("Data kegiatan dan target berhasil disimpan.");
-    setScheduleModalOpen(false);
-    setTargetProgramForSchedule(null);
+    try {
+      await programApi.update(targetProgramForSchedule.id, {
+        nama: data.nama,
+        namaKegiatan: data.namaKegiatan,
+        kategori: data.kategori,
+        lokasi: data.lokasi,
+        kecamatan: data.kecamatan,
+        desaKelurahan: data.desaKelurahan,
+        detailLokasi: data.detailLokasi,
+        satuan: data.satuan,
+        target: data.target,
+        targetAwal: data.targetAwal,
+        targetVolume: data.targetVolume,
+        pagu: data.pagu,
+        penyedia: data.penyedia,
+        direktur: data.direktur,
+        nilaiKontrak: data.nilaiKontrak,
+        noKontrak: data.noKontrak,
+        jadwal: data.jadwal,
+        lebarJalan: data.lebarJalan,
+        kondisiJalan: data.kondisiJalan,
+        tanggalMulai: data.tanggalMulai,
+        tanggalSelesai: data.tanggalSelesai,
+        status:
+          targetProgramForSchedule.status === "Belum Dikerjakan" &&
+          ((data.target || 0) > 0 || (data.targetVolume || 0) > 0)
+            ? "SEDANG_DIKERJAKAN"
+            : targetProgramForSchedule.status === "Sedang Dikerjakan"
+              ? "SEDANG_DIKERJAKAN"
+              : "BELUM_DIKERJAKAN",
+      });
+      await refreshPrograms();
+      showToast("Data kegiatan dan target berhasil disimpan.");
+      setScheduleModalOpen(false);
+      setTargetProgramForSchedule(null);
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Data kegiatan gagal disimpan.", "error");
+    }
   };
 
   // Save Progress & Realization (Operator)
-  const handleSaveProgress = (progressData: {
+  const handleSaveProgress = async (progressData: {
     tanggal: string;
     status: "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan";
     tahap: string;
@@ -557,87 +564,41 @@ export default function Home() {
     hasPhoto: boolean;
     fotoUrls?: string[];
   }) => {
-    const formattedDate = new Date(progressData.tanggal).toLocaleDateString(
-      "id-ID",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }
-    );
-
-    const updated = programs.map((p) => {
-      if (p.id === selectedProgramId) {
-        const newHistory: HistoryItem = {
-          tanggal: formattedDate,
-          tahap: progressData.tahap,
-          nilai: progressData.realisasi,
-          satuan: p.satuan,
-          keterangan: progressData.catatan,
-          foto: progressData.hasPhoto,
-          fotoUrls: progressData.fotoUrls || [],
-          fotoUrl: progressData.fotoUrls?.[0] || undefined,
-          penginput: currentUser?.nama || "Operator",
-          status: progressData.status,
-        };
-
-        return {
-          ...p,
-          realisasi: progressData.realisasi,
-          realisasiVolume: progressData.realisasi,
-          status: progressData.status,
-          update: formattedDate,
-          catatan: progressData.catatan,
-          sumber: "Input progres Operator",
-          histories: [newHistory, ...(p.histories || [])],
-        };
-      }
-      return p;
-    });
-
-    saveProgramsState(updated);
-    showToast("Realisasi berhasil disimpan dan ringkasan diperbarui.");
+    try {
+      await programApi.addProgress(selectedProgramId, {
+        tanggal: progressData.tanggal,
+        tahap: progressData.tahap,
+        nilai: progressData.realisasi,
+        satuan: programs.find((p) => p.id === selectedProgramId)?.satuan || "Unit",
+        keterangan: progressData.catatan,
+        foto: progressData.hasPhoto,
+        status:
+          progressData.status === "Selesai Dikerjakan"
+            ? "SELESAI_DIKERJAKAN"
+            : progressData.status === "Sedang Dikerjakan"
+              ? "SEDANG_DIKERJAKAN"
+              : "BELUM_DIKERJAKAN",
+      });
+      await refreshPrograms();
+      showToast("Realisasi berhasil disimpan dan ringkasan diperbarui.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Realisasi gagal disimpan.", "error");
+    }
   };
 
   // Mark Program as Complete (Operator)
-  const handleMarkComplete = (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => {
-    const completedDate = new Date().toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-
-    const updated = programs.map((p) => {
-      if (p.id === program.id) {
-        const completionHistory: HistoryItem = {
-          tanggal: completedDate,
-          tahap: "Penyelesaian kegiatan",
-          nilai: p.realisasi,
-          satuan: p.satuan,
-          keterangan: "Kegiatan ditandai selesai setelah realisasi fisik mencapai 100%.",
-          foto: hasPhoto,
-          fotoUrls: fotoUrls || [],
-          fotoUrl: fotoUrls?.[0] || undefined,
-          penginput: currentUser?.nama || "Operator",
-          status: "Selesai Dikerjakan" as const,
-        };
-
-        return {
-          ...p,
-          status: "Selesai Dikerjakan" as const,
-          update: completedDate,
-          histories: [completionHistory, ...(p.histories || [])],
-        };
-      }
-      return p;
-    });
-
-    saveProgramsState(updated);
-    showToast("Kegiatan ditandai selesai dan status telah dikunci.");
+  const handleMarkComplete = async (program: Program, hasPhoto: boolean) => {
+    try {
+      await programApi.complete(program.id, { foto: hasPhoto });
+      await refreshPrograms();
+      showToast("Kegiatan ditandai selesai dan status telah dikunci.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Kegiatan gagal diselesaikan.", "error");
+    }
   };
 
   // Record Cost (Operator)
-  const handleSaveCost = (costData: {
+  const handleSaveCost = async (costData: {
     tanggal: string;
     tahap: string;
     uraian: string;
@@ -645,70 +606,31 @@ export default function Home() {
     hasProof: boolean;
   }) => {
     if (!targetProgramForCost) return;
-
-    const formattedDate = new Date(costData.tanggal).toLocaleDateString(
-      "id-ID",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }
-    );
-
-    const updated = programs.map((p) => {
-      if (p.id === targetProgramForCost.id) {
-        const newCostItem = {
-          tanggal: formattedDate,
-          uraian: `${costData.tahap}: ${costData.uraian}`,
-          nominal: costData.nominal,
-          input: currentUser?.nama || "Operator",
-          bukti: costData.hasProof,
-        };
-
-        const newPenggunaan = (p.penggunaan || 0) + costData.nominal;
-
-        return {
-          ...p,
-          penggunaan: newPenggunaan,
-          penggunaanBiaya: newPenggunaan,
-          costs: [newCostItem, ...(p.costs || [])],
-        };
-      }
-      return p;
-    });
-
-    saveProgramsState(updated);
-    showToast("Penggunaan biaya berhasil dicatat. Sisa anggaran diperbarui.");
-    setCostModalOpen(false);
-    setTargetProgramForCost(null);
-  };
-
-  // Add Advice (Pimpinan)
-  const handleAddAdvice = (
-    record: Omit<AdviceRecord, "id" | "tanggal" | "status">
-  ) => {
-    const newAdvice: AdviceRecord = {
-      id: `SARAN-${Date.now()}`,
-      tanggal: new Date().toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      status: "Belum ditindaklanjuti",
-      ...record,
-    };
-
-    saveAdviceState([newAdvice, ...adviceRecords]);
-    showToast("Saran dan arahan berhasil disampaikan ke Operator.");
+    try {
+      await programApi.addCost(targetProgramForCost.id, {
+        tanggal: costData.tanggal,
+        uraian: `${costData.tahap}: ${costData.uraian}`,
+        nominal: costData.nominal,
+        bukti: costData.hasProof,
+      });
+      await refreshPrograms();
+      showToast("Penggunaan biaya berhasil dicatat. Sisa anggaran diperbarui.");
+      setCostModalOpen(false);
+      setTargetProgramForCost(null);
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Penggunaan biaya gagal dicatat.", "error");
+    }
   };
 
   // Update status of advice (Operator)
-  const handleUpdateAdviceStatus = (id: string, newStatus: string) => {
-    const updated = adviceRecords.map((a) =>
-      a.id === id ? { ...a, status: newStatus } : a
-    );
-    saveAdviceState(updated);
-    showToast("Status arahan pimpinan berhasil diperbarui.");
+  const handleUpdateAdviceStatus = async (id: string) => {
+    try {
+      await adviceApi.updateStatus(id, "SUDAH_DITINDAKLANJUTI");
+      await refreshAdvice();
+      showToast("Status arahan pimpinan berhasil diperbarui.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Status arahan gagal diperbarui.", "error");
+    }
   };
 
   // Pending advice count for notification badge
@@ -796,11 +718,11 @@ export default function Home() {
               programs={programs}
               adviceRecords={adviceRecords}
               surveys={surveys}
-              onAddAdvice={handleAddAdvice}
               onNavigate={(page) => setCurrentPage(page)}
               onSelectProgram={handleViewProgram}
               onDeleteProgram={handleDeleteActivity}
               onDeleteSurvey={handleDeleteSurvey}
+              onAdviceCreated={refreshAdvice}
               initialAdviceProgramId={targetAdviceProgramId}
               onClearInitialAdviceProgramId={() => setTargetAdviceProgramId(null)}
             />
@@ -873,6 +795,7 @@ export default function Home() {
               currentUser={currentUser}
               surveys={surveys}
               programs={programs}
+              onVerifySurvey={handleVerifySurvey}
               onCreateProgramFromSurvey={handleCreateProgramFromSurvey}
               onViewProgram={handleViewProgram}
             />
@@ -895,6 +818,7 @@ export default function Home() {
               }}
               onSaveProgress={handleSaveProgress}
               onMarkComplete={handleMarkComplete}
+              onNotify={(msg, type) => showToast(msg, type)}
             />
           )}
 
@@ -924,6 +848,7 @@ export default function Home() {
                 setTargetAdviceProgramId(programId);
                 setCurrentPage("dashboard");
               }}
+              onNotify={(msg, type) => showToast(msg, type)}
             />
           )}
 
@@ -934,6 +859,7 @@ export default function Home() {
                 program={selectedProgram}
                 currentUser={currentUser}
                 onBack={() => setCurrentPage("masteractivities")}
+                onNotify={(msg, type) => showToast(msg, type)}
               />
             )}
 

@@ -9,6 +9,24 @@ export type CreateProgramInput = {
   target: number;
   pagu: number;
   createdById?: number;
+  // Field tambahan yang sebelumnya di-update secara terpisah setelah create,
+  // sekarang dapat disertakan langsung untuk transaksi atomik.
+  namaKegiatan?: string;
+  kecamatan?: string | null;
+  desaKelurahan?: string | null;
+  detailLokasi?: string | null;
+  operatorPengelola?: string | null;
+  operatorPengelolaId?: number | null;
+  targetAwal?: number;
+  targetVolume?: number | null;
+  realisasi?: number;
+  realisasiVolume?: number | null;
+  status?: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
+  update?: string;
+  sumber?: string;
+  catatan?: string;
+  penggunaan?: number;
+  penggunaanBiaya?: number | null;
 };
 
 export type UpdateProgramInput = Partial<CreateProgramInput> & {

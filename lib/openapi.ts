@@ -5,7 +5,7 @@ export const openapiDocument = {
     version: "1.0.0",
     description: "Backend API untuk monitoring program permukiman Kabupaten Kuningan.",
   },
-  servers: [{ url: "/api", description: "Current application" }],
+  servers: [{ url: "/api", description: "Current application", variables: {} }],
   tags: [
       { name: "Auth", description: "Autentikasi dan session" },
       { name: "Users", description: "Manajemen pengguna" },

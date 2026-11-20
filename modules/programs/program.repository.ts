@@ -66,23 +66,60 @@ export const programRepository = {
     });
   },
 
-  create(input: CreateProgramInput) {
-    return prisma.program.create({
-      data: {
-        ...input,
-        createdById: input.createdById,
-        namaKegiatan: input.nama,
-        targetAwal: input.target,
-        targetVolume: input.target,
-        realisasi: 0,
-        realisasiVolume: 0,
-        status: "BELUM_DIKERJAKAN",
-        update: "Belum ada pembaruan",
-        sumber: "Input API",
-        catatan: "",
-        penggunaan: 0,
-        penggunaanBiaya: 0,
+  async create(input: CreateProgramInput) {
+    const createdById = input.createdById ?? 0;
+    const recentDuplicate = await prisma.program.findFirst({
+      where: {
+        deletedAt: null,
+        createdById,
+        nama: input.nama,
+        kategori: input.kategori,
+        lokasi: input.lokasi,
+        pj: input.pj,
+        periode: input.periode,
+        satuan: input.satuan,
+        target: input.target,
+        pagu: input.pagu,
+        createdAt: { gte: new Date(Date.now() - 300_000) },
       },
+      orderBy: { createdAt: "desc" },
+    });
+    if (recentDuplicate) return recentDuplicate;
+
+    return prisma.$transaction(async (tx) => {
+      const program = await tx.program.create({
+        data: {
+          ...input,
+          createdById,
+          namaKegiatan: input.namaKegiatan ?? input.nama,
+          targetAwal: input.targetAwal ?? input.target,
+          targetVolume: input.targetVolume ?? input.target,
+          realisasi: input.realisasi ?? 0,
+          realisasiVolume: input.realisasiVolume ?? 0,
+          status: input.status ?? "BELUM_DIKERJAKAN",
+          update: input.update ?? "Belum ada pembaruan",
+          sumber: input.sumber ?? "Input API",
+          catatan: input.catatan ?? "",
+          penggunaan: input.penggunaan ?? 0,
+          penggunaanBiaya: input.penggunaanBiaya ?? 0,
+        },
+      });
+
+      // Buat penugasan operator dalam transaksi yang sama jika operatorPengelolaId disediakan.
+      if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
+        await tx.programAssignment.create({
+          data: {
+            programId: program.id,
+            operatorId: input.operatorPengelolaId,
+            assignedById: createdById,
+            status: "DITUGASKAN",
+            notes: input.catatan ?? null,
+            assignedAt: new Date(),
+          },
+        });
+      }
+
+      return program;
     });
   },
 
@@ -144,15 +181,58 @@ export const programRepository = {
     });
   },
 
-  update(id: number, input: UpdateProgramInput) {
-    return prisma.program.update({
-      where: { id },
-      data: {
-        ...input,
-        ...(input.tanggalMulai === undefined ? {} : { tanggalMulai: input.tanggalMulai ? new Date(input.tanggalMulai) : null }),
-        ...(input.tanggalSelesai === undefined ? {} : { tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null }),
-      },
-      include: { operator: true, histories: true, costs: true },
+  async update(id: number, input: UpdateProgramInput) {
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.program.findFirst({
+        where: { id, deletedAt: null },
+        select: { operatorPengelolaId: true },
+      });
+      if (!existing) return null;
+
+      const program = await tx.program.update({
+        where: { id },
+        data: {
+          ...input,
+          ...(input.tanggalMulai === undefined ? {} : { tanggalMulai: input.tanggalMulai ? new Date(input.tanggalMulai) : null }),
+          ...(input.tanggalSelesai === undefined ? {} : { tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null }),
+        },
+        include: { operator: true, histories: true, costs: true },
+      });
+
+      if (input.operatorPengelolaId !== undefined) {
+        await tx.programAssignment.updateMany({
+          where: {
+            programId: id,
+            status: { in: ["DITUGASKAN", "DITERIMA"] },
+            ...(existing.operatorPengelolaId === null
+              ? {}
+              : { operatorId: { not: input.operatorPengelolaId ?? -1 } }),
+          },
+          data: { status: "DILEPAS", releasedAt: new Date() },
+        });
+
+        if (input.operatorPengelolaId !== null) {
+          const activeAssignment = await tx.programAssignment.findFirst({
+            where: {
+              programId: id,
+              operatorId: input.operatorPengelolaId,
+              status: { in: ["DITUGASKAN", "DITERIMA"] },
+            },
+          });
+          if (!activeAssignment) {
+            await tx.programAssignment.create({
+              data: {
+                programId: id,
+                operatorId: input.operatorPengelolaId,
+                assignedById: null,
+                status: "DITUGASKAN",
+              },
+            });
+          }
+        }
+      }
+
+      return program;
     });
   },
 

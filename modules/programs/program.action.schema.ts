@@ -1,5 +1,5 @@
 import { ApiError } from "@/lib/http/api-error";
-import { nonNegativeNumber, optionalString, parseJsonObject, requiredString } from "@/lib/validation";
+import { nonNegativeNumber, parseJsonObject, requiredString } from "@/lib/validation";
 import type { CreateCostInput, CreateProgressInput } from "./program.actions";
 
 export function parseProgressInput(body: unknown): CreateProgressInput {
@@ -31,9 +31,8 @@ export function parseCostInput(body: unknown): CreateCostInput {
 
 export function parseCompletionInput(body: unknown): { foto: boolean } {
   const input = parseJsonObject(body);
-  const foto = optionalString(input, "foto");
-  if (foto !== undefined && foto !== "true" && foto !== "false") {
+  if (input.foto !== undefined && typeof input.foto !== "boolean") {
     throw new ApiError("VALIDATION_ERROR", "Field foto harus boolean.", 400);
   }
-  return { foto: foto === "true" };
+  return { foto: input.foto === true };
 }

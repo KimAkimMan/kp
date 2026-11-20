@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   Paperclip,
   MessageSquarePlus,
+  FileDown,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -22,6 +23,7 @@ interface DetailViewProps {
   onBack: () => void;
   currentUser?: User;
   onNavigateToDashboardAdvice?: (programId: number) => void;
+  onNotify: (message: string, type?: "success" | "error") => void;
 }
 
 export const DetailView: React.FC<DetailViewProps> = ({
@@ -29,8 +31,10 @@ export const DetailView: React.FC<DetailViewProps> = ({
   onBack,
   currentUser,
   onNavigateToDashboardAdvice,
+  onNotify,
 }) => {
   const [photoViewer, setPhotoViewer] = React.useState<PhotoLightboxData | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = React.useState(false);
   const percent =
     program.target > 0
       ? Math.min(100, Math.round((program.realisasi / program.target) * 100))
@@ -43,6 +47,23 @@ export const DetailView: React.FC<DetailViewProps> = ({
       ? "sedang"
       : "selesai";
 
+  const canDownloadPdf =
+    currentUser?.role === "Admin" || currentUser?.role === "Pimpinan";
+
+  const handleDownloadPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const { downloadActivityPdf } = await import("../../utils/activity-export");
+      downloadActivityPdf(program, `${currentUser?.nama ?? "Pengguna"} (${currentUser?.role ?? ""})`);
+      onNotify("Detail kegiatan berhasil diunduh dalam format PDF.");
+    } catch (error) {
+      const details = error instanceof Error ? `: ${error.message}` : "";
+      onNotify(`Gagal menyiapkan PDF kegiatan${details}`, "error");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Navigation bar with Back button & Pimpinan advice button */}
@@ -54,14 +75,27 @@ export const DetailView: React.FC<DetailViewProps> = ({
           <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
         </button>
 
-        {currentUser?.role === "Pimpinan" && onNavigateToDashboardAdvice && (
-          <button
-            onClick={() => onNavigateToDashboardAdvice(program.id)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs transition"
-          >
-            <MessageSquarePlus className="w-4 h-4" /> Isi Saran & Arahan untuk Kegiatan Ini
-          </button>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+          {currentUser?.role === "Pimpinan" && onNavigateToDashboardAdvice && (
+            <button
+              onClick={() => onNavigateToDashboardAdvice(program.id)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs transition"
+            >
+              <MessageSquarePlus className="w-4 h-4" /> Isi Saran & Arahan untuk Kegiatan Ini
+            </button>
+          )}
+          {canDownloadPdf && (
+            <button
+              type="button"
+              onClick={() => void handleDownloadPdf()}
+              disabled={isExportingPdf}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#E7F6ED] text-[#258050] hover:bg-[#D4EFE0] disabled:opacity-60 disabled:cursor-wait transition border border-[#BCE5CC]"
+            >
+              <FileDown className="w-4 h-4" />
+              {isExportingPdf ? "Menyiapkan..." : "Unduh PDF"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Details Panel */}

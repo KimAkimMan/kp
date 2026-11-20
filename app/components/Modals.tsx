@@ -64,6 +64,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [nama, setNama] = useState(user?.nama || "");
   const [email, setEmail] = useState(user?.email || "");
   const [role, setRole] = useState<Role>(user?.role || "Operator");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,7 +73,20 @@ export const UserModal: React.FC<UserModalProps> = ({
       setError("Nama lengkap dan email wajib diisi.");
       return;
     }
-    onSave({ nama: nama.trim(), email: email.trim(), role });
+    if (!user && password.length < 8) {
+      setError("Password pengguna baru minimal 8 karakter.");
+      return;
+    }
+    if (password && password.length < 8) {
+      setError("Password minimal 8 karakter.");
+      return;
+    }
+    onSave({
+      nama: nama.trim(),
+      email: email.trim(),
+      role,
+      ...(password ? { password } : {}),
+    });
   };
 
   return (
@@ -124,6 +138,21 @@ export const UserModal: React.FC<UserModalProps> = ({
           </select>
         </div>
 
+        <div>
+          <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
+            {user ? "Password Baru (opsional)" : "Password"}
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
+            placeholder={user ? "Kosongkan jika tidak ingin mengubah" : "Minimal 8 karakter"}
+            minLength={8}
+            required={!user}
+          />
+        </div>
+
         {error && (
           <div className="flex items-center gap-1.5 text-xs text-[#C44C3B] font-semibold">
             <AlertCircle className="w-4 h-4" /> {error}
@@ -155,7 +184,7 @@ interface ActivityModalProps {
   activity?: Program | null;
   operators?: User[];
   onClose: () => void;
-  onSave: (data: Partial<Program>) => void;
+  onSave: (data: Partial<Program>) => void | Promise<void>;
 }
 
 export const ActivityModal: React.FC<ActivityModalProps> = ({
@@ -180,9 +209,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       : ""
   );
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!kategori) {
       setError("Kategori kegiatan wajib dipilih.");
       return;
@@ -203,19 +234,24 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
 
     const assignedOp = operators.find((u) => String(u.id) === operatorId);
 
-    onSave({
-      kategori,
-      nama: nama.trim(),
-      namaKegiatan: nama.trim(),
-      pagu: paguNum,
-      kecamatan: kecamatan.trim(),
-      desaKelurahan: desa.trim(),
-      detailLokasi: detailLokasi.trim(),
-      lokasi: fullLocation || activity?.lokasi || "Kabupaten Kuningan",
-      operatorPengelola: assignedOp ? assignedOp.nama : null,
-      operatorPengelolaId: assignedOp ? assignedOp.id : null,
-      pj: assignedOp ? assignedOp.nama : "Belum Ditugaskan",
-    });
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        kategori,
+        nama: nama.trim(),
+        namaKegiatan: nama.trim(),
+        pagu: paguNum,
+        kecamatan: kecamatan.trim(),
+        desaKelurahan: desa.trim(),
+        detailLokasi: detailLokasi.trim(),
+        lokasi: fullLocation || activity?.lokasi || "Kabupaten Kuningan",
+        operatorPengelola: assignedOp ? assignedOp.nama : null,
+        operatorPengelolaId: assignedOp ? assignedOp.id : null,
+        pj: assignedOp ? assignedOp.nama : "Belum Ditugaskan",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -360,9 +396,10 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           </button>
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1E4E8C] text-white hover:bg-[#143965]"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Simpan Master Kegiatan
+            {isSubmitting ? "Menyimpan..." : "Simpan Master Kegiatan"}
           </button>
         </div>
       </form>

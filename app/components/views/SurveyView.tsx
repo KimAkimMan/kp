@@ -215,7 +215,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     setTingkatUrgensi(srv.tingkatUrgensi);
     setUraianTemuan(srv.uraianTemuan);
     setRekomendasi(srv.rekomendasi);
-    setStatus(srv.status);
+    setStatus(srv.status === "Dikonversi" ? "Diverifikasi" : srv.status);
     setFotoUrl(srv.fotoUrl || "");
     setHasPhoto(!!srv.foto || !!srv.fotoUrl);
     setErrorMessage("");
@@ -717,7 +717,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       onChange={(e) => setSatuan(e.target.value)}
                       className="w-40 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
                     >
-                      <option value="m'">m'</option>
+                      <option value="m'">m&#39;</option>
                       <option value="m2">m2</option>
                       <option value="m3">m3</option>
                       <option value="Unit">Unit</option>
@@ -1119,17 +1119,19 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Hapus data survey ${srv.kodeSurvey}?`)) {
-                                  onDeleteSurvey(srv.id);
-                                }
-                              }}
-                              title="Hapus Data Survey"
-                              className="p-1.5 rounded-lg text-[#BD493B] hover:bg-[#FDEEED] transition"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Hapus data survey ${srv.kodeSurvey}?`)) {
+                                    onDeleteSurvey(srv.id);
+                                  }
+                                }}
+                                title="Hapus Data Survey"
+                                className="p-1.5 rounded-lg text-[#BD493B] hover:bg-[#FDEEED] transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
