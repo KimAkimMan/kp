@@ -109,16 +109,99 @@ body {
 
 /* Print view optimization */
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+    min-width: 0 !important;
+    background: #fff !important;
+    color: #18304B !important;
+    font-size: 11px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   aside,
   header,
+  nav,
   .no-print {
     display: none !important;
   }
-  
-  body, main {
+
+  div {
+    min-height: auto !important;
+  }
+
+  main {
     background: #fff !important;
     padding: 0 !important;
     margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Prevent elements from being clipped by overflow containers */
+  div, section, article {
+    overflow: visible !important;
+  }
+
+  /* Table print optimization */
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Ensure text doesn't get clipped with ellipsis in print */
+  .truncate {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  .print-table,
+  .print-table th,
+  .print-table td {
+    border: 1px solid #CBD5E1 !important;
+  }
+
+  /* Expand fixed modals when printing (e.g. Lembar Survey) */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  
+  .max-h-\[90vh\] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .print-area {

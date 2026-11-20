@@ -191,22 +191,45 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             onClick={() => window.print()}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
           >
-            <Printer className="w-4 h-4" /> Cetak
+            <Printer className="w-4 h-4" /> Cetak / Ekspor PDF
           </button>
         </div>
       </div>
 
       {/* Printable Report Header */}
-      <div className="hidden print:block text-center border-b pb-4 mb-4">
-        <h1 className="text-xl font-bold text-[#143965]">
-          DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN KABUPATEN KUNINGAN
-        </h1>
-        <h2 className="text-sm font-semibold text-[#65778B]">
-          LAPORAN CAPAIAN KEGIATAN DAN REALISASI FISIK &amp; KEUANGAN
-        </h2>
-        <p className="text-xs text-[#65778B]">
-          Kategori Tahun Anggaran: {yearFilter || "Semua Tahun"}
-        </p>
+      <div className="hidden print:block border-b-2 border-black pb-3 mb-4">
+        <div className="text-center">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-black">
+            PEMERINTAH KABUPATEN KUNINGAN
+          </h2>
+          <h1 className="text-base font-black uppercase text-black mt-0.5">
+            DINAS PERUMAHAN, KAWASAN PERMUKIMAN DAN PERTANAHAN
+          </h1>
+          <p className="text-[9px] text-gray-700 mt-0.5">
+            Jl. Moh. Toha No. 44, Kasturi, Kec. Kuningan, Kabupaten Kuningan, Jawa Barat 45511
+          </p>
+        </div>
+        <div className="border-t border-black mt-2 pt-2 text-center">
+          <h3 className="text-sm font-bold uppercase text-black">
+            LAPORAN REKAPITULASI CAPAIAN FISIK DAN KEUANGAN KEGIATAN
+          </h3>
+          <div className="flex justify-between items-center text-[10px] text-gray-700 mt-1 px-1">
+            <span>
+              <strong>Tahun Anggaran:</strong> {yearFilter || "Semua Tahun"}
+              {categoryFilter ? ` · Bidang: ${categoryFilter}` : ""}
+            </span>
+            <span>
+              <strong>Waktu Cetak:</strong>{" "}
+              {new Date().toLocaleString("id-ID", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </span>
+            <span>
+              <strong>Petugas:</strong> {currentUser.nama} ({currentUser.role})
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Main Panel */}
@@ -247,48 +270,48 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
 
         {/* Budget Summary Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-[#F8FAFC] p-4 rounded-xl border border-[#DFEAF0]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-[#F8FAFC] p-4 rounded-xl border border-[#DFEAF0] print:border print:border-[#CBD5E1] print:bg-[#F8FAFC] print:p-3 print:mb-4 print:grid-cols-4">
           <div>
-            <p className="text-[11px] text-[#65778B] font-medium m-0">Pagu Total</p>
-            <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5 truncate">
+            <p className="text-[11px] text-[#65778B] font-medium m-0 print:text-black">Pagu Total</p>
+            <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5 truncate print:truncate-none print:text-black">
               {currency(summary.pagu)}
             </strong>
           </div>
           <div>
-            <p className="text-[11px] text-[#65778B] font-medium m-0">Penggunaan</p>
-            <strong className="block text-sm sm:text-base font-bold text-[#148B87] mt-0.5 truncate">
+            <p className="text-[11px] text-[#65778B] font-medium m-0 print:text-black">Penggunaan</p>
+            <strong className="block text-sm sm:text-base font-bold text-[#148B87] mt-0.5 truncate print:truncate-none print:text-black">
               {currency(summary.penggunaan)}
             </strong>
           </div>
           <div>
-            <p className="text-[11px] text-[#65778B] font-medium m-0">Sisa Anggaran</p>
-            <strong className="block text-sm sm:text-base font-bold text-[#E78A31] mt-0.5 truncate">
+            <p className="text-[11px] text-[#65778B] font-medium m-0 print:text-black">Sisa Anggaran</p>
+            <strong className="block text-sm sm:text-base font-bold text-[#E78A31] mt-0.5 truncate print:truncate-none print:text-black">
               {currency(summary.sisaAnggaran)}
             </strong>
           </div>
           <div>
-            <p className="text-[11px] text-[#65778B] font-medium m-0">Total Kegiatan</p>
-            <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5">
+            <p className="text-[11px] text-[#65778B] font-medium m-0 print:text-black">Total Kegiatan</p>
+            <strong className="block text-sm sm:text-base font-bold text-[#143965] mt-0.5 print:text-black">
               {filtered.length} Kegiatan
             </strong>
           </div>
         </div>
 
         {/* Report Table */}
-        <div className="overflow-x-auto border border-[#E3EBF0] rounded-xl">
-          <table className="w-full text-xs text-left min-w-[1000px]">
-            <thead className="bg-[#F6F9FB] text-[#61738A] uppercase font-bold text-[11px]">
+        <div className="overflow-x-auto border border-[#E3EBF0] rounded-xl print:overflow-visible print:border-none">
+          <table className="w-full text-xs text-left min-w-[1000px] print:min-w-0 print:w-full print:text-[10px] print-table border-collapse">
+            <thead className="bg-[#F6F9FB] text-[#61738A] uppercase font-bold text-[11px] print:bg-[#EDF2F7] print:text-black">
               <tr>
-                <th className="p-3">Tahun / Kode</th>
-                <th className="p-3">Nama Kegiatan</th>
-                <th className="p-3">Kategori</th>
-                <th className="p-3">Lokasi (Desa &amp; Kec)</th>
-                <th className="p-3">Pagu (Rp)</th>
-                <th className="p-3">Penggunaan (Rp)</th>
-                <th className="p-3">Target</th>
-                <th className="p-3">Realisasi</th>
-                <th className="p-3">Capaian</th>
-                <th className="p-3">Status</th>
+                <th className="p-3 print:p-1.5 print:w-[9%]">Tahun / Kode</th>
+                <th className="p-3 print:p-1.5 print:w-[18%]">Nama Kegiatan</th>
+                <th className="p-3 print:p-1.5 print:w-[10%]">Kategori</th>
+                <th className="p-3 print:p-1.5 print:w-[16%]">Lokasi (Desa &amp; Kec)</th>
+                <th className="p-3 print:p-1.5 print:w-[10%] text-right print:text-right">Pagu (Rp)</th>
+                <th className="p-3 print:p-1.5 print:w-[10%] text-right print:text-right">Penggunaan (Rp)</th>
+                <th className="p-3 print:p-1.5 print:w-[8%] text-right print:text-right">Target</th>
+                <th className="p-3 print:p-1.5 print:w-[8%] text-right print:text-right">Realisasi</th>
+                <th className="p-3 print:p-1.5 print:w-[5%] text-center print:text-center">Capaian</th>
+                <th className="p-3 print:p-1.5 print:w-[6%] text-center print:text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EAF0F4]">
@@ -307,41 +330,41 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   const kecamatanDisplay = getProgramKecamatan(p);
 
                   return (
-                    <tr key={p.id} className="hover:bg-[#FBFDFE]">
-                      <td className="p-3 whitespace-nowrap">
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C] mr-1.5">
+                    <tr key={p.id} className="hover:bg-[#FBFDFE] print:break-inside-avoid">
+                      <td className="p-3 whitespace-nowrap print:p-1.5 print:whitespace-normal">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C] mr-1.5 print:bg-transparent print:p-0">
                           TA {yearDisplay}
                         </span>
-                        <span className="text-[#65778B] font-mono">{p.noKontrak || p.kode}</span>
+                        <span className="text-[#65778B] font-mono print:text-black block print:text-[9px]">{p.noKontrak || p.kode}</span>
                       </td>
-                      <td className="p-3 font-bold text-[#143965] max-w-[220px]">
+                      <td className="p-3 font-bold text-[#143965] max-w-[220px] print:max-w-none print:p-1.5 print:text-black print:break-words">
                         {p.nama}
                       </td>
-                      <td className="p-3 text-[#496178] whitespace-nowrap">
-                        <span className="bg-[#EDF5FB] text-[#1E4E8C] px-2 py-0.5 rounded text-[11px] font-semibold">
+                      <td className="p-3 text-[#496178] whitespace-nowrap print:p-1.5 print:whitespace-normal">
+                        <span className="bg-[#EDF5FB] text-[#1E4E8C] px-2 py-0.5 rounded text-[11px] font-semibold print:bg-transparent print:p-0 print:text-black">
                           {p.kategori}
                         </span>
                       </td>
-                      <td className="p-3 text-[#65778B] max-w-[200px] truncate">
+                      <td className="p-3 text-[#65778B] max-w-[200px] truncate print:max-w-none print:whitespace-normal print:overflow-visible print:p-1.5 print:text-black print:break-words">
                         {desaDisplay}, Kec. {kecamatanDisplay}
                       </td>
-                      <td className="p-3 font-semibold text-[#143965] whitespace-nowrap">
+                      <td className="p-3 font-semibold text-[#143965] whitespace-nowrap text-right print:p-1.5 print:text-black print:text-[10px]">
                         {currency(p.pagu)}
                       </td>
-                      <td className="p-3 font-semibold text-[#148B87] whitespace-nowrap">
+                      <td className="p-3 font-semibold text-[#148B87] whitespace-nowrap text-right print:p-1.5 print:text-black print:text-[10px]">
                         {currency(p.penggunaan)}
                       </td>
-                      <td className="p-3 text-[#18304B] whitespace-nowrap">
+                      <td className="p-3 text-[#18304B] whitespace-nowrap text-right print:p-1.5 print:text-black print:text-[10px]">
                         {quantity(p.target, p.satuan)}
                       </td>
-                      <td className="p-3 font-bold text-[#148B87] whitespace-nowrap">
+                      <td className="p-3 font-bold text-[#148B87] whitespace-nowrap text-right print:p-1.5 print:text-black print:text-[10px]">
                         {quantity(p.realisasi, p.satuan)}
                       </td>
-                      <td className="p-3 font-bold text-[#1E4E8C] whitespace-nowrap">
+                      <td className="p-3 font-bold text-[#1E4E8C] whitespace-nowrap text-center print:p-1.5 print:text-black print:text-[10px]">
                         {percent}%
                       </td>
-                      <td className="p-3 whitespace-nowrap">
-                        <span className={`badge ${badgeClass}`}>{p.status}</span>
+                      <td className="p-3 whitespace-nowrap text-center print:p-1.5">
+                        <span className={`badge ${badgeClass} print:border print:border-[#94A3B8] print:text-[9px] print:px-1.5 print:py-0.5`}>{p.status}</span>
                       </td>
                     </tr>
                   );
@@ -355,6 +378,31 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Printable Signature & Validation Footer */}
+        <div className="hidden print:flex justify-between items-start pt-6 mt-4 text-[10px] text-black break-inside-avoid">
+          <div className="text-center w-64">
+            <p>Mengetahui,</p>
+            <p className="font-bold">Pejabat Pembuat Komitmen (PPK)</p>
+            <div className="h-14" />
+            <p className="font-bold underline">___________________________</p>
+            <p className="text-[9px] text-gray-600">NIP. ........................................</p>
+          </div>
+          <div className="text-center w-64">
+            <p>
+              Kuningan,{" "}
+              {new Date().toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+            <p className="font-bold">Petugas / Operator Pelapor</p>
+            <div className="h-14" />
+            <p className="font-bold underline">{currentUser.nama}</p>
+            <p className="text-[9px] text-gray-600">{currentUser.role} Dinas PKPP Kuningan</p>
+          </div>
         </div>
       </section>
     </div>
