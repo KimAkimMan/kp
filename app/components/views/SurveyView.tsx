@@ -154,6 +154,14 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validasi ukuran file maksimal 2MB (base64 ~2.7MB, aman untuk kolom TEXT)
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setErrorMessage(
+          "Foto terlalu besar (maksimal 2MB). Pilih foto dengan resolusi lebih kecil.",
+        );
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFotoUrl(reader.result as string);

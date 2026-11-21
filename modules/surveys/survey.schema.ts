@@ -75,7 +75,17 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
     rekomendasi: required("rekomendasi"),
     kontakPendamping: optionalString(input, "kontakPendamping") ?? null,
     foto: input.foto === undefined ? false : input.foto === true,
-    fotoUrl: optionalString(input, "fotoUrl") ?? null,
+    fotoUrl: (() => {
+      const url = optionalString(input, "fotoUrl");
+      if (url !== null && url !== undefined && url.length > 2000) {
+        throw new ApiError(
+          "VALIDATION_ERROR",
+          "URL foto terlalu panjang (maksimal 2000 karakter).",
+          400,
+        );
+      }
+      return url ?? null;
+    })(),
     status: input.status !== undefined ? enumField(input, "status", enumValues.status) : "MENUNGGU_VERIFIKASI",
   };
 }
