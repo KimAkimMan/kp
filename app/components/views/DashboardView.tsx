@@ -223,7 +223,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const selectedAdviceProgram = livePrograms.find((p) => p.id === selectedAdviceProgramId);
   const recipientOperator = selectedAdviceProgram
-    ? operatorAssignment(selectedAdviceProgram)?.name || selectedAdviceProgram.pj || "Belum ditugaskan"
+    ? operatorAssignment(selectedAdviceProgram)?.name || selectedAdviceProgram.operatorPengelola || "Belum ditugaskan"
     : "";
 
   const handleAdviceSubmit = async (e: React.FormEvent) => {
@@ -315,7 +315,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const adminFilteredPrograms = isAdmin
     ? livePrograms.filter((p) => {
-        const matchesQuery = (p.nama + " " + p.kode + " " + (p.penyedia || "") + " " + (p.pj || ""))
+        const matchesQuery = (p.nama + " " + p.kode + " " + (p.penyedia || "") + " " + (p.operatorPengelola || ""))
           .toLowerCase()
           .includes(adminSearchTerm.toLowerCase());
         const matchesYear = !dashboardYearFilter || getProgramYear(p) === dashboardYearFilter;

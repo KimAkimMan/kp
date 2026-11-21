@@ -191,7 +191,6 @@ model Program {
   kecamatanRef         Kecamatan?          @relation(fields: [kecamatanId], references: [id], onDelete: SetNull)
   desaKelurahan        String?             @db.VarChar(191)
   detailLokasi         String?             @db.Text
-  pj                   String              @db.VarChar(191)
   operatorPengelola    String?             @db.VarChar(191)
   operatorPengelolaId  Int?
   operator             User?               @relation("ProgramOperator", fields: [operatorPengelolaId], references: [id], onDelete: SetNull)

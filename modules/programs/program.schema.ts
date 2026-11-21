@@ -15,7 +15,6 @@ export function parseCreateProgramInput(body: unknown): CreateProgramInput {
     nama: requiredString(input, "nama"),
     kategori: requiredString(input, "kategori"),
     lokasi: requiredString(input, "lokasi"),
-    pj: requiredString(input, "pj"),
     periode: requiredString(input, "periode"),
     satuan: requiredString(input, "satuan"),
     target: nonNegativeNumber(input, "target") as number,
@@ -55,7 +54,7 @@ export function parseUpdateProgramInput(body: unknown): UpdateProgramInput {
   const input = parseJsonObject(body);
   const result: UpdateProgramInput = {};
   const strings = [
-    "kode", "nama", "kategori", "lokasi", "pj", "periode", "satuan",
+    "kode", "nama", "kategori", "lokasi", "periode", "satuan",
     "namaKegiatan", "kecamatan", "desaKelurahan", "detailLokasi", "operatorPengelola",
     "penanggungJawabDinas", "jadwal", "update", "sumber", "catatan", "penyedia",
     "direktur", "noKontrak", "kondisiJalan",

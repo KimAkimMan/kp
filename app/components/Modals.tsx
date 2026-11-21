@@ -247,7 +247,6 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         lokasi: fullLocation || activity?.lokasi || "Kabupaten Kuningan",
         operatorPengelola: assignedOp ? assignedOp.nama : null,
         operatorPengelolaId: assignedOp ? assignedOp.id : null,
-        pj: assignedOp ? assignedOp.nama : "Belum Ditugaskan",
       });
     } finally {
       setIsSubmitting(false);

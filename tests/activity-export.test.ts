@@ -8,7 +8,6 @@ const program: Program = {
   nama: "Peningkatan Jalan Desa",
   kategori: "Jalan",
   lokasi: "Desa Mekar",
-  pj: "Operator A",
   periode: "2025",
   satuan: "meter",
   targetAwal: 100,

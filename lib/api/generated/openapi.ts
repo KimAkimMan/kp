@@ -2351,7 +2351,6 @@ export interface components {
             lokasi?: string;
             kecamatan?: string | null;
             desaKelurahan?: string | null;
-            pj?: string;
             periode?: string;
             satuan?: string;
             target?: number;
@@ -2420,7 +2419,6 @@ export interface components {
             nama: string;
             kategori: string;
             lokasi: string;
-            pj: string;
             periode: string;
             satuan: string;
             target: number;
@@ -2430,7 +2428,6 @@ export interface components {
             nama?: string;
             kategori?: string;
             lokasi?: string;
-            pj?: string;
             periode?: string;
             satuan?: string;
             target?: number;

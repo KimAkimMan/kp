@@ -180,7 +180,6 @@ export const matchProgram = (p: Program, query: string): boolean => {
     p.kecamatan,
     p.desaKelurahan,
     p.detailLokasi,
-    p.pj,
     p.operatorPengelola,
     p.penyedia,
     p.direktur,

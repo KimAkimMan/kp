@@ -317,7 +317,7 @@ Body minimal:
   "nama": "Pembangunan Jalan Test",
   "kategori": "Infrastruktur Jalan",
   "lokasi": "Desa Test, Kecamatan Kuningan",
-  "pj": "Operator KP",
+
   "periode": "2026",
   "satuan": "KM",
   "target": 5,
@@ -337,7 +337,7 @@ Body lengkap:
   "kecamatan": "Kuningan",
   "desaKelurahan": "Cisantana",
   "detailLokasi": "Ruas jalan utama desa",
-  "pj": "Operator KP",
+
   "operatorPengelola": "Operator KP",
   "operatorPengelolaId": 2,
   "penanggungJawabDinas": "Admin KP",
@@ -605,7 +605,7 @@ Body:
 {
   "kode": "CONVERT-P-001",
   "nama": "Program Hasil Konversi Survey",
-  "pj": "Operator KP",
+
   "periode": "2026",
   "satuan": "KM",
   "target": 3,

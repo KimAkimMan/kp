@@ -83,7 +83,7 @@ async function main() {
       kecamatanId: kecamatan.id,
       desaKelurahan: "Cisantana",
       detailLokasi: "Ruas jalan utama desa",
-      pj: operator.nama,
+
       penanggungJawabDinas: admin.nama,
       periode: "2026",
       jadwal: "Januari - Desember 2026",
@@ -113,7 +113,7 @@ async function main() {
       kecamatanId: kecamatan.id,
       desaKelurahan: "Cisantana",
       detailLokasi: "Ruas jalan utama desa",
-      pj: operator.nama,
+
       operatorPengelola: operator.nama,
       operatorPengelolaId: operator.id,
       penanggungJawabDinas: admin.nama,

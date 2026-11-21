@@ -35,6 +35,7 @@ interface AdminSurveyViewProps {
   currentUser: User;
   surveys: FieldSurvey[];
   programs: Program[];
+  operators: User[];
   onVerifySurvey: (survey: FieldSurvey) => void | Promise<void>;
   onCreateProgramFromSurvey: (
     survey: FieldSurvey,
@@ -47,6 +48,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   currentUser,
   surveys,
   programs,
+  operators,
   onVerifySurvey,
   onCreateProgramFromSurvey,
   onViewProgram,
@@ -75,6 +77,10 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   const [convertedKecamatan, setConvertedKecamatan] = useState("");
   const [convertedDesa, setConvertedDesa] = useState("");
   const [convertedDetailLokasi, setConvertedDetailLokasi] = useState("");
+  const [convertedOperatorId, setConvertedOperatorId] = useState<string>("");
+
+  // Filter operators to only those with Operator role
+  const operatorOptions = operators.filter((u) => u.role === "Operator");
 
   // Open conversion modal with prefilled data
   const handleOpenConversionModal = (srv: FieldSurvey, e?: React.MouseEvent) => {
@@ -93,12 +99,21 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     setConvertedKecamatan(srv.kecamatan);
     setConvertedDesa(srv.desaKelurahan);
     setConvertedDetailLokasi(srv.detailLokasi);
+    // Pre-select the surveyor as the default operator
+    const surveyorOp = operatorOptions.find(
+      (op) => op.nama === srv.surveyor || op.email === srv.surveyor
+    );
+    setConvertedOperatorId(surveyorOp ? String(surveyorOp.id) : "");
   };
 
   // Confirm conversion to Master Activity
   const handleConfirmConversion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!convertingSurvey) return;
+
+    const selectedOperator = operatorOptions.find(
+      (op) => String(op.id) === convertedOperatorId
+    );
 
     onCreateProgramFromSurvey(convertingSurvey, {
       nama: convertedNama.trim() || convertingSurvey.namaKegiatan,
@@ -114,6 +129,8 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
       lokasi: [convertedDetailLokasi, convertedDesa, convertedKecamatan]
         .filter(Boolean)
         .join(", "),
+      operatorPengelolaId: selectedOperator ? selectedOperator.id : null,
+      operatorPengelola: selectedOperator ? selectedOperator.nama : null,
     });
 
     setConvertingSurvey(null);
@@ -655,6 +672,31 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                       </select>
                     </div>
                   </div>
+                </div>
+
+                {/* Operator Pengelola */}
+                <div>
+                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
+                    Operator Pengelola *
+                  </label>
+                  <select
+                    value={convertedOperatorId}
+                    onChange={(e) => setConvertedOperatorId(e.target.value)}
+                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
+                    required
+                  >
+                    <option value="">Pilih Operator Pengelola</option>
+                    {operatorOptions.map((op) => (
+                      <option key={op.id} value={String(op.id)}>
+                        {op.nama}
+                      </option>
+                    ))}
+                  </select>
+                  {convertedOperatorId && (
+                    <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
+                      {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
+                    </p>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
@@ -1219,19 +1261,40 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                     </select>
                   </div>
                 </div>
-              </div>
+                              </div>
 
-              <div className="p-3 bg-[#F8FAFC] border border-[#EAF0F4] rounded-xl text-xs text-[#65778B]">
-                <p>
-                  <strong>Penanggung Jawab / Operator Pengelola:</strong>{" "}
-                  {convertingSurvey.surveyor}
-                </p>
-                <p className="mt-0.5">
-                  <strong>Kondisi Fisik Terdata:</strong> {convertingSurvey.kondisi}
-                </p>
-              </div>
+                              {/* Operator Pengelola */}
+                              <div>
+                                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
+                                  Operator Pengelola *
+                                </label>
+                                <select
+                                  value={convertedOperatorId}
+                                  onChange={(e) => setConvertedOperatorId(e.target.value)}
+                                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
+                                  required
+                                >
+                                  <option value="">Pilih Operator Pengelola</option>
+                                  {operatorOptions.map((op) => (
+                                    <option key={op.id} value={String(op.id)}>
+                                      {op.nama}
+                                    </option>
+                                  ))}
+                                </select>
+                                {convertedOperatorId && (
+                                  <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
+                                    {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
+                                  </p>
+                                )}
+                              </div>
 
-              <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
+                              <div className="p-3 bg-[#F8FAFC] border border-[#EAF0F4] rounded-xl text-xs text-[#65778B]">
+                                <p>
+                                  <strong>Kondisi Fisik Terdata:</strong> {convertingSurvey.kondisi}
+                                </p>
+                              </div>
+
+                              <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setConvertingSurvey(null)}

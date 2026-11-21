@@ -413,7 +413,6 @@ export default function Home() {
           desaKelurahan: data.desaKelurahan,
           detailLokasi: data.detailLokasi,
           pagu: data.pagu,
-          pj: data.pj,
           operatorPengelola: data.operatorPengelola,
           operatorPengelolaId: data.operatorPengelolaId === null
             ? null
@@ -438,7 +437,6 @@ export default function Home() {
             kecamatan: data.kecamatan ?? null,
             desaKelurahan: data.desaKelurahan ?? null,
             detailLokasi: data.detailLokasi ?? null,
-            pj: data.pj || "Belum Ditugaskan",
             operatorPengelola: data.operatorPengelola ?? null,
             operatorPengelolaId: data.operatorPengelolaId
               ? Number(data.operatorPengelolaId)
@@ -499,11 +497,13 @@ export default function Home() {
       await surveyApi.convert(survey.id, {
         kode: newKode,
         nama: customData?.nama || survey.namaKegiatan,
-        pj: survey.surveyor || "Belum Ditugaskan",
         periode: "Januari–Desember 2026",
         satuan: customData?.satuan || survey.satuan || "m2",
         target: customData?.target ?? survey.luasVolume ?? survey.panjang ?? 1,
         pagu: customData?.pagu ?? survey.estimasiBiaya ?? 0,
+        operatorPengelolaId: customData?.operatorPengelolaId
+          ? Number(customData.operatorPengelolaId)
+          : null,
       });
       await Promise.all([refreshPrograms(), refreshSurveys()]);
       showToast(
@@ -799,6 +799,7 @@ export default function Home() {
               currentUser={currentUser}
               surveys={surveys}
               programs={programs}
+              operators={users}
               onVerifySurvey={handleVerifySurvey}
               onCreateProgramFromSurvey={handleCreateProgramFromSurvey}
               onViewProgram={handleViewProgram}

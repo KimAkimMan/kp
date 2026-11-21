@@ -35,7 +35,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Ciawigebang",
     desaKelurahan: "Desa Ciawigebang",
     detailLokasi: "Jalan Desa Ciawigebang",
-    pj: "Rina Wulandari",
+
     operatorPengelola: "Rina Wulandari",
     operatorPengelolaId: "2",
     penyedia: "CV. Sinar Mulya Mandiri",
@@ -113,7 +113,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Kadugede",
     desaKelurahan: "Desa Kertawinangun",
     detailLokasi: "Jalan Kertawinangun Utara",
-    pj: "Rina Wulandari",
+
     operatorPengelola: "Rina Wulandari",
     operatorPengelolaId: "2",
     penyedia: "CV. Permata Mandiri Konstruksi",
@@ -189,7 +189,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Cigugur",
     desaKelurahan: "Desa Cisantana",
     detailLokasi: "Desa Cisantana RT 02",
-    pj: "Rina Wulandari",
+
     operatorPengelola: "Rina Wulandari",
     operatorPengelolaId: "2",
     penyedia: "PT. Tirta Wahana Kuningan",
@@ -253,7 +253,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Cigugur",
     desaKelurahan: "Desa Cisantana",
     detailLokasi: "Jalan Lingkungan Cisantana",
-    pj: "Rina Wulandari",
+
     operatorPengelola: "Rina Wulandari",
     operatorPengelolaId: "2",
     penyedia: "CV. Graha Lestari Mandiri",
@@ -309,7 +309,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Kadugede",
     desaKelurahan: "Desa Kertawinangun",
     detailLokasi: "Jalan Setapak RW 04",
-    pj: "Rina Wulandari",
+
     operatorPengelola: null,
     operatorPengelolaId: null,
     penyedia: "CV. Ciremai Karya",
@@ -346,7 +346,7 @@ export const initialPrograms: Program[] = [
     kecamatan: "Cigugur",
     desaKelurahan: "Kelurahan Cigugur",
     detailLokasi: "Ruas Blok Wage RT 05",
-    pj: "Rina Wulandari",
+
     operatorPengelola: "Rina Wulandari",
     operatorPengelolaId: "2",
     penyedia: "CV. Kuningan Berkah Konstruksi",

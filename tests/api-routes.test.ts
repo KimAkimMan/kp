@@ -246,11 +246,11 @@ describe("API route contracts", () => {
       [userRoute.PATCH(request("/api/users/1", "PATCH", { nama: "Operator Diperbarui" }), context), 200],
       [programsRoute.POST(request("/api/programs", "POST", {
         kode: "P-001", nama: "Jalan Desa", kategori: "Infrastruktur", lokasi: "Desa A",
-        pj: "Penguji", periode: "2026", satuan: "KM", target: 10, pagu: 100000,
+        periode: "2026", satuan: "KM", target: 10, pagu: 100000,
       })), 201],
       [programsRoute.PUT(request("/api/programs", "PUT", {
         kode: "P-002", nama: "Jalan Desa 2", kategori: "Infrastruktur", lokasi: "Desa B",
-        pj: "Penguji", periode: "2026", satuan: "KM", target: 10, pagu: 100000,
+        periode: "2026", satuan: "KM", target: 10, pagu: 100000,
       })), 201],
       [programRoute.PATCH(request("/api/programs/1", "PATCH", { nama: "Jalan Diperbarui" }), context), 200],
       [progressRoute.POST(request("/api/programs/1/progress", "POST", {
@@ -271,7 +271,7 @@ describe("API route contracts", () => {
       [surveyRoute.PATCH(request("/api/surveys/1", "PATCH", { status: "DIVERIFIKASI" }), context), 200],
       [verifyRoute.POST(request("/api/surveys/1/verify", "POST", {}), context), 200],
       [convertRoute.POST(request("/api/surveys/1/convert", "POST", {
-        kode: "P-002", pj: "Penguji", periode: "2026", satuan: "KM", target: 1, pagu: 1000,
+        kode: "P-002", periode: "2026", satuan: "KM", target: 1, pagu: 1000,
       }), context), 201],
       [adviceItemRoute.PATCH(request("/api/advice/1", "PATCH", {
         status: "SUDAH_DITINDAKLANJUTI",

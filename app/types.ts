@@ -53,7 +53,6 @@ export interface Program {
   kecamatan?: string;
   desaKelurahan?: string;
   detailLokasi?: string;
-  pj: string;
   operatorPengelola?: string | null;
   operatorPengelolaId?: string | number | null;
   penanggungJawabDinas?: string | null;

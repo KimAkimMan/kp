@@ -3,7 +3,6 @@ export type CreateProgramInput = {
   nama: string;
   kategori: string;
   lokasi: string;
-  pj: string;
   periode: string;
   satuan: string;
   target: number;

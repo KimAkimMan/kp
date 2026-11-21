@@ -394,7 +394,6 @@ classDiagram
         -kecamatanId : Int?
         -desaKelurahan : String?
         -detailLokasi : String?
-        -pj : String
         -operatorPengelola : String?
         -operatorPengelolaId : Int?
         -createdById : Int?

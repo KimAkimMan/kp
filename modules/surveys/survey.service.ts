@@ -99,11 +99,11 @@ export const surveyService = {
   async convertToProgram(id: string, input: {
     kode: string;
     nama?: string;
-    pj: string;
     periode: string;
     satuan: string;
     target: number;
     pagu: number;
+    operatorPengelolaId?: number | null;
   }, createdById?: number) {
     return prisma.$transaction(async (tx) => {
       const survey = await tx.fieldSurvey.findFirst({ where: { id, deletedAt: null } });
@@ -114,6 +114,13 @@ export const surveyService = {
       if (survey.status !== "DIVERIFIKASI") {
         throw new ApiError("SURVEY_NOT_VERIFIED", "Survey harus diverifikasi sebelum dikonversi.", 409);
       }
+      // Gunakan operatorPengelolaId dari input jika disediakan, fallback ke survey.surveyorId
+      const targetOperatorId = input.operatorPengelolaId ?? survey.surveyorId;
+      const targetOperatorName = targetOperatorId
+        ? await tx.user.findUnique({ where: { id: targetOperatorId }, select: { nama: true } })
+            .then(u => u?.nama ?? null)
+        : null;
+
       const program = await tx.program.create({
         data: {
           kode: input.kode,
@@ -124,10 +131,9 @@ export const surveyService = {
           kecamatan: survey.kecamatan,
           desaKelurahan: survey.desaKelurahan,
           detailLokasi: survey.detailLokasi,
-          pj: input.pj,
           createdById,
-          operatorPengelola: survey.surveyor,
-          operatorPengelolaId: survey.surveyorId,
+          operatorPengelola: targetOperatorName,
+          operatorPengelolaId: targetOperatorId,
           periode: input.periode,
           satuan: input.satuan,
           targetAwal: input.target,
@@ -157,11 +163,11 @@ export const surveyService = {
           relationType: "CONVERTED_TO_PROGRAM",
         },
       });
-      if (survey.surveyorId !== null) {
+      if (targetOperatorId !== null) {
         await tx.programAssignment.create({
           data: {
             programId: program.id,
-            operatorId: survey.surveyorId,
+            operatorId: targetOperatorId,
             assignedById: createdById,
             status: "DITERIMA",
             acceptedAt: new Date(),

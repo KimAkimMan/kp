@@ -321,7 +321,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Penanggung Jawab:</span>{" "}
-            <strong className="text-[#143965] ml-1">{program.pj}</strong>
+            <strong className="text-[#143965] ml-1">{program.operatorPengelola || "Belum Ditugaskan"}</strong>
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Lokasi Rinci:</span>{" "}

@@ -47,7 +47,7 @@ const reportColumns: ReportColumn[] = [
   { header: "Kategori", value: (p) => p.kategori, display: (p) => p.kategori, width: 18 },
   { header: "Desa / Kelurahan", value: getProgramDesa, display: getProgramDesa, width: 20 },
   { header: "Kecamatan", value: getProgramKecamatan, display: getProgramKecamatan, width: 18 },
-  { header: "Penanggung Jawab", value: (p) => p.pj, display: (p) => p.pj, width: 22 },
+  { header: "Penanggung Jawab", value: (p) => p.operatorPengelola || "", display: (p) => p.operatorPengelola || "-", width: 22 },
   {
     header: "Penyedia",
     value: (p) => p.penyedia || "",

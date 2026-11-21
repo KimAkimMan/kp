@@ -42,7 +42,6 @@ export type ApiProgram = {
   detailLokasi?: string | null;
   operatorPengelola?: string | null;
   operatorPengelolaId?: number | null;
-  pj?: string;
   periode?: string;
   satuan?: string;
   target?: number;
@@ -156,11 +155,11 @@ export type CreateCostInput = {
 export type ConvertSurveyInput = {
   kode: string;
   nama?: string;
-  pj: string;
   periode: string;
   satuan: string;
   target: number;
   pagu: number;
+  operatorPengelolaId?: number | null;
 };
 
 export type { CreateProgramInput, UpdateProgramInput, SurveyInput, CreateUserInput, UpdateUserInput };

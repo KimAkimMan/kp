@@ -55,7 +55,7 @@ export const downloadActivityPdf = (program: Program, generatedBy: string) => {
       ["Sisa target", quantity(remTarget(program), program.satuan)],
       ["Periode", `Tahun ${displayValue(program.periode)}`],
       ["Waktu pelaksanaan", displayValue(program.jadwal || "Sesuai periode")],
-      ["Penanggung jawab", displayValue(program.pj)],
+      ["Penanggung jawab", displayValue(program.operatorPengelola)],
       ["Lokasi rinci", displayValue(program.lokasi)],
       ["Penyedia CV/PT", displayValue(program.penyedia)],
       ["Nomor kontrak / SPK", displayValue(program.noKontrak)],

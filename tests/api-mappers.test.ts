@@ -62,7 +62,7 @@ describe("API boundary mappers", () => {
     expect(program.status).toBe("Selesai Dikerjakan");
     expect(program.kecamatan).toBe("");
     expect(program.desaKelurahan).toBe("");
-    expect(program.pj).toBe("Belum Ditugaskan");
+    expect(program.operatorPengelola).toBe("Belum Ditugaskan");
     expect(program.pagu).toBe(250000000);
     expect(program.penggunaan).toBe(240000000);
     expect(program.operatorPengelolaId).toBeNull();

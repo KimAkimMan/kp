@@ -151,7 +151,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Penanggung Jawab:</span>
-            <strong className="text-[#143965] ml-1.5">{program.pj}</strong>
+            <strong className="text-[#143965] ml-1.5">{program.operatorPengelola || "Belum Ditugaskan"}</strong>
           </div>
           <div className="py-1 border-b border-[#F0F4F8]">
             <span className="text-[#65778B]">Penyedia CV/PT:</span>

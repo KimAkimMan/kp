@@ -25,7 +25,6 @@ export const programRepository = {
                   { kode: { contains: filters.search } },
                   { nama: { contains: filters.search } },
                   { lokasi: { contains: filters.search } },
-                  { pj: { contains: filters.search } },
                 ],
               },
             ],
@@ -75,7 +74,6 @@ export const programRepository = {
         nama: input.nama,
         kategori: input.kategori,
         lokasi: input.lokasi,
-        pj: input.pj,
         periode: input.periode,
         satuan: input.satuan,
         target: input.target,
@@ -133,7 +131,6 @@ export const programRepository = {
         nama: input.nama,
         kategori: input.kategori,
         lokasi: input.lokasi,
-        pj: input.pj,
         periode: input.periode,
         satuan: input.satuan,
         target: input.target,
@@ -222,7 +219,6 @@ export const programRepository = {
         data: {
           operatorPengelolaId: operatorId,
           operatorPengelola: operatorName,
-          pj: operatorName,
         },
       });
       if (claimed.count !== 1) return false;

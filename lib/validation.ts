@@ -111,3 +111,19 @@ export function positiveIntegerParam(value: string, field: string): number {
 
   return parsed;
 }
+
+export function optionalNullableNumber(
+  input: Record<string, unknown>,
+  field: string,
+): number | null | undefined {
+  const value = input[field];
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
+    throw new ApiError(
+      "VALIDATION_ERROR",
+      `Field ${field} harus berupa bilangan bulat positif.`,
+      400,
+    );
+  }
+  return value;
+}

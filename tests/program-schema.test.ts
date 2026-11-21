@@ -13,7 +13,6 @@ describe("program schemas", () => {
       nama: "Jalan Desa",
       kategori: "Jalan",
       lokasi: "Ciawigebang",
-      pj: "Operator",
       periode: "2026",
       satuan: "KM",
       target: 5,
