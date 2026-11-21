@@ -10,7 +10,7 @@ type Context = { params: Promise<{ progressId: string }> };
 export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const user = await requireRole("ADMIN");
+      const user = await requireRole("ADMIN", "OPERATOR");
       const progressId = parsePositiveId((await context.params).progressId);
       const body = await request.json();
       const { decision, rejectionReason } = body;

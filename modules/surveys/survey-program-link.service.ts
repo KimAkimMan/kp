@@ -15,8 +15,8 @@ export const surveyProgramLinkService = {
     input: Omit<SurveyProgramLinkInput, "surveyId">,
     user: AuthenticatedUser,
   ) {
-    if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat link survey ke program.");
+    if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
+      throw new Error("Hanya Admin dan Operator yang dapat link survey ke program.");
     }
     return surveyProgramLinkRepositoryWithSurvey.create(surveyId, {
       ...input,

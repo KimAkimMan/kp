@@ -25,8 +25,8 @@ export const programCostService = {
     user: AuthenticatedUser,
     rejectionReason?: string,
   ) {
-    if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat memverifikasi biaya.");
+    if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
+      throw new Error("Hanya Admin dan Operator yang dapat memverifikasi biaya.");
     }
     return programCostRepository.verify(costId, decision, user.id, rejectionReason);
   },
@@ -72,16 +72,10 @@ export const programCostService = {
   },
 
   async deleteDocument(documentId: string, user: AuthenticatedUser) {
-    const document = await prismaProgramCostDocumentFindById(documentId);
+    const document = await programCostRepository.findDocumentById(documentId);
     if (user.role !== "ADMIN" && document.uploadedById !== user.id) {
       throw new ApiError("FORBIDDEN", "Hanya pemilik dokumen yang dapat menghapus.", 403);
     }
     return programCostRepository.deleteDocument(documentId);
   },
 };
-
-// Helper untuk find document by id
-async function prismaProgramCostDocumentFindById(id: string) {
-  const { programCostRepository } = await import("./program-cost.repository");
-  return programCostRepository.findDocumentById(id);
-}

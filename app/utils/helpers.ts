@@ -138,14 +138,6 @@ export const operatorAssignment = (p: Program) => {
       explicitId: false,
     };
   }
-  if (valid(p.pj)) {
-    return {
-      id: null,
-      name: String(p.pj).trim(),
-      explicit: false,
-      explicitId: false,
-    };
-  }
   return null;
 };
 

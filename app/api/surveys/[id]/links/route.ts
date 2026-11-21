@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: Context) {
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const user = await requireRole("ADMIN");
+      const user = await requireRole("ADMIN", "OPERATOR");
       const surveyId = (await context.params).id;
       const body = await request.json();
       const { programId, relationType } = body;
