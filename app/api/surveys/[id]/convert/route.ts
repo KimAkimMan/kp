@@ -11,7 +11,7 @@ type Context = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const user = await requireRole("ADMIN");
+      const user = await requireRole("ADMIN", "OPERATOR");
       return successResponse(
         await surveyService.convertToProgram(
           (await context.params).id,

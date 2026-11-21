@@ -76,6 +76,6 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
     kontakPendamping: optionalString(input, "kontakPendamping") ?? null,
     foto: input.foto === undefined ? false : input.foto === true,
     fotoUrl: optionalString(input, "fotoUrl") ?? null,
-    status: enumField(input, "status", enumValues.status),
+    status: input.status !== undefined ? enumField(input, "status", enumValues.status) : "MENUNGGU_VERIFIKASI",
   };
 }

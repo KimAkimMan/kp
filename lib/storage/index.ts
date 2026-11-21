@@ -193,40 +193,7 @@ function createLocalProvider(config: StorageConfig): StorageProvider {
   };
 }
 
-function createVercelBlobProvider(config: StorageConfig): StorageProvider | null {
-  /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
-  // Dynamic import agar tidak error jika tidak install
-  // Jika package tidak terinstall, return null supaya fallback ke provider lain
-  let put: any;
-  let del: any;
-  try {
-    const blob: typeof import("@vercel/blob") = require("@vercel/blob");
-    put = blob.put;
-    del = blob.del;
-  } catch {
-    return null;
-  }
 
-  return {
-    async upload({ key, contentType, body }) {
-      const blob = await put(key, body, {
-        access: "public",
-        contentType,
-        token: config.vercelBlobToken,
-        addRandomSuffix: false,
-      });
-      return { storageKey: blob.pathname, url: blob.url };
-    },
-    async delete(key) {
-      await del(key, { token: config.vercelBlobToken });
-    },
-    getPublicUrl(key) {
-      // Vercel Blob URL sudah full URL
-      return key.startsWith("http") ? key : `https://${config.vercelBlobToken?.split("_" as never)[2] || "blob"}.vercel-storage.com/${key}`;
-    },
-  };
-  /* eslint-enable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
-}
 
 function createR2Provider(config: StorageConfig): StorageProvider {
   /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-require-imports */
