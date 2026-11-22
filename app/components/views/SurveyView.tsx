@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ClipboardCheck,
   Plus,
@@ -26,6 +26,7 @@ import {
 import { FieldSurvey, Program, User } from "../../types";
 import { currency } from "../../utils/helpers";
 import { defaultKecamatanList, standardCategories } from "../../data/initialData";
+import { surveyApi } from "@/lib/api";
 
 interface SurveyViewProps {
   currentUser: User;
@@ -88,6 +89,38 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [surveyPhotos, setSurveyPhotos] = useState<Array<{id: string; storageKey: string; originalName: string | null; surveyId: string; createdAt: string}>>([]);
+  const [surveyPhotoUrls, setSurveyPhotoUrls] = useState<Record<string, string>>({});
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmLabel: string;
+  } | null>(null);
+
+  // Fetch survey photos when viewing detail modal opens
+  useEffect(() => {
+    if (!viewingSurvey) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await surveyApi.photos(viewingSurvey.id);
+        const photos = (response.data || []) as Array<{id: string; storageKey: string; originalName: string | null; surveyId: string; createdAt: string}>;
+        setSurveyPhotos(photos);
+        const urls: Record<string, string> = {};
+        for (const photo of photos) {
+          try {
+            const download = await surveyApi.photoDownload(photo.id);
+            urls[photo.id] = download.data.downloadUrl;
+          } catch {}
+        }
+        setSurveyPhotoUrls(urls);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [viewingSurvey]);
 
   // Auto-calculate Luas / Volume when panjang or lebar changes
   const handlePanjangChange = (val: string) => {
@@ -278,9 +311,26 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
       createdAt: new Date().toISOString(),
     };
 
-    onSaveSurvey(newSurvey, photoFile ?? undefined);
-    resetForm();
-    setActiveTab("list");
+    // Konfirmasi sebelum menyimpan survey
+    setConfirmDialog({
+      open: true,
+      title: editingId ? "Perbarui Data Survey" : "Simpan Survey Baru",
+      message: editingId
+        ? "Yakin ingin memperbarui data survey ini?"
+        : "Yakin ingin menyimpan survey baru ini?",
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await onSaveSurvey(newSurvey, photoFile ?? undefined);
+          resetForm();
+          setActiveTab("list");
+        } catch (error) {
+          setErrorMessage(error instanceof Error ? error.message : "Survey gagal disimpan.");
+        }
+      },
+      onCancel: () => setConfirmDialog(null),
+      confirmLabel: editingId ? "Ya, Perbarui" : "Ya, Simpan",
+    });
   };
 
   // Filtered surveys
@@ -1130,9 +1180,17 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                             {isAdmin && (
                               <button
                                 onClick={() => {
-                                  if (confirm(`Hapus data survey ${srv.kodeSurvey}?`)) {
-                                    onDeleteSurvey(srv.id);
-                                  }
+                                  setConfirmDialog({
+                                    open: true,
+                                    title: "Hapus Data Survey",
+                                    message: `Yakin ingin menghapus survey ${srv.kodeSurvey}? Data akan hilang permanen.`,
+                                    onConfirm: () => {
+                                      setConfirmDialog(null);
+                                      onDeleteSurvey(srv.id);
+                                    },
+                                    onCancel: () => setConfirmDialog(null),
+                                    confirmLabel: "Ya, Hapus",
+                                  });
                                 }}
                                 title="Hapus Data Survey"
                                 className="p-1.5 rounded-lg text-[#BD493B] hover:bg-[#FDEEED] transition"
@@ -1282,18 +1340,31 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
               )}
 
               {/* Foto Bukti Lapangan */}
-              {viewingSurvey.fotoUrl && (
+              {surveyPhotos.length > 0 && (
                 <div>
                   <strong className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-2">
-                    Dokumentasi Kondisi 0% Lapangan:
+                    Dokumentasi Kondisi Lapangan ({surveyPhotos.length} foto):
                   </strong>
-                  <div className="rounded-xl overflow-hidden border border-[#DCE5ED] aspect-video max-h-64 bg-black/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={viewingSurvey.fotoUrl}
-                      alt="Dokumentasi Lapangan"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {surveyPhotos.map((photo) => {
+                      const url = surveyPhotoUrls[photo.id];
+                      return (
+                        <div key={photo.id} className="relative rounded-xl overflow-hidden border border-[#DCE5ED] aspect-video max-h-48 bg-black/5">
+                          {url ? (
+                            <img src={url} alt={`Foto ${photo.originalName || "Lapangan"}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-[#65778B] bg-[#F4F7FA]">
+                              Memuat...
+                            </div>
+                          )}
+                          {photo.originalName && (
+                            <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 py-0.5 rounded">
+                              {photo.originalName}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1322,4 +1393,35 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
       )}
     </div>
   );
+
+  {/* Konfirmasi Dialog */}
+  {confirmDialog && (
+    <div className="fixed inset-0 z-50 bg-[#0B2540]/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[#DCE5ED] animate-in fade-in zoom-in">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#FDEEED] text-[#BD493B] flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[#143965]">{confirmDialog!.title}</h3>
+            <p className="text-sm text-[#65778B] mt-1">{confirmDialog!.message}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={confirmDialog!.onCancel}
+            className="px-4 py-2 rounded-lg text-xs font-bold text-[#65778B] hover:bg-[#F4F7FA] transition"
+          >
+            Batal
+          </button>
+          <button
+            onClick={confirmDialog!.onConfirm}
+            className="px-5 py-2 rounded-lg text-xs font-bold bg-[#143965] text-white hover:bg-[#0E2849] transition"
+          >
+            {confirmDialog!.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 };

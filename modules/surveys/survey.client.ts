@@ -197,4 +197,14 @@ export const surveyApi = {
    * @returns Promise berisi `data` link yang dihapus
    */
   removeLink(linkId: string) { return apiClient.delete<ApiResponse<unknown>>(`/surveys/links/${encodeURIComponent(linkId)}`); },
+
+  /** Ambil URL unduhan foto survey (presigned download URL). */
+  photoDownload(photoId: string) {
+    return apiClient.get<ApiResponse<{
+      photo: { id: string; storageKey: string; originalName: string | null; surveyId: string; createdAt: string };
+      downloadUrl: string;
+      expiresAt: string;
+      expiresInSeconds: number;
+    }>>(`/surveys/photos/${encodeURIComponent(photoId)}/download`);
+  },
 };

@@ -413,7 +413,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   type="number"
                   step="any"
                   min="0"
-                  max={program.target}
                   value={realizationInput}
                   onChange={(e) => setRealizationInput(e.target.value)}
                   className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-semibold"

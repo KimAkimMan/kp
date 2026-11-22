@@ -4,9 +4,10 @@ import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parseProgressInput } from "@/modules/programs/program.action.schema";
+import { parseDirectUploadInput, parseCompletedUploadInput } from "@/modules/storage/direct-upload.service";
 import { programActions } from "@/modules/programs/program.actions";
-import { programService } from "@/modules/programs/program.service";
 import { programProgressService } from "@/modules/programs/program-progress.service";
+import { programService } from "@/modules/programs/program.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 type Context = { params: Promise<{ id: string }> };
@@ -24,10 +25,42 @@ export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
-      await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
+      const programId = parsePositiveId((await context.params).id);
+      const body = (await parseRequestBody(request)) as Record<string, unknown>;
+      const action = body.action;
+
+      // 1. Presign upload URL untuk foto progres (direct ke object storage, bypass server)
+      if (action === "presign") {
+        await programService.assertCanEdit(programId, user);
+        const input = parseDirectUploadInput(body);
+        return successResponse(
+          await programProgressService.presignDirect(programId, input, user),
+        );
+      }
+
+      // 2. Tandai upload foto selesai, simpan metadata ke database
+      if (action === "complete") {
+        await programService.assertCanEdit(programId, user);
+        const input = parseCompletedUploadInput(body);
+        const raw = body as Record<string, unknown>;
+        return successResponse(
+          await programProgressService.completeDirect(
+            programId,
+            {
+              ...input,
+              caption: typeof raw.caption === "string" ? raw.caption.trim() : null,
+            },
+            user,
+          ),
+          201,
+        );
+      }
+
+      // 3. Default: buat laporan progres baru
+      await programService.assertCanEdit(programId, user);
       const result = await programActions.addProgress(
-        parsePositiveId((await context.params).id),
-        parseProgressInput(await parseRequestBody(request)),
+        programId,
+        parseProgressInput(body),
         user.id,
         user.nama,
       );

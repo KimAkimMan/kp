@@ -72,7 +72,7 @@ export const programApi = {
     // Jika ada file foto, upload setiap file langsung ke object storage
     if (photoFiles && photoFiles.length > 0) {
       for (const photoFile of photoFiles) {
-        // 1. Minta presigned upload URL dari server
+        // 1. Minta presigned upload URL dari server (gabungan di route progress)
         const presigned = await apiClient.post<ApiResponse<{
           uploadUrl: string;
           storageKey: string;
@@ -80,8 +80,8 @@ export const programApi = {
           expiresInSeconds: number;
           contentType: string;
         }>>(
-          `/programs/${id}/progress/presign`,
-          { originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
+          `/programs/${id}/progress`,
+          { action: "presign", originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
         );
         const { uploadUrl: presignedUrl, storageKey: sk } = presigned.data;
         storageKeys.push(sk);
@@ -102,10 +102,11 @@ export const programApi = {
           throw new Error(`Gagal mengupload foto progres ke object storage: ${err instanceof Error ? err.message : String(err)}`);
         }
 
-        // 3. Beri tahu server bahwa upload selesai
+        // 3. Beri tahu server bahwa upload selesai (gabungan di route progress)
         await apiClient.post<ApiResponse<unknown>>(
-          `/programs/${id}/progress/complete`,
+          `/programs/${id}/progress`,
           {
+            action: "complete",
             storageKey: sk,
             originalName: photoFile.name,
             mimeType: photoFile.type,

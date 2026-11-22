@@ -42,8 +42,10 @@ export const programProgressService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new Error("Hanya Admin dan Operator yang dapat mengunggah foto progres.");
     }
+    // Hanya verifikasi upload ke object storage. Penyimpanan storageKey ke database
+    // dilakukan oleh addProgress setelah progress record dibuat.
     await completeDirectUpload(`progress/${progressId}/photos`, input, "image");
-    return programProgressRepository.updatePhoto(progressId, input.storageKey, input.caption ?? null);
+    return { storageKey: input.storageKey, originalName: input.originalName };
   },
 
   async download(progressId: number, user: AuthenticatedUser) {

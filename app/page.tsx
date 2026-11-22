@@ -595,7 +595,7 @@ export default function Home() {
 
       if (progressData.photoFiles && progressData.photoFiles.length > 0) {
         for (const photoFile of progressData.photoFiles) {
-          // 1. Minta presigned upload URL dari server
+          // 1. Minta presigned upload URL dari server (gabungan di route progress)
           const presigned = await apiClient.post<ApiResponse<{
             uploadUrl: string;
             storageKey: string;
@@ -603,8 +603,8 @@ export default function Home() {
             expiresInSeconds: number;
             contentType: string;
           }>>(
-            `/programs/${selectedProgramId}/progress/presign`,
-            { originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
+            `/programs/${selectedProgramId}/progress`,
+            { action: "presign", originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
           );
           const { uploadUrl, storageKey } = presigned.data;
 
@@ -633,10 +633,11 @@ export default function Home() {
             return;
           }
 
-          // 3. Beri tahu server bahwa upload selesai
+          // 3. Beri tahu server bahwa upload selesai (gabungan di route progress)
           await apiClient.post<ApiResponse<unknown>>(
-            `/programs/${selectedProgramId}/progress/complete`,
+            `/programs/${selectedProgramId}/progress`,
             {
+              action: "complete",
               storageKey,
               originalName: photoFile.name,
               mimeType: photoFile.type,
