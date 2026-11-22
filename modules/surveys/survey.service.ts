@@ -5,6 +5,13 @@ import type { SurveyInput } from "./survey.types";
 import { prisma } from "@/lib/prisma";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
+function generateKodeSurvey(): string {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const randomPart = randomUUID().slice(0, 6).toUpperCase();
+  return `SRV-${datePart}-${randomPart}`;
+}
+
 export const surveyService = {
   list(filters?: { search?: string; status?: SurveyInput["status"]; kecamatan?: string; pagination?: { skip: number; pageSize: number } }, user?: AuthenticatedUser) {
     return surveyRepository.findMany({
@@ -20,9 +27,13 @@ export const surveyService = {
   },
 
   create(input: SurveyInput, user?: AuthenticatedUser) {
+    // Auto-generate kodeSurvey if not provided
+    const kodeSurvey = input.kodeSurvey?.trim() || generateKodeSurvey();
+
     // Auto-set status agar survey siap diverifikasi setelah dibuat
     const surveyInput: SurveyInput = {
       ...input,
+      kodeSurvey,
       status: input.status ?? "MENUNGGU_VERIFIKASI",
     };
 

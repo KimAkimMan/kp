@@ -240,7 +240,7 @@ export default function Home() {
       kontakPendamping: survey.kontakPendamping,
       foto: survey.foto,
       fotoUrl: survey.fotoUrl,
-      status: statusStringToSurveyStatus[String(survey.status).toUpperCase()] ?? SurveyStatus.DRAFT,
+      status: statusStringToSurveyStatus[survey.status] ?? SurveyStatus.MENUNGGU_VERIFIKASI,
     };
     try {
       const exists = surveys.some((s) => s.id === survey.id);

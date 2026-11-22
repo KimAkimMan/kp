@@ -11,7 +11,7 @@ type Context = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const user = await requireRole("ADMIN", "OPERATOR");
+      const user = await requireRole("ADMIN");
       const body = parseJsonObject(await parseRequestBody(request));
       const programId = body.programId === undefined || body.programId === null
         ? null

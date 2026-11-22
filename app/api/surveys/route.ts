@@ -48,11 +48,13 @@ export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
-      const input = parseSurveyInput(await parseRequestBody(request));
+      const body = (await parseRequestBody(request)) as Record<string, unknown>;
+      // Pre-set surveyor/surveyorId for OPERATOR before validation
       if (user.role === "OPERATOR") {
-        input.surveyorId = user.id;
-        input.surveyor = user.nama;
+        body.surveyorId = user.id;
+        body.surveyor = user.nama;
       }
+      const input = parseSurveyInput(body);
       return successResponse(await surveyService.create(input, user), 201);
     },
     undefined,

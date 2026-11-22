@@ -52,7 +52,7 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
   }
   return {
     id: optionalString(input, "id"),
-    kodeSurvey: required("kodeSurvey"),
+    kodeSurvey: (input.kodeSurvey as string)?.trim() ? (input.kodeSurvey as string).trim() : "",
     tanggal: dateValue as string,
     surveyor: required("surveyor"),
     surveyorId: optionalNumber("surveyorId"),
@@ -63,16 +63,19 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
     desaKelurahan: required("desaKelurahan"),
     detailLokasi: required("detailLokasi"),
     koordinat: optionalString(input, "koordinat") ?? null,
-    kondisi: enumField(input, "kondisi", enumValues.kondisi),
+    kondisi: input.kondisi !== undefined ? enumField(input, "kondisi", enumValues.kondisi) : "RUSAK_SEDANG",
     panjang: optionalNumber("panjang"),
     lebar: optionalNumber("lebar"),
     luasVolume: optionalNumber("luasVolume"),
     satuan: optionalString(input, "satuan") ?? null,
     tipeKonstruksi: optionalString(input, "tipeKonstruksi") ?? null,
     estimasiBiaya: optionalNumber("estimasiBiaya"),
-    tingkatUrgensi: enumField(input, "tingkatUrgensi", enumValues.tingkatUrgensi),
+    tingkatUrgensi: input.tingkatUrgensi !== undefined ? enumField(input, "tingkatUrgensi", enumValues.tingkatUrgensi) : "TINGGI_MENDESAK",
     uraianTemuan: required("uraianTemuan"),
-    rekomendasi: required("rekomendasi"),
+    rekomendasi: (() => {
+      const val = optionalString(input, "rekomendasi");
+      return val ?? "";
+    })(),
     kontakPendamping: optionalString(input, "kontakPendamping") ?? null,
     foto: input.foto === undefined ? false : input.foto === true,
     fotoUrl: (() => {
