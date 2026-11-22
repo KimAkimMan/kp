@@ -21,6 +21,8 @@ import {
   operatorAssignment,
   formatUnitSymbol,
 } from "../../utils/helpers";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 
 interface ScheduleViewProps {
   currentUser: User;
@@ -250,7 +252,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             <label className="text-xs font-bold text-[#35536F] uppercase whitespace-nowrap">
               Pilih Kegiatan:
             </label>
-            <select
+            <Select
               value={program.id}
               onChange={(e) => onSelectProgramId(Number(e.target.value))}
               className="flex-1 sm:w-80 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium text-[#143965]"
@@ -260,7 +262,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   {p.nama}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
             {!isLocked && (
@@ -359,78 +361,64 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           <form onSubmit={handleProgressSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Tanggal Update
-                </label>
-                <input
+                <Input
+                  label="Tanggal Update"
                   type="date"
                   value={updateDate}
                   onChange={(e) => setUpdateDate(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Status Pekerjaan
-                </label>
-                <select
+                <Select
+                  label="Status Pekerjaan"
                   value={progressStatus}
                   onChange={(e) =>
                     setProgressStatus(
                       e.target.value as "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan"
                     )
                   }
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   required
                 >
                   <option value="Belum Dikerjakan">Belum Dikerjakan</option>
                   <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
                   <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-                </select>
+                </Select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Tahap Pekerjaan Lapangan
-                </label>
-                <input
+                <Input
+                  label="Tahap Pekerjaan Lapangan"
                   type="text"
                   value={progressStage}
                   onChange={(e) => setProgressStage(e.target.value)}
                   placeholder="Contoh: Penghamparan agregat ruas kedua"
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Total Realisasi Kumulatif ({formatUnitSymbol(program.satuan)})
-                </label>
-                <input
+                <Input
+                  label={`Total Realisasi Kumulatif (${formatUnitSymbol(program.satuan)})`}
                   type="number"
                   step="any"
                   min="0"
                   value={realizationInput}
                   onChange={(e) => setRealizationInput(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-semibold"
+                  className="font-semibold"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                Keterangan / Catatan Teknis
-              </label>
-              <input
+              <Input
+                label="Keterangan / Catatan Teknis"
                 type="text"
                 value={updateNote}
                 onChange={(e) => setUpdateNote(e.target.value)}
                 placeholder="Keterangan hasil pekerjaan hari ini..."
-                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                 required
               />
             </div>

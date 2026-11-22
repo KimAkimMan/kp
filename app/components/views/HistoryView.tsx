@@ -6,6 +6,8 @@ import { Program, User } from "../../types";
 import { quantity, operatorAssignment, getProgramYear } from "../../utils/helpers";
 import { ActivityFilters } from "./ActivityFilters";
 import { PhotoLightbox, PhotoLightboxData } from "../PhotoLightbox";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 
 interface HistoryViewProps {
   currentUser: User;
@@ -91,7 +93,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <label className="text-xs font-bold text-[#35536F] uppercase whitespace-nowrap">
             Pilih Kegiatan:
           </label>
-          <select
+          <Select
             value={program.id}
             onChange={(e) => onSelectProgramId(Number(e.target.value))}
             className="w-full sm:w-96 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium text-[#143965]"
@@ -101,7 +103,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 [TA {getProgramYear(p)}] {p.nama}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Histories Table */}

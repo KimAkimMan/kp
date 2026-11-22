@@ -30,6 +30,10 @@ import {
 import { FieldSurvey, Program, User } from "../../types";
 import { currency } from "../../utils/helpers";
 import { defaultKecamatanList, standardCategories } from "../../data/initialData";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
+import { Badge } from "@/app/components/ui/Badge";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 interface AdminSurveyViewProps {
   currentUser: User;
@@ -550,89 +554,70 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
 
                 {/* Kategori Kegiatan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Kategori Kegiatan *
-                  </label>
-                  <select
+                  <Select
+                    label="Kategori Kegiatan *"
                     value={convertedKategori}
                     onChange={(e) => setConvertedKategori(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-semibold"
                     required
                   >
                     <option value="Jalan Lingkungan">Jalan Lingkungan</option>
                     <option value="Drainase/TPT">Drainase/TPT</option>
                     <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Nama Kegiatan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Nama Master Kegiatan *
-                  </label>
-                  <input
+                  <Input
+                    label="Nama Master Kegiatan *"
                     type="text"
                     value={convertedNama}
                     onChange={(e) => setConvertedNama(e.target.value)}
                     required
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
                   />
                 </div>
 
                 {/* Lokasi Matrix */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                      Kecamatan
-                    </label>
-                    <input
+                    <Input
+                      label="Kecamatan"
                       type="text"
                       value={convertedKecamatan}
                       onChange={(e) => setConvertedKecamatan(e.target.value)}
-                      className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                      Desa / Kelurahan
-                    </label>
-                    <input
+                    <Input
+                      label="Desa / Kelurahan"
                       type="text"
                       value={convertedDesa}
                       onChange={(e) => setConvertedDesa(e.target.value)}
-                      className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Detail Lokasi / Ruas Jalan
-                  </label>
-                  <input
+                  <Input
+                    label="Detail Lokasi / Ruas Jalan"
                     type="text"
                     value={convertedDetailLokasi}
                     onChange={(e) => setConvertedDetailLokasi(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
 
                 {/* Pagu Anggaran */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                      Pagu Anggaran Kegiatan (Rp) *
-                    </label>
-                    <input
+                    <Input
+                      label="Pagu Anggaran Kegiatan (Rp) *"
                       type="number"
                       value={convertedPagu}
                       onChange={(e) =>
-                        setConvertedPagu(
-                          e.target.value === "" ? "" : Number(e.target.value)
-                        )
+                        setConvertedPagu(e.target.value === "" ? "" : Number(e.target.value))
                       }
                       placeholder="Contoh: 150000000"
-                      className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-mono"
+                      className="font-mono"
                       required
                     />
                     {typeof convertedPagu === "number" && convertedPagu > 0 && (
@@ -648,7 +633,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                       Target Volume & Satuan
                     </label>
                     <div className="flex gap-2">
-                      <input
+                      <Input
                         type="number"
                         step="0.01"
                         value={convertedTarget}
@@ -657,32 +642,29 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                             e.target.value === "" ? "" : Number(e.target.value)
                           )
                         }
-                        className="w-1/2 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-mono"
+                        className="font-mono w-1/2"
                       />
-                      <select
+                      <Select
                         value={convertedSatuan}
                         onChange={(e) => setConvertedSatuan(e.target.value)}
-                        className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
+                        className="w-1/2"
                       >
                         <option value="m'">m&#39;</option>
                         <option value="m2">m2</option>
                         <option value="m3">m3</option>
                         <option value="Unit">Unit</option>
                         <option value="ha">ha</option>
-                      </select>
+                      </Select>
                     </div>
                   </div>
                 </div>
 
                 {/* Operator Pengelola */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Operator Pengelola *
-                  </label>
-                  <select
+                  <Select
+                    label="Operator Pengelola *"
                     value={convertedOperatorId}
                     onChange={(e) => setConvertedOperatorId(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
                     required
                   >
                     <option value="">Pilih Operator Pengelola</option>
@@ -691,7 +673,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                         {op.nama}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {convertedOperatorId && (
                     <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
                       {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
@@ -854,58 +836,52 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             {/* Search */}
             <div className="relative">
               <Search className="w-4 h-4 text-[#8AA2B5] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
+              <Input
                 type="text"
                 placeholder="Cari kegiatan, desa, surveyor, kode..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-[#CCD9E4] rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1E4E8C]/20"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1E4E8C]/20"
               />
             </div>
 
             {/* Kategori Kegiatan Filter */}
-            <div>
-              <select
-                value={filterKategori}
-                onChange={(e) => setFilterKategori(e.target.value)}
-                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F] font-semibold"
-              >
-                <option value="">Semua Kategori Kegiatan</option>
-                <option value="Jalan Lingkungan">Jalan Lingkungan</option>
-                <option value="Drainase/TPT">Drainase/TPT</option>
-                <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-              </select>
-            </div>
+            <Select
+              value={filterKategori}
+              onChange={(e) => setFilterKategori(e.target.value)}
+              className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F] font-semibold"
+            >
+              <option value="">Semua Kategori Kegiatan</option>
+              <option value="Jalan Lingkungan">Jalan Lingkungan</option>
+              <option value="Drainase/TPT">Drainase/TPT</option>
+              <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
+            </Select>
 
             {/* Urgensi Filter */}
-            <div>
-              <select
-                value={filterUrgensi}
-                onChange={(e) => setFilterUrgensi(e.target.value)}
-                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
-              >
-                <option value="">Semua Tingkat Urgensi</option>
-                <option value="Tinggi / Mendesak">Tinggi / Mendesak</option>
-                <option value="Sedang">Sedang</option>
-                <option value="Rendah">Rendah</option>
-              </select>
-            </div>
+            <Select
+              value={filterUrgensi}
+              onChange={(e) => setFilterUrgensi(e.target.value)}
+              className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
+            >
+              <option value="">Semua Tingkat Urgensi</option>
+              <option value="Tinggi / Mendesak">Tinggi / Mendesak</option>
+              <option value="Sedang">Sedang</option>
+              <option value="Rendah">Rendah</option>
+            </Select>
 
             {/* Kecamatan Filter */}
-            <div>
-              <select
-                value={filterKecamatan}
-                onChange={(e) => setFilterKecamatan(e.target.value)}
-                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
-              >
-                <option value="">Semua Kecamatan</option>
-                {defaultKecamatanList.map((k) => (
-                  <option key={k} value={k}>
-                    Kecamatan {k}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              value={filterKecamatan}
+              onChange={(e) => setFilterKecamatan(e.target.value)}
+              className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
+            >
+              <option value="">Semua Kecamatan</option>
+              {defaultKecamatanList.map((k) => (
+                <option key={k} value={k}>
+                  Kecamatan {k}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
 
@@ -1139,89 +1115,70 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
 
               {/* Kategori Kegiatan */}
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Kategori Kegiatan *
-                </label>
-                <select
+                <Select
+                  label="Kategori Kegiatan *"
                   value={convertedKategori}
                   onChange={(e) => setConvertedKategori(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-semibold"
                   required
                 >
                   <option value="Jalan Lingkungan">Jalan Lingkungan</option>
                   <option value="Drainase/TPT">Drainase/TPT</option>
                   <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-                </select>
+                </Select>
               </div>
 
               {/* Nama Kegiatan */}
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Nama Master Kegiatan *
-                </label>
-                <input
+                <Input
+                  label="Nama Master Kegiatan *"
                   type="text"
                   value={convertedNama}
                   onChange={(e) => setConvertedNama(e.target.value)}
                   required
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
                 />
               </div>
 
               {/* Lokasi Matrix */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Kecamatan
-                  </label>
-                  <input
+                  <Input
+                    label="Kecamatan"
                     type="text"
                     value={convertedKecamatan}
                     onChange={(e) => setConvertedKecamatan(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Desa / Kelurahan
-                  </label>
-                  <input
+                  <Input
+                    label="Desa / Kelurahan"
                     type="text"
                     value={convertedDesa}
                     onChange={(e) => setConvertedDesa(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Detail Lokasi / Ruas Jalan
-                </label>
-                <input
+                <Input
+                  label="Detail Lokasi / Ruas Jalan"
                   type="text"
                   value={convertedDetailLokasi}
                   onChange={(e) => setConvertedDetailLokasi(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                 />
               </div>
 
               {/* Pagu Anggaran */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Pagu Anggaran Kegiatan (Rp) *
-                  </label>
-                  <input
+                  <Input
+                    label="Pagu Anggaran Kegiatan (Rp) *"
                     type="number"
                     value={convertedPagu}
                     onChange={(e) =>
-                      setConvertedPagu(
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
+                      setConvertedPagu(e.target.value === "" ? "" : Number(e.target.value))
                     }
                     placeholder="Contoh: 150000000"
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-mono"
+                    className="font-mono"
                     required
                   />
                   {typeof convertedPagu === "number" && convertedPagu > 0 && (
@@ -1230,63 +1187,56 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                     </span>
                   )}
                 </div>
+              </div>
 
-                {/* Target Volume & Satuan */}
+              {/* Target Volume & Satuan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Target Volume & Satuan
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={convertedTarget}
-                      onChange={(e) =>
-                        setConvertedTarget(
-                          e.target.value === "" ? "" : Number(e.target.value)
-                        )
-                      }
-                      className="w-1/2 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-mono"
-                    />
-                    <select
-                      value={convertedSatuan}
-                      onChange={(e) => setConvertedSatuan(e.target.value)}
-                      className="w-1/2 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
-                    >
-                      <option value="m'">m&#39;</option>
-                      <option value="m2">m2</option>
-                      <option value="m3">m3</option>
-                      <option value="Unit">Unit</option>
-                      <option value="ha">ha</option>
-                    </select>
-                  </div>
+                  <Input
+                    label="Target Volume & Satuan"
+                    type="number"
+                    step="0.01"
+                    value={convertedTarget}
+                    onChange={(e) =>
+                      setConvertedTarget(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                    className="font-mono w-1/2"
+                  />
+                  <Select
+                    value={convertedSatuan}
+                    onChange={(e) => setConvertedSatuan(e.target.value)}
+                    className="w-1/2"
+                  >
+                    <option value="m'">m&#39;</option>
+                    <option value="m2">m2</option>
+                    <option value="m3">m3</option>
+                    <option value="Unit">Unit</option>
+                    <option value="ha">ha</option>
+                  </Select>
                 </div>
-                              </div>
 
-                              {/* Operator Pengelola */}
-                              <div>
-                                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                                  Operator Pengelola *
-                                </label>
-                                <select
-                                  value={convertedOperatorId}
-                                  onChange={(e) => setConvertedOperatorId(e.target.value)}
-                                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-medium"
-                                  required
-                                >
-                                  <option value="">Pilih Operator Pengelola</option>
-                                  {operatorOptions.map((op) => (
-                                    <option key={op.id} value={String(op.id)}>
-                                      {op.nama}
-                                    </option>
-                                  ))}
-                                </select>
-                                {convertedOperatorId && (
-                                  <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
-                                    {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
-                                  </p>
-                                )}
-                              </div>
+                {/* Operator Pengelola */}
+                <div>
+                  <Select
+                    label="Operator Pengelola *"
+                    value={convertedOperatorId}
+                    onChange={(e) => setConvertedOperatorId(e.target.value)}
+                    required
+                  >
+                    <option value="">Pilih Operator Pengelola</option>
+                    {operatorOptions.map((op) => (
+                      <option key={op.id} value={String(op.id)}>
+                        {op.nama}
+                      </option>
+                    ))}
+                  </Select>
+                  {convertedOperatorId && (
+                    <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
+                      {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
+                    </p>
+                  )}
+                </div>
 
                               <div className="p-3 bg-[#F8FAFC] border border-[#EAF0F4] rounded-xl text-xs text-[#65778B]">
                                 <p>

@@ -33,6 +33,8 @@ import {
   adviceApi,
   ApiClientError,
 } from "@/lib/api";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 import {
   mapApiProgramToProgram,
   mapApiSurveyToSurvey,
@@ -672,37 +674,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <form onSubmit={handleAdviceSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Pilih Kegiatan
-                </label>
-                <select
-                  value={selectedAdviceProgramId}
-                  onChange={(e) => setSelectedAdviceProgramId(Number(e.target.value) || "")}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
-                  required
-                >
-                  <option value="">-- Pilih kegiatan --</option>
-                  {displayPrograms.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nama}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Pilih Kegiatan"
+                value={selectedAdviceProgramId}
+                onChange={(e) => setSelectedAdviceProgramId(Number(e.target.value) || "")}
+                required
+              >
+                <option value="">-- Pilih kegiatan --</option>
+                {displayPrograms.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nama}
+                  </option>
+                ))}
+              </Select>
 
-              <div>
-                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                  Operator Penerima
-                </label>
-                <input
-                  type="text"
-                  value={recipientOperator}
-                  readOnly
-                  placeholder="Pilih kegiatan terlebih dahulu"
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-[#F6F9FB] text-[#65778B]"
-                />
-              </div>
+              <Input
+                label="Operator Penerima"
+                type="text"
+                value={recipientOperator}
+                readOnly
+                placeholder="Pilih kegiatan terlebih dahulu"
+                className="bg-[#F6F9FB] text-[#65778B]"
+              />
             </div>
 
             <div>
@@ -716,7 +709,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 placeholder="Tuliskan saran perbaikan, arahan percepatan, atau evaluasi..."
                 className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                 required
-              />
+              ></textarea>
             </div>
 
             {adviceError && (
@@ -976,12 +969,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 text-[#718296] absolute left-3 top-2.5" />
-              <input
+              <Input
                 type="text"
                 value={adminSearchTerm}
                 onChange={(e) => setAdminSearchTerm(e.target.value)}
                 placeholder="Cari kegiatan untuk dihapus..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs border border-[#CCD9E4] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
+                className="pl-9 pr-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
               />
             </div>
           </div>

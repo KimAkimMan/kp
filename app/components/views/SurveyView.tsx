@@ -27,6 +27,14 @@ import { FieldSurvey, Program, User } from "../../types";
 import { currency } from "../../utils/helpers";
 import { defaultKecamatanList, standardCategories } from "../../data/initialData";
 import { surveyApi } from "@/lib/api";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
+import { Badge } from "@/app/components/ui/Badge";
+import { Card, CardBody, CardHeader } from "@/app/components/ui/Card";
+import { StatCard } from "@/app/components/ui/StatCard";
+import { PhotoGrid } from "@/app/components/ui/PhotoGrid";
+import { SearchFilter } from "@/app/components/ui/SearchFilter";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 interface SurveyViewProps {
   currentUser: User;
@@ -479,13 +487,10 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Hubungkan ke Program / Kegiatan */}
                 <div className="lg:col-span-2">
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Hubungkan ke Data Kegiatan (Opsional)
-                  </label>
-                  <select
+                  <Select
+                    label="Hubungkan ke Data Kegiatan (Opsional)"
                     value={selectedProgramId}
                     onChange={(e) => handleProgramSelect(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1E4E8C]/20"
                   >
                     <option value="">— Survey Mandiri / Usulan Baru (Non-Program Terdaftar) —</option>
                     {programs.map((p) => (
@@ -493,7 +498,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                         [{p.kode}] {p.nama} — {p.lokasi}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <p className="text-[11px] text-[#65778B] mt-1">
                     Pilih kegiatan untuk mengisi otomatis lokasi, kategori, dan detail teknis dari master kegiatan.
                   </p>
@@ -501,62 +506,50 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
 
                 {/* Tanggal Survey */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Tanggal Pelaksanaan Survey *
-                  </label>
-                  <input
+                  <Input
+                    label="Tanggal Pelaksanaan Survey *"
                     type="date"
                     value={tanggal}
                     onChange={(e) => setTanggal(e.target.value)}
                     required
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
 
                 {/* Nama Kegiatan / Judul Lokasi */}
                 <div className="lg:col-span-2">
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Nama Kegiatan / Judul Lokasi Survey *
-                  </label>
-                  <input
+                  <Input
+                    label="Nama Kegiatan / Judul Lokasi Survey *"
                     type="text"
                     value={namaKegiatan}
                     onChange={(e) => setNamaKegiatan(e.target.value)}
                     placeholder="Contoh: Perbaikan Jalan Lingkungan Ruas Dusun Manis"
                     required
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2.5 text-sm bg-white"
                   />
                 </div>
 
                 {/* Kategori Prasarana */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Kategori Prasarana *
-                  </label>
-                  <select
+                  <Select
+                    label="Kategori Prasarana *"
                     value={kategori}
                     onChange={(e) => setKategori(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2.5 text-sm bg-white"
                   >
                     {standardCategories.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Surveyor */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Nama Petugas Surveyor (Operator) *
-                  </label>
-                  <input
+                  <Input
+                    label="Nama Petugas Surveyor (Operator) *"
                     type="text"
                     value={surveyor}
                     onChange={(e) => setSurveyor(e.target.value)}
                     required
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
 
@@ -588,69 +581,57 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Kecamatan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Kecamatan *
-                  </label>
-                  <select
+                  <Select
+                    label="Kecamatan *"
                     value={kecamatan}
-                    onChange={(e) => setKecamatan(e.target.value)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2.5 text-sm bg-white"
+                    onChange={(e: any) => setKecamatan(e.target.value)}
                   >
                     {defaultKecamatanList.map((k) => (
                       <option key={k} value={k}>
                         {k}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Desa / Kelurahan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Desa / Kelurahan *
-                  </label>
-                  <input
+                  <Input
+                    label="Desa / Kelurahan *"
                     type="text"
                     value={desaKelurahan}
                     onChange={(e) => setDesaKelurahan(e.target.value)}
                     placeholder="Contoh: Ciawigebang / Cigugur"
                     required
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
 
                 {/* Detail Lokasi / Ruas Jalan */}
                 <div>
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Detail Lokasi / Ruas / Gang / Dusun *
-                  </label>
-                  <input
+                  <Input
+                    label="Detail Lokasi / Ruas / Gang / Dusun *"
                     type="text"
                     value={detailLokasi}
                     onChange={(e) => setDetailLokasi(e.target.value)}
                     placeholder="Contoh: Ruas Dusun Manis Gang 4 RT 02/03"
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                   />
                 </div>
 
                 {/* Titik Koordinat GPS with action */}
                 <div className="lg:col-span-3">
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Titik Koordinat GPS (Latitude, Longitude)
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={koordinat}
-                      onChange={(e) => setKoordinat(e.target.value)}
-                      placeholder="Contoh: -6.9835, 108.5742"
-                      className="flex-1 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleGetLocation}
-                      disabled={isGettingLocation}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D5E6F3] border border-[#C5DCEB] flex items-center justify-center gap-1.5 transition shrink-0"
+                  <Input
+                    label="Titik Koordinat GPS (Latitude, Longitude)"
+                    type="text"
+                    value={koordinat}
+                    onChange={(e) => setKoordinat(e.target.value)}
+                    placeholder="Contoh: -6.9835, 108.5742"
+                    className="flex-1 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={isGettingLocation}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D5E6F3] border border-[#C5DCEB] flex items-center justify-center gap-1.5 transition shrink-0"
                     >
                       <Compass className={`w-4 h-4 ${isGettingLocation ? "animate-spin" : ""}`} />
                       {isGettingLocation ? "Mendeteksi Posisi..." : "Dapatkan Koordinat Saat Ini"}
@@ -668,10 +649,9 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
+                </div>
 
-            {/* SEKSI 3: KONDISI TEKNIS & DIMENSI */}
+                {/* SEKSI 3: KONDISI TEKNIS & DIMENSI */}
             <div>
               <div className="flex items-center gap-2 pb-2.5 mb-4 border-b border-[#EAF0F4]">
                 <Info className="w-4 h-4 text-[#1E4E8C]" />
@@ -771,10 +751,10 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       placeholder="Contoh: 1050"
                       className="flex-1 border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
                     />
-                    <select
+                    <Select
                       value={satuan}
                       onChange={(e) => setSatuan(e.target.value)}
-                      className="w-40 border border-[#CCD9E4] rounded-xl px-2 py-2 text-xs bg-white"
+                      className="w-40"
                     >
                       <option value="m'">m&#39;</option>
                       <option value="m2">m2</option>
@@ -782,24 +762,21 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       <option value="Unit">Unit</option>
                       <option value="ha">ha</option>
                       <option value="Titik">Titik</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 {/* Tingkat Urgensi */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                    Tingkat Urgensi Penanganan *
-                  </label>
-                  <select
+                  <Select
+                    label="Tingkat Urgensi Penanganan *"
                     value={tingkatUrgensi}
                     onChange={(e) => setTingkatUrgensi(e.target.value as typeof tingkatUrgensi)}
-                    className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-semibold"
                   >
                     <option value="Tinggi / Mendesak">Tinggi / Mendesak (Prioritas Utama)</option>
                     <option value="Sedang">Sedang (Dapat dijadwalkan tahun berjalan)</option>
                     <option value="Rendah">Rendah (Pemeliharaan berkala)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -865,13 +842,10 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
 
                   {/* Status Survey */}
                   <div>
-                    <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                      Status Hasil Survey Lapangan
-                    </label>
-                    <select
+                    <Select
+                      label="Status Hasil Survey Lapangan"
                       value={status}
                       onChange={(e) => setStatus(e.target.value as typeof status)}
-                      className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white font-bold"
                     >
                       <option value="Selesai Survey">Selesai Survey (Data Lengkap)</option>
                       <option value="Draft">Draft (Belum Lengkap / Perlu Lanjutan)</option>
@@ -879,7 +853,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                       <option value="Perlu Revisi">Perlu Revisi (Perlu Perbaikan)</option>
                       <option value="Diverifikasi">Diverifikasi (Disetujui Admin)</option>
                       <option value="Dikonversi">Dikonversi (Sudah Jadi Program)</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -1026,35 +1000,31 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
               </div>
 
               {/* Filter Kecamatan */}
-              <div>
-                <select
-                  value={filterKecamatan}
-                  onChange={(e) => setFilterKecamatan(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
-                >
-                  <option value="">Semua Kecamatan</option>
-                  {defaultKecamatanList.map((k) => (
-                    <option key={k} value={k}>
-                      Kecamatan {k}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                value={filterKecamatan}
+                onChange={(e) => setFilterKecamatan(e.target.value)}
+                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
+              >
+                <option value="">Semua Kecamatan</option>
+                {defaultKecamatanList.map((k) => (
+                  <option key={k} value={k}>
+                    Kecamatan {k}
+                  </option>
+                ))}
+              </Select>
 
               {/* Filter Kondisi */}
-              <div>
-                <select
-                  value={filterKondisi}
-                  onChange={(e) => setFilterKondisi(e.target.value)}
-                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
-                >
-                  <option value="">Semua Kondisi Fisik</option>
-                  <option value="Baik">Baik</option>
-                  <option value="Rusak Ringan">Rusak Ringan</option>
-                  <option value="Rusak Sedang">Rusak Sedang</option>
-                  <option value="Rusak Berat">Rusak Berat</option>
-                </select>
-              </div>
+              <Select
+                value={filterKondisi}
+                onChange={(e) => setFilterKondisi(e.target.value)}
+                className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs bg-white text-[#35536F]"
+              >
+                <option value="">Semua Kondisi Fisik</option>
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Sedang">Rusak Sedang</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </Select>
             </div>
           </div>
 
@@ -1202,7 +1172,8 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                 }
                 </tbody>
               </table>
             </div>
@@ -1390,38 +1361,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-
-  {/* Konfirmasi Dialog */}
-  {confirmDialog && (
-    <div className="fixed inset-0 z-50 bg-[#0B2540]/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[#DCE5ED] animate-in fade-in zoom-in">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#FDEEED] text-[#BD493B] flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-[#143965]">{confirmDialog!.title}</h3>
-            <p className="text-sm text-[#65778B] mt-1">{confirmDialog!.message}</p>
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={confirmDialog!.onCancel}
-            className="px-4 py-2 rounded-lg text-xs font-bold text-[#65778B] hover:bg-[#F4F7FA] transition"
-          >
-            Batal
-          </button>
-          <button
-            onClick={confirmDialog!.onConfirm}
-            className="px-5 py-2 rounded-lg text-xs font-bold bg-[#143965] text-white hover:bg-[#0E2849] transition"
-          >
-            {confirmDialog!.confirmLabel}
-          </button>
-        </div>
+        )}
       </div>
-    </div>
-  )}
-};
+    );
+  };

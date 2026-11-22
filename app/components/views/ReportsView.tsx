@@ -21,6 +21,8 @@ import {
 } from "../../utils/report-export";
 import { ActivityFilters } from "./ActivityFilters";
 import { ApiClientError, reportApi, type ReportSummary } from "@/lib/api";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 
 interface ReportsViewProps {
   currentUser: User;
@@ -146,7 +148,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           <label className="sr-only" htmlFor="report-export-format">
             Format unduhan laporan
           </label>
-          <select
+          <Select
             id="report-export-format"
             value={exportFormat}
             onChange={(event) => {
@@ -160,7 +162,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <option value="xlsx">Excel (.xlsx)</option>
             <option value="docx">Word (.docx)</option>
             <option value="pdf">PDF (.pdf)</option>
-          </select>
+          </Select>
           <button
             onClick={() => void handleExport()}
             disabled={isExporting}
@@ -227,12 +229,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 mb-5 no-print">
           <div className="relative flex-1 min-w-[260px]">
             <Search className="w-4 h-4 text-[#718296] absolute left-3.5 top-3" />
-            <input
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari kegiatan, lokasi, kategori, atau penanggung jawab..."
-              className="w-full pl-10 pr-4 py-2 text-sm border border-[#CCD9E4] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
+              className="pl-10 pr-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
             />
           </div>
           {(searchTerm || yearFilter || categoryFilter) && (

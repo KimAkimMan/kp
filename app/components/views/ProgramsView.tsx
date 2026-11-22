@@ -16,6 +16,8 @@ import {
 } from "../../utils/helpers";
 import { defaultKecamatanList, standardCategories } from "../../data/initialData";
 import { ActivityFilters } from "./ActivityFilters";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 
 interface ProgramsViewProps {
   currentUser: User;
@@ -133,16 +135,16 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[240px]">
             <Search className="w-4 h-4 text-[#718296] absolute left-3.5 top-3" />
-            <input
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari kegiatan, lokasi desa/kecamatan, kontraktor, atau penanggung jawab..."
-              className="w-full pl-10 pr-4 py-2 text-sm border border-[#CCD9E4] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
+              className="pl-10 pr-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
             />
           </div>
 
-          <select
+          <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs font-semibold bg-white text-[#35536F]"
@@ -151,9 +153,9 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
             <option value="Belum Dikerjakan">Belum Dikerjakan</option>
             <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
             <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={kecamatanFilter}
             onChange={(e) => setKecamatanFilter(e.target.value)}
             className="border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs font-semibold bg-white text-[#35536F]"
@@ -164,9 +166,9 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
                 {kec}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="border border-[#CCD9E4] rounded-xl px-3 py-2 text-xs font-semibold bg-white text-[#35536F]"
@@ -176,7 +178,7 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
             <option value="nama-asc">Nama A–Z</option>
             <option value="nama-desc">Nama Z–A</option>
             <option value="status">Status</option>
-          </select>
+          </Select>
 
           {(searchTerm || statusFilter || kecamatanFilter || yearFilter || categoryFilter || sortBy !== "terbaru") && (
             <button

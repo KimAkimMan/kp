@@ -14,6 +14,8 @@ import {
   getProgramKecamatan,
 } from "../../utils/helpers";
 import { ActivityFilters } from "./ActivityFilters";
+import { Button } from "@/app/components/ui/Button";
+import { Input, Select } from "@/app/components/ui/Input";
 
 interface MasterActivitiesViewProps {
   programs: Program[];
@@ -102,12 +104,12 @@ export const MasterActivitiesView: React.FC<MasterActivitiesViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[260px]">
             <Search className="w-4 h-4 text-[#718296] absolute left-3.5 top-3" />
-            <input
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari kegiatan, jalan, desa, kecamatan, kategori, atau penanggung jawab..."
-              className="w-full pl-10 pr-4 py-2 text-sm border border-[#CCD9E4] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
+              className="pl-10 pr-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
             />
           </div>
           {(searchTerm || yearFilter || categoryFilter) && (

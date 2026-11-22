@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Calendar, Layers, RotateCcw } from "lucide-react";
+import { Select } from "@/app/components/ui/Input";
 
 interface ActivityFiltersProps {
   years: string[];
@@ -37,7 +38,7 @@ export const ActivityFilters: React.FC<ActivityFiltersProps> = ({
     <label className="flex items-center gap-1.5">
       <Calendar className="h-3.5 w-3.5 text-[#1E4E8C]" />
       <span className="sr-only">Tahun anggaran</span>
-      <select
+      <Select
         value={yearFilter}
         onChange={(event) => onYearChange(event.target.value)}
         className="rounded-lg border border-[#CCD9E4] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#35536F] focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
@@ -48,12 +49,12 @@ export const ActivityFilters: React.FC<ActivityFiltersProps> = ({
             Tahun {year}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
     <label className="flex items-center gap-1.5">
       <Layers className="h-3.5 w-3.5 text-[#148B87]" />
       <span className="sr-only">Kategori bidang</span>
-      <select
+      <Select
         value={categoryFilter}
         onChange={(event) => onCategoryChange(event.target.value)}
         className="max-w-[220px] rounded-lg border border-[#CCD9E4] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#35536F] focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
@@ -64,7 +65,7 @@ export const ActivityFilters: React.FC<ActivityFiltersProps> = ({
             {category}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
     {(yearFilter || categoryFilter) && (
       <span className="rounded-md bg-[#E8F2F8] px-2 py-1 text-[11px] font-semibold text-[#1E4E8C]">
