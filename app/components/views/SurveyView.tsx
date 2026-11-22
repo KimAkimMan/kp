@@ -290,12 +290,14 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     }
 
     const surveyId = editingId || `SRV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    // Saat edit, ambil data lama agar foto dan surveyor tidak terimpa saat tidak diganti
+    const originalSurvey = editingId ? surveys.find((s) => s.id === editingId) : undefined;
     const newSurvey: FieldSurvey = {
       id: surveyId,
       kodeSurvey: surveyId,
       tanggal,
       surveyor: surveyor.trim() || currentUser.nama,
-      surveyorId: currentUser.id,
+      surveyorId: editingId ? (originalSurvey?.surveyorId ?? currentUser.id) : currentUser.id,
       programId: selectedProgramId !== "" ? Number(selectedProgramId) : null,
       namaKegiatan: namaKegiatan.trim(),
       kategori,
@@ -314,7 +316,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
       uraianTemuan: uraianTemuan.trim(),
       rekomendasi: rekomendasi.trim(),
       kontakPendamping: kontakPendamping.trim() || undefined,
-      foto: !!photoFile,
+      foto: editingId && !photoFile ? (originalSurvey?.foto ?? false) : !!photoFile,
       status,
       createdAt: new Date().toISOString(),
     };

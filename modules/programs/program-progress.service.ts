@@ -54,6 +54,14 @@ export const programProgressService = {
     }
     const photo = await programProgressRepository.findPhotoByProgressId(progressId);
     if (!photo) throw new ApiError("PROGRESS_PHOTO_NOT_FOUND", "Foto progres tidak ditemukan.", 404);
-    return { photo, ...(await presignDownload(photo.storageKey!, photo.originalName ?? "foto-progres.jpg", "image/jpeg")) };
+    // storageKey dan originalName disimpan sebagai daftar koma-separated (bisa banyak foto)
+    const keys = (photo.storageKey ?? "").split(",").filter(Boolean);
+    const names = (photo.originalName ?? "").split(",").filter(Boolean);
+    const downloads = keys.map((key, idx) => ({
+      storageKey: key,
+      originalName: names[idx] ?? `foto-progres-${idx + 1}.jpg`,
+      ...(presignDownload(key, names[idx] ?? `foto-progres-${idx + 1}.jpg`, "image/jpeg")),
+    }));
+    return { photo, downloads };
   },
 };

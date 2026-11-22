@@ -118,8 +118,8 @@ export const programApi = {
 
     return apiClient.post<ApiResponse<unknown>>(`/programs/${id}/progress`, {
       ...input,
-      storageKey: storageKeys.length > 0 ? storageKeys[0] : null,
-      originalName: originalNames.length > 0 ? originalNames[0] : null,
+      storageKey: storageKeys.length > 0 ? storageKeys.join(",") : null,
+      originalName: originalNames.length > 0 ? originalNames.join(",") : null,
     });
   },
   /** Menambahkan biaya pada program. */

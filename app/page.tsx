@@ -589,9 +589,9 @@ export default function Home() {
         return;
       }
 
-      // Upload semua foto ke object storage terlebih dahulu, kumpulkan storageKey
-      let firstStorageKey: string | null = null;
-      let firstOriginalName: string | null = null;
+      // Upload semua foto ke object storage terlebih dahulu, kumpulkan semua storageKey
+      const allStorageKeys: string[] = [];
+      const allOriginalNames: string[] = [];
 
       if (progressData.photoFiles && progressData.photoFiles.length > 0) {
         for (const photoFile of progressData.photoFiles) {
@@ -608,11 +608,9 @@ export default function Home() {
           );
           const { uploadUrl, storageKey } = presigned.data;
 
-          // Simpan storageKey pertama untuk referensi di database
-          if (!firstStorageKey) {
-            firstStorageKey = storageKey;
-            firstOriginalName = photoFile.name;
-          }
+          // Kumpulkan storageKey dan nama asli setiap foto
+          allStorageKeys.push(storageKey);
+          allOriginalNames.push(photoFile.name);
 
           // 2. Upload file langsung ke object storage (bypass server)
           try {
@@ -648,7 +646,7 @@ export default function Home() {
         showToast(`${progressData.photoFiles.length} foto progres berhasil diupload ke object storage.`);
       }
 
-      // 4. Simpan progres ke database (jangan melewatkan photoFiles lagi agar tidak double upload)
+      // 4. Simpan progres ke database (semua foto disimpan sebagai daftar koma-separated)
       await programApi.addProgress(selectedProgramId, {
         tanggal: progressData.tanggal,
         tahap: progressData.tahap,
@@ -656,8 +654,8 @@ export default function Home() {
         satuan: program.satuan || "Unit",
         keterangan: progressData.catatan,
         foto: progressData.hasPhoto,
-        storageKey: firstStorageKey,
-        originalName: firstOriginalName,
+        storageKey: allStorageKeys.length > 0 ? allStorageKeys.join(",") : null,
+        originalName: allOriginalNames.length > 0 ? allOriginalNames.join(",") : null,
         status:
           progressData.status === "Selesai Dikerjakan"
             ? "SELESAI_DIKERJAKAN"

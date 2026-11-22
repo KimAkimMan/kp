@@ -1,5 +1,6 @@
 import type { ApiUser, PublicProgram } from "@/lib/api/types";
 import type { AdviceRecord, FieldSurvey, Program, Role, User } from "../types";
+import { storageKeysToPublicUrls } from "@/app/lib/storage-url";
 
 /**
  * Boundary mapping: enum backend (UPPER_SNAKE) dan DTO API tidak boleh bocor
@@ -16,6 +17,11 @@ const PROGRAM_STATUS_LABELS: Record<PublicProgram["status"], Program["status"]> 
   SEDANG_DIKERJAKAN: "Sedang Dikerjakan",
   SELESAI_DIKERJAKAN: "Selesai Dikerjakan",
 };
+
+/** Konversi storageKey (koma-separated) menjadi array URL publik untuk ditampilkan di UI. */
+function storageKeysToUrls(storageKey: string | null | undefined): string[] {
+  return storageKeysToPublicUrls(storageKey);
+}
 
 export function mapApiUserToUser(user: ApiUser): User {
   return {
@@ -104,7 +110,16 @@ export function mapApiProgramToProgram(p: Record<string, unknown>): Program {
     kondisiJalan: p.kondisiJalan ? String(p.kondisiJalan) : undefined,
     tanggalMulai: p.tanggalMulai ? String(p.tanggalMulai) : undefined,
     tanggalSelesai: p.tanggalSelesai ? String(p.tanggalSelesai) : undefined,
-    histories: Array.isArray(p.histories) ? (p.histories as Program["histories"]) : [],
+    histories: Array.isArray(p.histories)
+      ? (p.histories as Array<Record<string, unknown>>).map((h) => {
+          const urls = storageKeysToUrls(String(h.storageKey || ""));
+          return {
+            ...h,
+            fotoUrl: urls[0] || undefined,
+            fotoUrls: urls,
+          } as Program["histories"][number];
+        })
+      : [],
     costs: Array.isArray(p.costs) ? (p.costs as Program["costs"]) : [],
   };
 }
