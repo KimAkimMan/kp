@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ProgressStatus } from "@/generated/prisma/client";
+import { ProgressStatus, ProgramStatus } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/http/api-error";
 import { publicUserSelect } from "@/modules/auth/auth.repository";
 
@@ -80,11 +80,22 @@ export const programProgressRepository = {
           _sum: { volume: true },
         });
         const totalRealisasi = Number(approved._sum.volume ?? 0);
+
+        const program = await tx.program.findUnique({
+          where: { id: progress.programId },
+          select: { target: true, status: true },
+        });
+        if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+
+        const target = Number(program.target ?? 0);
+        const selesai = target > 0 && totalRealisasi >= target;
+
         await tx.program.update({
           where: { id: progress.programId },
           data: {
             realisasi: totalRealisasi,
             realisasiVolume: totalRealisasi,
+            ...(selesai ? { status: ProgramStatus.SELESAI_DIKERJAKAN } : {}),
           },
         });
       }

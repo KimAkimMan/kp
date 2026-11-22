@@ -65,9 +65,9 @@ export default function Home() {
     type?: "success" | "error";
   }>({ message: null, type: "success" });
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-  };
+  }, []);
 
   const fetchAllPages = useCallback(async <T,>(
     loader: (page: number, pageSize: number) => Promise<{
@@ -681,6 +681,26 @@ export default function Home() {
     }
   };
 
+  // Verify Progress (Admin)
+  const handleVerifyProgress = useCallback(async (
+    progressId: number,
+    decision: "APPROVED" | "REJECTED",
+    rejectionReason?: string,
+  ) => {
+    await programApi.verifyProgress(progressId, { decision, rejectionReason });
+    await refreshPrograms();
+  }, [refreshPrograms]);
+
+  // Verify Cost (Admin)
+  const handleVerifyCost = useCallback(async (
+    costId: number,
+    decision: "APPROVED" | "REJECTED",
+    rejectionReason?: string,
+  ) => {
+    await programApi.verifyCost(costId, { decision, rejectionReason });
+    await refreshPrograms();
+  }, [refreshPrograms]);
+
   // Record Cost (Operator)
   const handleSaveCost = async (costData: {
     tanggal: string;
@@ -903,6 +923,8 @@ export default function Home() {
               }}
               onSaveProgress={handleSaveProgress}
               onMarkComplete={handleMarkComplete}
+              onVerifyProgress={handleVerifyProgress}
+              onVerifyCost={handleVerifyCost}
               onNotify={(msg, type) => showToast(msg, type)}
             />
           )}

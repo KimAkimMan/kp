@@ -94,6 +94,19 @@ export const programCostRepository = {
       // Biaya hanya mengurangi pagu saat DIVERIFIKASI. Saat DITOLAK, penggunaan tidak berubah
       // (karena tidak pernah ditambahkan saat DIAJUKAN).
       if (decision === "APPROVED") {
+        const program = await tx.program.findUnique({
+          where: { id: cost.programId },
+          select: { pagu: true, penggunaan: true },
+        });
+        if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+        const totalSetelahDisetujui = Number(program.penggunaan) + Number(updated.nominal);
+        if (Number(program.pagu) > 0 && totalSetelahDisetujui > Number(program.pagu)) {
+          throw new ApiError(
+            "COST_EXCEEDS_BUDGET",
+            `Penggunaan biaya (${totalSetelahDisetujui}) melebihi pagu program (${program.pagu}).`,
+            400,
+          );
+        }
         await tx.program.update({
           where: { id: cost.programId },
           data: {

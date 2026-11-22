@@ -42,12 +42,14 @@ export const programActions = {
         throw new ApiError("PROGRESS_EXCEEDS_TARGET", "Realisasi tidak boleh melebihi target.", 400);
       }
       const progressStatus = input.status as ProgramStatus;
-      if (
-        progressStatus === ProgramStatus.SELESAI_DIKERJAKAN &&
-        Number(program.target) > 0 &&
-        input.nilai < Number(program.target)
-      ) {
-        throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
+      // Operator tidak bisa menyelesaikan program lewat progres.
+      // Status SELESAI_DIKERJAKAN hanya boleh ditetapkan melalui action markComplete.
+      if (progressStatus === ProgramStatus.SELESAI_DIKERJAKAN) {
+        throw new ApiError(
+          "PROGRESS_NOT_READY_TO_COMPLETE",
+          "Status selesai hanya dapat ditetapkan melalui aksi Selesai, bukan melalui input progres.",
+          409,
+        );
       }
       const history = await tx.programHistory.create({
         data: {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -12,6 +12,10 @@ import {
   X,
   Upload,
   FileDown,
+  CheckCircle,
+  X as XIcon,
+  Clock,
+  Send,
 } from "lucide-react";
 import { Program, User } from "../../types";
 import {
@@ -23,6 +27,41 @@ import {
 } from "../../utils/helpers";
 import { Button } from "@/app/components/ui/Button";
 import { Input, Select } from "@/app/components/ui/Input";
+import { Badge } from "@/app/components/ui/Badge";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
+import { programApi } from "@/modules/programs/program.client";
+
+interface ProgressItem {
+  id: number;
+  programId: number;
+  tanggal: string;
+  tahap: string;
+  volume: number;
+  satuan: string;
+  status: "DIAJUKAN" | "DIVERIFIKASI" | "DITOLAK";
+  rejectionReason: string | null;
+  catatan: string | null;
+  reportedBy?: { id: number; nama: string } | null;
+  verifiedBy?: { id: number; nama: string } | null;
+  verifiedAt?: string | null;
+  storageKey?: string | null;
+  originalName?: string | null;
+}
+
+interface CostItem {
+  id: number;
+  programId: number;
+  tanggal: string;
+  uraian: string;
+  nominal: number;
+  status: "DIAJUKAN" | "DIVERIFIKASI" | "DITOLAK";
+  rejectionReason: string | null;
+  keterangan: string | null;
+  inputBy?: { id: number; nama: string } | null;
+  verifiedBy?: { id: number; nama: string } | null;
+  verifiedAt?: string | null;
+  documents?: Array<Record<string, unknown>>;
+}
 
 interface ScheduleViewProps {
   currentUser: User;
@@ -43,6 +82,8 @@ interface ScheduleViewProps {
   }) => void;
   onMarkComplete: (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => void;
   onNotify: (message: string, type?: "success" | "error") => void;
+  onVerifyProgress?: (progressId: number, decision: "APPROVED" | "REJECTED", rejectionReason?: string) => Promise<void>;
+  onVerifyCost?: (costId: number, decision: "APPROVED" | "REJECTED", rejectionReason?: string) => Promise<void>;
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
@@ -52,9 +93,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   onSelectProgramId,
   onBack,
   onOpenScheduleModal,
+  onOpenCostModal,
   onSaveProgress,
   onMarkComplete,
   onNotify,
+  onVerifyProgress,
+  onVerifyCost,
 }) => {
   const accessiblePrograms = programs.filter((p) => {
     const owner = operatorAssignment(p);
@@ -72,6 +116,93 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       : programs.find((p) => p.id === selectedProgramId) ?? programs[0]);
 
   const isLocked = program?.status === "Selesai Dikerjakan";
+
+  // Verification state (Admin only)
+  const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
+  const [costItems, setCostItems] = useState<CostItem[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+  const [loadingCosts, setLoadingCosts] = useState(false);
+  const [verifyDialog, setVerifyDialog] = useState<{
+    open: boolean;
+    type: "progress" | "cost";
+    itemId: number;
+    decision: "APPROVED" | "REJECTED";
+  } | null>(null);
+
+  // Fetch progress and costs when program changes (Admin only)
+  useEffect(() => {
+    if (currentUser.role !== "Admin" || !program || !onVerifyProgress || !onVerifyCost) return;
+
+    const fetchData = async () => {
+      setLoadingProgress(true);
+      setLoadingCosts(true);
+      try {
+        const [progRes, costRes] = await Promise.all([
+          programApi.progress(program.id),
+          programApi.costs(program.id),
+        ]);
+        if (progRes.data) setProgressItems(progRes.data as ProgressItem[]);
+        if (costRes.data) setCostItems(costRes.data as CostItem[]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Gagal memuat data verifikasi";
+        onNotify(msg, "error");
+      } finally {
+        setLoadingProgress(false);
+        setLoadingCosts(false);
+      }
+    };
+
+    fetchData();
+  }, [program?.id, currentUser.role, onVerifyProgress, onVerifyCost, onNotify]);
+
+  const handleVerifyOpen = (
+    type: "progress" | "cost",
+    itemId: number,
+    decision: "APPROVED" | "REJECTED"
+  ) => {
+    setVerifyDialog({ open: true, type, itemId, decision });
+  };
+
+  const handleVerifyConfirm = async (rejectionReason?: string) => {
+    if (!verifyDialog || !onVerifyProgress || !onVerifyCost) return;
+
+    const { type, itemId, decision } = verifyDialog;
+    if (decision === "REJECTED" && !rejectionReason?.trim()) {
+      onNotify("Alasan penolakan wajib diisi.", "error");
+      return;
+    }
+
+    try {
+      if (type === "progress") {
+        await onVerifyProgress(itemId, decision, rejectionReason);
+      } else {
+        await onVerifyCost(itemId, decision, rejectionReason);
+      }
+      onNotify(
+        `Laporan ${type === "progress" ? "progres" : "biaya"} berhasil ${decision === "APPROVED" ? "disetujui" : "ditolak"}.`,
+        "success"
+      );
+      // Refetch data
+      if (program) {
+        if (type === "progress") {
+          const res = await programApi.progress(program.id);
+          if (res.data) setProgressItems(res.data as ProgressItem[]);
+        } else {
+          const res = await programApi.costs(program.id);
+          if (res.data) setCostItems(res.data as CostItem[]);
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Gagal ${decision === "APPROVED" ? "menyetujui" : "menolak"}`;
+      onNotify(msg, "error");
+    } finally {
+      setVerifyDialog(null);
+    }
+  };
+
+  const handleVerifyCancel = () => {
+    setVerifyDialog(null);
+  };
 
   // Form states for progress update
   const [updateDate, setUpdateDate] = useState("");
@@ -218,6 +349,350 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     }
   };
 
+  // Helper to format status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "DIAJUKAN":
+        return (
+          <Badge variant="warning" className="text-xs">
+            <Clock className="w-3 h-3 mr-1" /> Diajukan
+          </Badge>
+        );
+      case "DIVERIFIKASI":
+        return (
+          <Badge variant="success" className="text-xs">
+            <CheckCircle className="w-3 h-3 mr-1" /> Disetujui
+          </Badge>
+        );
+      case "DITOLAK":
+        return (
+          <Badge variant="danger" className="text-xs">
+            <XIcon className="w-3 h-3 mr-1" /> Ditolak
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary" className="text-xs">{status}</Badge>;
+    }
+  };
+
+  // Helper to format date
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return "-";
+    try {
+      return new Date(dateStr).toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Helper to format currency
+  const formatCurrency = (val: number | string | undefined) => {
+    if (!val) return "Rp 0";
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    if (isNaN(num)) return "Rp 0";
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num);
+  };
+
+  // Progress verification list (Admin only)
+  const renderProgressVerification = () => {
+    if (currentUser.role !== "Admin" || !onVerifyProgress) return null;
+
+    const pendingProgress = progressItems.filter((p) => p.status === "DIAJUKAN");
+
+    return (
+      <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-[#143965] flex items-center gap-2">
+            <Send className="w-5 h-5 text-[#1E4E8C]" />
+            Verifikasi Laporan Progres
+          </h3>
+          {loadingProgress && <span className="text-xs text-[#65778B] animate-pulse">Memuat...</span>}
+        </div>
+
+        {pendingProgress.length === 0 && !loadingProgress && (
+          <div className="text-center py-8 text-[#65778B] bg-[#F8FAFC] rounded-xl border border-[#E1E9F0]">
+            Tidak ada laporan progres menunggu verifikasi.
+          </div>
+        )}
+
+        {pendingProgress.length > 0 && (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {pendingProgress.map((item: ProgressItem) => (
+              <div
+                key={item.id}
+                className="bg-[#FBFDFE] border border-[#DFEAF0] rounded-xl p-4 hover:border-[#1E4E8C]/30 transition"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[#143965]">
+                        {item.tahap || "Tanpa tahap"}
+                      </span>
+                      {getStatusBadge(item.status)}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-[#65778B] flex-wrap">
+                      <span>
+                        <Calendar className="w-3.5 h-3.5 inline mr-1" />
+                        {formatDate(item.tanggal)}
+                      </span>
+                      <span>
+                        <Send className="w-3.5 h-3.5 inline mr-1" />
+                        {typeof item.volume === "number" ? quantity(item.volume, item.satuan) : "-"}
+                      </span>
+                      {item.reportedBy && (
+                        <span>
+                          <ImageIcon className="w-3.5 h-3.5 inline mr-1" />
+                          {item.reportedBy.nama || "Operator"}
+                        </span>
+                      )}
+                    </div>
+                    {item.catatan && (
+                      <p className="text-xs text-[#65778B] bg-white rounded-lg p-2 border border-[#E1E9F0] mt-1">
+                        {item.catatan}
+                      </p>
+                    )}
+                    {item.rejectionReason && (
+                      <p className="text-xs text-[#C44C3B] bg-[#FDEDED] rounded-lg p-2 border border-[#FAD1D1] mt-1">
+                        <strong>Alasan penolakan: </strong>
+                        {item.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleVerifyOpen("progress", item.id, "APPROVED")}
+                      disabled={loadingProgress}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Setujui
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleVerifyOpen("progress", item.id, "REJECTED")}
+                      disabled={loadingProgress}
+                    >
+                      <XIcon className="w-3.5 h-3.5 mr-1" /> Tolak
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {progressItems.length > 0 && (
+          <details className="mt-4 group">
+            <summary className="cursor-pointer text-xs text-[#65778B] font-medium hover:text-[#1E4E8C] flex items-center gap-1">
+              <span>Riwayat Verifikasi Progres ({progressItems.length})</span>
+              <Clock className="w-3.5 h-3.5" />
+            </summary>
+            <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+              {progressItems
+                .filter((item: ProgressItem) => item.status !== "DIAJUKAN")
+                .sort((a: ProgressItem, b: ProgressItem) =>
+                  new Date(b.verifiedAt || "").getTime() - new Date(a.verifiedAt || "").getTime()
+                )
+                .map((item: ProgressItem) => (
+                  <div
+                    key={item.id}
+                    className="bg-[#FBFDFE] border border-[#DFEAF0] rounded-xl p-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[#143965]">
+                          {item.tahap || "Tanpa tahap"}
+                        </span>
+                        {getStatusBadge(item.status)}
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-[#65778B] flex-wrap">
+                        <span>
+                          <Calendar className="w-3 h-3 inline mr-0.5" />
+                          {formatDate(item.tanggal)}
+                        </span>
+                        {item.verifiedBy && (
+                          <span>
+                            <CheckCircle className="w-3 h-3 inline mr-0.5 text-[#258050]" />
+                            {item.verifiedBy.nama || "Admin"}
+                          </span>
+                        )}
+                        {item.verifiedAt && (
+                          <span>
+                            <Clock className="w-3 h-3 inline mr-0.5" />
+                            {formatDate(item.verifiedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {item.rejectionReason && (
+                      <p className="text-[11px] text-[#C44C3B] bg-[#FDEDED] rounded-lg p-2 border border-[#FAD1D1] mt-2">
+                        <strong>Alasan penolakan: </strong>
+                        {(item.rejectionReason as string)}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </details>
+        )}
+      </section>
+    );
+  };
+
+  // Cost verification list (Admin only)
+  const renderCostVerification = () => {
+    if (currentUser.role !== "Admin" || !onVerifyCost) return null;
+
+    const pendingCosts = costItems.filter((c) => c.status === "DIAJUKAN");
+
+    return (
+      <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-[#143965] flex items-center gap-2">
+            <FileDown className="w-5 h-5 text-[#1E4E8C]" />
+            Verifikasi Laporan Biaya
+          </h3>
+          {loadingCosts && <span className="text-xs text-[#65778B] animate-pulse">Memuat...</span>}
+        </div>
+
+        {pendingCosts.length === 0 && !loadingCosts && (
+          <div className="text-center py-8 text-[#65778B] bg-[#F8FAFC] rounded-xl border border-[#E1E9F0]">
+            Tidak ada laporan biaya menunggu verifikasi.
+          </div>
+        )}
+
+        {pendingCosts.length > 0 && (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {pendingCosts.map((item: CostItem) => (
+              <div
+                key={item.id}
+                className="bg-[#FBFDFE] border border-[#DFEAF0] rounded-xl p-4 hover:border-[#1E4E8C]/30 transition"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[#143965]">
+                        {item.uraian || "Tanpa uraian"}
+                      </span>
+                      {getStatusBadge(item.status)}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-[#65778B] flex-wrap">
+                      <span>
+                        <Calendar className="w-3.5 h-3.5 inline mr-1" />
+                        {formatDate(item.tanggal)}
+                      </span>
+                      <span className="font-medium text-[#E78A31]">
+                        {formatCurrency(item.nominal)}
+                      </span>
+                      {item.inputBy && (
+                        <span>
+                          <ImageIcon className="w-3.5 h-3.5 inline mr-1" />
+                          {item.inputBy.nama || "Operator"}
+                        </span>
+                      )}
+                    </div>
+                    {item.keterangan && (
+                      <p className="text-xs text-[#65778B] bg-white rounded-lg p-2 border border-[#E1E9F0] mt-1">
+                        {item.keterangan}
+                      </p>
+                    )}
+                    {item.rejectionReason && (
+                      <p className="text-xs text-[#C44C3B] bg-[#FDEDED] rounded-lg p-2 border border-[#FAD1D1] mt-1">
+                        <strong>Alasan penolakan: </strong>
+                        {item.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleVerifyOpen("cost", item.id, "APPROVED")}
+                      disabled={loadingCosts}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Setujui
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleVerifyOpen("cost", item.id, "REJECTED")}
+                      disabled={loadingCosts}
+                    >
+                      <XIcon className="w-3.5 h-3.5 mr-1" /> Tolak
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {costItems.length > 0 && (
+          <details className="mt-4 group">
+            <summary className="cursor-pointer text-xs text-[#65778B] font-medium hover:text-[#1E4E8C] flex items-center gap-1">
+              <span>Riwayat Verifikasi Biaya ({costItems.length})</span>
+              <Clock className="w-3.5 h-3.5" />
+            </summary>
+            <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+              {costItems
+                .filter((item: CostItem) => item.status !== "DIAJUKAN")
+                .sort((a: CostItem, b: CostItem) =>
+                  new Date(b.verifiedAt || "").getTime() - new Date(a.verifiedAt || "").getTime()
+                )
+                .map((item: CostItem) => (
+                  <div
+                    key={item.id}
+                    className="bg-[#FBFDFE] border border-[#DFEAF0] rounded-xl p-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[#143965]">
+                          {item.uraian || "Tanpa uraian"}
+                        </span>
+                        {getStatusBadge(item.status)}
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-[#65778B] flex-wrap">
+                        <span>
+                          <Calendar className="w-3 h-3 inline mr-0.5" />
+                          {formatDate(item.tanggal)}
+                        </span>
+                        <span className="font-medium text-[#E78A31]">
+                          {formatCurrency(item.nominal)}
+                        </span>
+                        {item.verifiedBy && (
+                          <span>
+                            <CheckCircle className="w-3 h-3 inline mr-0.5 text-[#258050]" />
+                            {item.verifiedBy.nama || "Admin"}
+                          </span>
+                        )}
+                        {item.verifiedAt && (
+                          <span>
+                            <Clock className="w-3 h-3 inline mr-0.5" />
+                            {formatDate(item.verifiedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {item.rejectionReason && (
+                      <p className="text-[11px] text-[#C44C3B] bg-[#FDEDED] rounded-lg p-2 border border-[#FAD1D1] mt-2">
+                        <strong>Alasan penolakan: </strong>
+                        {item.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </details>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Top action */}
@@ -229,7 +704,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           <ArrowLeft className="w-4 h-4" /> Kembali ke Data Kegiatan
         </button>
         <h2 className="text-2xl font-bold text-[#143965]">
-          Detail Kegiatan &amp; Pengaturan
+          Detail Kegiatan & Pengaturan
         </h2>
         <p className="text-xs sm:text-sm text-[#65778B] mt-0.5">
           Atur jadwal, target, progres, dan dokumentasi lapangan kegiatan yang ditugaskan kepada Anda.
@@ -270,7 +745,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                 onClick={() => onOpenScheduleModal(program)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-xs"
               >
-                <Calendar className="w-4 h-4" /> Pengaturan Jadwal &amp; Target
+                <Calendar className="w-4 h-4" /> Pengaturan Jadwal & Target
               </button>
             )}
             <button
@@ -352,7 +827,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {!isLocked && (
         <section className="bg-white rounded-2xl p-6 border border-[#E1E9F0] shadow-xs">
           <h3 className="text-base font-bold text-[#143965] mb-1">
-            Pembaruan Progres &amp; Realisasi Lapangan
+            Pembaruan Progres & Realisasi Lapangan
           </h3>
           <p className="text-xs text-[#65778B] mb-5">
             Input capaian fisik berkala disertai dokumentasi foto untuk validasi data pengawasan.
@@ -516,6 +991,34 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           </form>
         </section>
       )}
+
+      {/* Verification Sections (Admin only) */}
+      {currentUser.role === "Admin" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {renderProgressVerification()}
+          {renderCostVerification()}
+        </div>
+      )}
+
+      {/* Verification Dialog */}
+      <ConfirmDialog
+        open={verifyDialog?.open ?? false}
+        title={
+          verifyDialog
+            ? `Konfirmasi ${verifyDialog.decision === "APPROVED" ? "Persetujuan" : "Penolakan"} Laporan ${verifyDialog.type === "progress" ? "Progres" : "Biaya"}`
+            : "Konfirmasi"
+        }
+        message={
+          verifyDialog
+            ? verifyDialog.decision === "APPROVED"
+              ? `Apakah Anda yakin ingin menyetujui laporan ${verifyDialog.type === "progress" ? "progres" : "biaya"} ini? Data akan diperbarui dan tidak dapat diubah kembali.`
+              : `Masukkan alasan penolakan laporan ${verifyDialog.type === "progress" ? "progres" : "biaya"} ini:`
+            : ""
+        }
+        onConfirm={handleVerifyConfirm}
+        onCancel={handleVerifyCancel}
+        confirmLabel={verifyDialog?.decision === "APPROVED" ? "Ya, Setujui" : "Tolak"}
+      />
     </div>
   );
 };

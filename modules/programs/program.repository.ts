@@ -83,7 +83,7 @@ export const programRepository = {
       },
       orderBy: { createdAt: "desc" },
     });
-    if (recentDuplicate) return recentDuplicate;
+    if (recentDuplicate) return { program: recentDuplicate, isDuplicate: true };
 
     return prisma.$transaction(async (tx) => {
       const program = await tx.program.create({
@@ -118,7 +118,7 @@ export const programRepository = {
         });
       }
 
-      return program;
+      return { program, isDuplicate: false };
     });
   },
 
@@ -176,14 +176,15 @@ export const programRepository = {
         explicitlySet("operatorPengelolaId", data.operatorPengelolaId);
         explicitlySet("targetAwal", data.targetAwal);
         explicitlySet("targetVolume", data.targetVolume);
-        explicitlySet("realisasi", data.realisasi);
-        explicitlySet("realisasiVolume", data.realisasiVolume);
-        explicitlySet("status", data.status);
+        // Hanya overwrite realisasi/penggunaan/status jika secara eksplisit dikirim
+        if (input.realisasi !== undefined) explicitlySet("realisasi", input.realisasi);
+        if (input.realisasiVolume !== undefined) explicitlySet("realisasiVolume", input.realisasiVolume);
+        if (input.status !== undefined) explicitlySet("status", input.status);
+        if (input.penggunaan !== undefined) explicitlySet("penggunaan", input.penggunaan);
+        if (input.penggunaanBiaya !== undefined) explicitlySet("penggunaanBiaya", input.penggunaanBiaya);
         explicitlySet("update", data.update);
         explicitlySet("sumber", data.sumber);
         explicitlySet("catatan", data.catatan);
-        explicitlySet("penggunaan", data.penggunaan);
-        explicitlySet("penggunaanBiaya", data.penggunaanBiaya);
 
         const updated = await tx.program.update({
           where: { id: existing.id },

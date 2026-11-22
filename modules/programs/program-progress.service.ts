@@ -1,4 +1,5 @@
 import { programProgressRepository } from "./program-progress.repository";
+import { programRepository } from "./program.repository";
 import { completeDirectUpload, presignDirectUpload, presignDownload, type DirectUploadInput } from "@/modules/storage/direct-upload.service";
 import { ApiError } from "@/lib/http/api-error";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
@@ -31,8 +32,10 @@ export const programProgressService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
-    // Validasi progressId ada dan milik program yang valid
-    await programProgressRepository.findById(progressId);
+    // progressId di sini sebenarnya programId (dari route /programs/[id]/progress).
+    // Validasi program ada, bukan progress record (belum dibuat saat upload).
+    const program = await programRepository.findById(progressId);
+    if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     return presignDirectUpload(`progress/${progressId}/photos`, input, "image");
   },
 

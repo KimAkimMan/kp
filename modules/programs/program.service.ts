@@ -35,16 +35,18 @@ export const programService = {
 
   async create(input: CreateProgramInput, createdById: number) {
     const result = await programRepository.create({ ...input, createdById });
-    await prisma.auditLog.create({
-      data: {
-        userId: createdById,
-        action: "CREATE",
-        entity: "Program",
-        entityId: String(result.id),
-        details: { kode: input.kode, nama: input.nama },
-      },
-    });
-    return result;
+    if (!result.isDuplicate) {
+      await prisma.auditLog.create({
+        data: {
+          userId: createdById,
+          action: "CREATE",
+          entity: "Program",
+          entityId: String(result.program.id),
+          details: { kode: input.kode, nama: input.nama },
+        },
+      });
+    }
+    return { program: result.program, created: !result.isDuplicate };
   },
 
   async upsert(input: CreateProgramInput, createdById: number) {
@@ -110,13 +112,13 @@ export const programService = {
       if (input.status === "SELESAI_DIKERJAKAN") {
         throw new ApiError("USE_COMPLETE_ACTION", "Gunakan action complete untuk menyelesaikan program.", 409);
       }
-      // Operator hanya boleh mengubah field teknis/jadwal, bukan angka keuangan/status
+      // Operator hanya boleh mengubah field teknis/jadwal, bukan angka keuangan
       const OPERATOR_ALLOWED = new Set([
         "nama", "namaKegiatan", "kategori", "lokasi", "kecamatan", "desaKelurahan",
-        "detailLokasi", "satuan", "targetAwal", "targetVolume",
+        "detailLokasi", "satuan", "target", "targetAwal", "targetVolume",
         "penyedia", "direktur", "noKontrak", "jadwal",
         "lebarJalan", "kondisiJalan", "tanggalMulai", "tanggalSelesai",
-        "catatan", "sumber", "update",
+        "catatan", "sumber", "update", "status",
       ]);
       const inputRecord = input as Record<string, unknown>;
       const forbidden = Object.keys(inputRecord).filter((k) => !OPERATOR_ALLOWED.has(k) && inputRecord[k] !== undefined);
