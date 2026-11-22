@@ -5,9 +5,13 @@ const publicUserSelect = {
   nama: true,
   email: true,
   role: true,
+  isActive: true,
+  deletedAt: true,
   createdAt: true,
   updatedAt: true,
 } as const;
+
+export { publicUserSelect };
 
 export const authRepository = {
   findUserByEmail(email: string) {

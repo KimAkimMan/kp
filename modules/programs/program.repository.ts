@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ProgramAssignmentStatus } from "@/generated/prisma/client";
 import type { CreateProgramInput } from "./program.types";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
+import { publicUserSelect } from "../auth/auth.repository";
 
 export const programRepository = {
   async findMany(filters: ProgramListFilters = {}) {
@@ -34,7 +35,7 @@ export const programRepository = {
       prisma.program.findMany({
         where: { ...where, deletedAt: null },
         include: {
-          operator: true,
+          operator: { select: publicUserSelect },
           histories: true,
           progressEntries: true,
           costs: true,
@@ -54,7 +55,7 @@ export const programRepository = {
     return prisma.program.findFirst({
       where: { id, deletedAt: null },
       include: {
-        operator: true,
+        operator: { select: publicUserSelect },
         histories: true,
         progressEntries: true,
         costs: true,
@@ -254,7 +255,7 @@ export const programRepository = {
           ...(input.tanggalMulai === undefined ? {} : { tanggalMulai: input.tanggalMulai ? new Date(input.tanggalMulai) : null }),
           ...(input.tanggalSelesai === undefined ? {} : { tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null }),
         },
-        include: { operator: true, histories: true, costs: true },
+        include: { operator: { select: publicUserSelect }, histories: true, costs: true },
       });
 
       if (input.operatorPengelolaId !== undefined) {

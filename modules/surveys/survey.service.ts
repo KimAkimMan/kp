@@ -20,9 +20,12 @@ export const surveyService = {
     });
   },
 
-  async get(id: string) {
+  async get(id: string, user?: AuthenticatedUser) {
     const survey = await surveyRepository.findById(id);
     if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+    if (user?.role === "OPERATOR" && survey.surveyorId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat survey operator lain.", 403);
+    }
     return survey;
   },
 
@@ -50,9 +53,9 @@ export const surveyService = {
     }
     if (
       user?.role === "OPERATOR" &&
-      (input.surveyorId !== undefined || input.status === "DIVERIFIKASI" || input.status === "DIKONVERSI")
+      (input.surveyorId !== undefined || input.programId !== undefined || input.status === "DIVERIFIKASI" || input.status === "DIKONVERSI")
     ) {
-      throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah kepemilikan atau status verifikasi survey.", 403);
+      throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah kepemilikan, program, atau status verifikasi survey.", 403);
     }
     if (survey.status === "DIVERIFIKASI" || survey.status === "DIKONVERSI") {
       throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat diubah.", 409);
@@ -82,7 +85,6 @@ export const surveyService = {
         where: { id },
         data: {
           status: "DIVERIFIKASI",
-          programId: programId ?? survey.programId,
           verifiedById: reviewerId,
           verifiedAt: new Date(),
         },

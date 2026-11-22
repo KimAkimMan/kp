@@ -62,6 +62,9 @@ export const authService = {
     ) {
       throw new ApiError("UNAUTHENTICATED", "Sesi sudah tidak berlaku.", 401);
     }
+    if (!session.user.isActive || session.user.deletedAt !== null) {
+      throw new ApiError("UNAUTHENTICATED", "Akun pengguna telah dinonaktifkan atau dihapus.", 401);
+    }
     return { ...session.user, sessionId: session.id };
   },
 

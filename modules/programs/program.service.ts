@@ -105,6 +105,19 @@ export const programService = {
       if (input.status === "SELESAI_DIKERJAKAN") {
         throw new ApiError("USE_COMPLETE_ACTION", "Gunakan action complete untuk menyelesaikan program.", 409);
       }
+      // Operator hanya boleh mengubah field teknis/jadwal, bukan angka keuangan/status
+      const OPERATOR_ALLOWED = new Set([
+        "nama", "namaKegiatan", "kategori", "lokasi", "kecamatan", "desaKelurahan",
+        "detailLokasi", "satuan", "targetAwal", "targetVolume", "pagu",
+        "penyedia", "direktur", "nilaiKontrak", "noKontrak", "jadwal",
+        "lebarJalan", "kondisiJalan", "tanggalMulai", "tanggalSelesai",
+        "catatan", "sumber", "update",
+      ]);
+      const inputRecord = input as Record<string, unknown>;
+      const forbidden = Object.keys(inputRecord).filter((k) => !OPERATOR_ALLOWED.has(k) && inputRecord[k] !== undefined);
+      if (forbidden.length > 0) {
+        throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah field: " + forbidden.join(", "), 403);
+      }
     }
     const result = await programRepository.update(id, input);
     await prisma.auditLog.create({

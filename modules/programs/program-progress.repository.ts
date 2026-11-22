@@ -34,8 +34,8 @@ export const programProgressRepository = {
 
   async verify(progressId: number, decision: "APPROVED" | "REJECTED", reviewerId: number, rejectionReason?: string) {
     const progress = await this.findById(progressId);
-    if (progress.status === ProgressStatus.DIVERIFIKASI) {
-      throw new ApiError("PROGRESS_ALREADY_VERIFIED", "Progress telah diverifikasi sebelumnya.", 409);
+    if (progress.status !== ProgressStatus.DIAJUKAN) {
+      throw new ApiError("PROGRESS_NOT_PENDING", "Progres belum dalam status diajukan.", 409);
     }
 
     return prisma.$transaction(async (tx) => {
@@ -52,17 +52,6 @@ export const programProgressRepository = {
           verifiedBy: { select: { id: true, nama: true, role: true } },
         },
       });
-
-      // Jika disetujui dan realisasi sudah mencapai target, update status program
-      if (decision === "APPROVED") {
-        const program = await tx.program.findUnique({ where: { id: progress.programId } });
-        if (program && Number(program.target) > 0 && Number(program.realisasi) >= Number(program.target)) {
-          await tx.program.update({
-            where: { id: progress.programId },
-            data: { status: "SELESAI_DIKERJAKAN" },
-          });
-        }
-      }
 
       return updated;
     });

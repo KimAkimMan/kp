@@ -116,13 +116,30 @@ export const surveyPhotoRepository = {
     });
   },
 
-  async deletePhoto(id: string) {
+  async deletePhoto(id: string, userId?: number) {
     const photo = await this.findById(id);
     const storage = getStorage();
     try {
       await storage.delete(photo.storageKey);
     } catch {
       // Abaikan error delete dari storage
+    }
+
+    // Audit log sebelum hard delete (bukti audit tetap tercatat meski record hilang)
+    if (userId !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          action: "DELETE",
+          entity: "SurveyPhoto",
+          entityId: String(id),
+          details: {
+            storageKey: photo.storageKey,
+            originalName: photo.originalName,
+            surveyId: photo.surveyId,
+          },
+        },
+      });
     }
 
     return prisma.surveyPhoto.delete({

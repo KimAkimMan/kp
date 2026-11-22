@@ -1,4 +1,5 @@
 import { surveyPhotoRepository } from "./survey-photo.repository";
+import { surveyRepository } from "./survey.repository";
 import { ApiError } from "@/lib/http/api-error";
 import type { SurveyPhotoInput } from "./survey-photo.repository";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
@@ -59,7 +60,13 @@ export const surveyPhotoService = {
       throw new Error("Hanya Admin dan Operator yang dapat melihat foto survey.");
     }
     const photo = await surveyPhotoRepository.findById(id);
-    return { photo, ...(await presignDownload(photo.storageKey, photo.originalName, photo.mimeType)) };
+    if (user.role === "OPERATOR") {
+      const survey = await surveyRepository.findById(photo.surveyId);
+      if (!survey || survey.surveyorId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat foto survey operator lain.", 403);
+      }
+    }
+    return { photo, ...(await presignDownload(photo.storageKey, photo.originalName, photo.mimeType)) }
   },
 
   async deletePhoto(id: string, user: AuthenticatedUser) {
@@ -67,6 +74,6 @@ export const surveyPhotoService = {
     if (user.role !== "ADMIN" && photo.uploadedById !== user.id) {
       throw new Error("Hanya Admin atau pemilik foto yang dapat menghapus.");
     }
-    return surveyPhotoRepository.deletePhoto(id);
+    return surveyPhotoRepository.deletePhoto(id, user.id);
   },
 };

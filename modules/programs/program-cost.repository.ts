@@ -75,6 +75,18 @@ export const programCostRepository = {
         },
       });
 
+      // Biaya hanya mengurangi pagu saat DIVERIFIKASI. Saat DITOLAK, penggunaan tidak berubah
+      // (karena tidak pernah ditambahkan saat DIAJUKAN).
+      if (decision === "APPROVED") {
+        await tx.program.update({
+          where: { id: cost.programId },
+          data: {
+            penggunaan: { increment: updated.nominal },
+            penggunaanBiaya: { increment: updated.nominal },
+          },
+        });
+      }
+
       return updated;
     });
   },

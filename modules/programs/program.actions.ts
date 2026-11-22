@@ -121,15 +121,9 @@ export const programActions = {
           bukti: input.bukti ?? false,
         },
       });
-      const updated = await tx.program.update({
-        where: { id: programId },
-        data: {
-          penggunaan: { increment: input.nominal },
-          penggunaanBiaya: { increment: input.nominal },
-        },
-        include: { operator: true, histories: true, costs: true },
-      });
-      return { program: updated, cost };
+      // Penggunaan anggaran hanya bertambah saat biaya DIVERIFIKASI (di cost repository.verify),
+      // bukan saat dibuat (DIAJUKAN). Biaya yang ditolak tidak pernah memakan pagu.
+      return { program, cost };
     });
   },
 

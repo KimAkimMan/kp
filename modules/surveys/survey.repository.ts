@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { SurveyInput } from "./survey.types";
+import { publicUserSelect } from "../auth/auth.repository";
 
 export type SurveyListFilters = {
   search?: string;
@@ -32,7 +33,7 @@ export const surveyRepository = {
     const [items, total] = await Promise.all([
       prisma.fieldSurvey.findMany({
         where,
-        include: { program: true, surveyorUser: true },
+        include: { program: true, surveyorUser: { select: publicUserSelect } },
         orderBy: { createdAt: "desc" },
         ...(filters.pagination === undefined
           ? {}
@@ -46,7 +47,7 @@ export const surveyRepository = {
   findById(id: string) {
     return prisma.fieldSurvey.findFirst({
       where: { id, deletedAt: null },
-      include: { program: true, surveyorUser: true },
+      include: { program: true, surveyorUser: { select: publicUserSelect } },
     });
   },
 
@@ -80,7 +81,7 @@ export const surveyRepository = {
         fotoUrl: input.fotoUrl ?? null,
         status: input.status,
       },
-      include: { program: true, surveyorUser: true },
+      include: { program: true, surveyorUser: { select: publicUserSelect } },
     });
   },
 
