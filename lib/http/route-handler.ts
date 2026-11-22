@@ -2,6 +2,7 @@ import { errorResponse } from "./api-response";
 import { headers } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { ApiError } from "./api-error";
+import { getSessionToken } from "@/modules/auth/auth.context";
 
 export const DEFAULT_ROUTE_TIMEOUT_MS = 30_000;
 
@@ -29,9 +30,9 @@ async function getIdempotencyKey(): Promise<string | null> {
   }
 }
 
-function cacheKey(scope: IdempotencyScope | undefined, key: string): string {
+function cacheKey(scope: IdempotencyScope | undefined, key: string, sessionToken?: string): string {
   if (!scope) return key;
-  return `${scope.method.toUpperCase()}|${scope.path}|${key}`;
+  return `${scope.method.toUpperCase()}|${scope.path}|${sessionToken ?? "anon"}|${key}`;
 }
 
 export async function handleRoute(
@@ -47,6 +48,15 @@ export async function handleRoute(
     requestId = (await headers()).get("x-request-id") ?? requestId;
   } catch {
     // Route unit tests can run without a Next request context.
+  }
+
+  // Baca session token untuk memisahkan cache idempotensi per user,
+  // sehingga dua user dengan key yang sama tidak saling menimpa.
+  let sessionToken: string | null = null;
+  try {
+    sessionToken = await getSessionToken();
+  } catch {
+    // Tidak ada konteks request (unit tests).
   }
 
   // Bersihkan entri kadaluarsa sebelum pemeriksaan.
@@ -68,7 +78,9 @@ export async function handleRoute(
     idempotencyScope &&
     MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
   ) {
-    const cached = idempotencyCache.get(cacheKey(idempotencyScope, idempotencyKey));
+    const cached = idempotencyCache.get(
+      cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined)
+    );
     if (cached) {
       return new Response(JSON.stringify(cached.body), {
         status: cached.status,
@@ -106,7 +118,7 @@ export async function handleRoute(
     ) {
       try {
         const body = await response.clone().json();
-        idempotencyCache.set(cacheKey(idempotencyScope, idempotencyKey), {
+        idempotencyCache.set(cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined), {
           status: response.status,
           body,
           expiresAt: now + IDEMPOTENCY_TTL_MS,

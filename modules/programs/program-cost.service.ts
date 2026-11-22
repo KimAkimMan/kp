@@ -34,9 +34,25 @@ export const programCostService = {
   async addDocument(
     costId: number,
     file: File,
-    uploadedById?: number,
+    user: AuthenticatedUser,
   ) {
-    return programCostRepository.addDocument(costId, file, uploadedById);
+    await this.assertCanManage(costId, user);
+    // Validasi tipe dan ukuran file
+    const ALLOWED_DOCUMENT_TYPES = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) {
+      throw new ApiError("INVALID_FILE_TYPE", "Tipe file dokumen tidak diizinkan.", 400);
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      throw new ApiError("FILE_TOO_LARGE", "Ukuran file melebihi batas 10MB.", 400);
+    }
+    return programCostRepository.addDocument(costId, file, user.id);
   },
 
   async presignDirect(costId: number, input: DirectUploadInput, user: AuthenticatedUser) {

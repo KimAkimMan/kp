@@ -4,6 +4,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { surveyPhotoService } from "@/modules/surveys/survey-photo.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest, context: Context) {
       const longitude = formData.get("longitude") ? Number(formData.get("longitude")) : undefined;
 
       if (!file) {
-        throw new Error("File tidak ditemukan.");
+        throw new ApiError("VALIDATION_ERROR", "File tidak ditemukan.", 400);
       }
 
       const result = await surveyPhotoService.addPhoto(

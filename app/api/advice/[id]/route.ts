@@ -31,8 +31,8 @@ export async function PATCH(request: NextRequest, context: Context) {
 export async function DELETE(_request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      await requireRole("PIMPINAN", "ADMIN");
-      return successResponse(await adviceService.remove((await context.params).id));
+      const user = await requireRole("PIMPINAN", "ADMIN");
+      return successResponse(await adviceService.remove((await context.params).id, user.id));
     },
     undefined,
     { idempotencyScope: { method: "DELETE", path: "/api/advice/[id]" } },

@@ -114,4 +114,10 @@ export const userRepository = {
       select: { id: true, deletedAt: true },
     });
   },
+
+  async countAdmins() {
+    return prisma.user.count({
+      where: { role: UserRole.ADMIN, deletedAt: null, isActive: true },
+    });
+  },
 };

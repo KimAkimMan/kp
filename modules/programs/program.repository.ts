@@ -155,9 +155,39 @@ export const programRepository = {
       };
 
       if (existing) {
+        // Saat update existing program, jangan overwrite field yang tidak
+        // secara eksplisit dikirim (realisasi, penggunaan, status, dll).
+        const updateData: Record<string, unknown> = {};
+        const explicitlySet = (k: string, v: unknown) => {
+          if (v !== undefined && v !== null) updateData[k] = v;
+        };
+        explicitlySet("nama", data.nama);
+        explicitlySet("kategori", data.kategori);
+        explicitlySet("lokasi", data.lokasi);
+        explicitlySet("periode", data.periode);
+        explicitlySet("satuan", data.satuan);
+        explicitlySet("target", data.target);
+        explicitlySet("pagu", data.pagu);
+        explicitlySet("namaKegiatan", data.namaKegiatan);
+        explicitlySet("kecamatan", data.kecamatan);
+        explicitlySet("desaKelurahan", data.desaKelurahan);
+        explicitlySet("detailLokasi", data.detailLokasi);
+        explicitlySet("operatorPengelola", data.operatorPengelola);
+        explicitlySet("operatorPengelolaId", data.operatorPengelolaId);
+        explicitlySet("targetAwal", data.targetAwal);
+        explicitlySet("targetVolume", data.targetVolume);
+        explicitlySet("realisasi", data.realisasi);
+        explicitlySet("realisasiVolume", data.realisasiVolume);
+        explicitlySet("status", data.status);
+        explicitlySet("update", data.update);
+        explicitlySet("sumber", data.sumber);
+        explicitlySet("catatan", data.catatan);
+        explicitlySet("penggunaan", data.penggunaan);
+        explicitlySet("penggunaanBiaya", data.penggunaanBiaya);
+
         const updated = await tx.program.update({
           where: { id: existing.id },
-          data,
+          data: updateData,
         });
         return { program: updated, created: false };
       }

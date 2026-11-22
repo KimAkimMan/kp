@@ -31,6 +31,8 @@ export const programProgressService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
+    // Validasi progressId ada dan milik program yang valid
+    await programProgressRepository.findById(progressId);
     return presignDirectUpload(`progress/${progressId}/photos`, input, "image");
   },
 
@@ -42,6 +44,8 @@ export const programProgressService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
+    // Validasi progressId ada
+    await programProgressRepository.findById(progressId);
     // Hanya verifikasi upload ke object storage. Penyimpanan storageKey ke database
     // dilakukan oleh addProgress setelah progress record dibuat.
     await completeDirectUpload(`progress/${progressId}/photos`, input, "image");

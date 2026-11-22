@@ -43,10 +43,10 @@ export async function POST(request: NextRequest, context: Context) {
       const file = formData.get("file") as File | null;
 
       if (!file) {
-        throw new Error("File tidak ditemukan.");
+        throw new ApiError("VALIDATION_ERROR", "File tidak ditemukan.", 400);
       }
 
-      const result = await programCostService.addDocument(costId, file, user.id);
+      const result = await programCostService.addDocument(costId, file, user);
       return successResponse(result, 201);
     },
     undefined,

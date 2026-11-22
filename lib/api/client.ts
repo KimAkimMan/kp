@@ -254,8 +254,10 @@ export class ApiClient {
 
     // Jika ada kunci idempotensi dan respons sudah tersimpan, kembalikan langsung
     // tanpa memanggul backend lagi (mencegah duplikasi dari double-submit/retry).
+    // Kunci mencakup method + path agar kunci yang sama tidak bentrok lintas endpoint.
     if (idempotencyKey) {
-      const cached = this.idempotencyCache.get(idempotencyKey);
+      const cacheKey = `${method}|${path}|${idempotencyKey}`;
+      const cached = this.idempotencyCache.get(cacheKey);
       if (cached) {
         return cached.payload as T;
       }
@@ -293,7 +295,8 @@ export class ApiClient {
 
     // Simpan ke cache idempotensi untuk request mutasi.
     if (idempotencyKey && (method === "POST" || method === "PATCH" || method === "DELETE" || method === "PUT")) {
-      this.idempotencyCache.set(idempotencyKey, { payload: result.payload, status: result.response.status });
+      const cacheKey = `${method}|${path}|${idempotencyKey}`;
+      this.idempotencyCache.set(cacheKey, { payload: result.payload, status: result.response.status });
     }
 
     if (method === "GET" || method === "HEAD") {

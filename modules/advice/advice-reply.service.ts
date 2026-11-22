@@ -1,11 +1,12 @@
 import { adviceReplyRepository } from "./advice-reply.repository";
 import type { AdviceReplyInput } from "./advice-reply.repository";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 export const adviceReplyService = {
   async list(adviceId: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR" && user.role !== "PIMPINAN") {
-      throw new Error("Akses tidak diizinkan.");
+      throw new ApiError("FORBIDDEN", "Akses tidak diizinkan.", 403);
     }
     return adviceReplyRepository.list(adviceId);
   },

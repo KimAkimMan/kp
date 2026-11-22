@@ -586,7 +586,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                   <Select
                     label="Kecamatan *"
                     value={kecamatan}
-                    onChange={(e: any) => setKecamatan(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setKecamatan(e.target.value)}
                   >
                     {defaultKecamatanList.map((k) => (
                       <option key={k} value={k}>

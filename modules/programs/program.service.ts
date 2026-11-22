@@ -87,14 +87,19 @@ export const programService = {
     return result;
   },
 
-  async get(id: number) {
+  async get(id: number, user?: AuthenticatedUser) {
     const program = await programRepository.findById(id);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+    // Non-admin tidak boleh melihat surveys dan adviceRecords (data exposure)
+    if (user?.role !== "ADMIN") {
+      const { surveys, adviceRecords, ...rest } = program;
+      return rest;
+    }
     return program;
   },
 
   async update(id: number, input: UpdateProgramInput, user: AuthenticatedUser) {
-    await this.get(id);
+    await this.get(id, user);
     if (user.role === "OPERATOR") {
       if (
         input.operatorPengelolaId !== undefined &&
@@ -108,8 +113,8 @@ export const programService = {
       // Operator hanya boleh mengubah field teknis/jadwal, bukan angka keuangan/status
       const OPERATOR_ALLOWED = new Set([
         "nama", "namaKegiatan", "kategori", "lokasi", "kecamatan", "desaKelurahan",
-        "detailLokasi", "satuan", "targetAwal", "targetVolume", "pagu",
-        "penyedia", "direktur", "nilaiKontrak", "noKontrak", "jadwal",
+        "detailLokasi", "satuan", "targetAwal", "targetVolume",
+        "penyedia", "direktur", "noKontrak", "jadwal",
         "lebarJalan", "kondisiJalan", "tanggalMulai", "tanggalSelesai",
         "catatan", "sumber", "update",
       ]);
@@ -133,7 +138,7 @@ export const programService = {
   },
 
   async assertCanEdit(id: number, user: AuthenticatedUser) {
-    const program = await this.get(id);
+    const program = await this.get(id, user);
     if (user.role === "ADMIN") return program;
     if (user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah program ini.", 403);
@@ -148,7 +153,7 @@ export const programService = {
   },
 
   async remove(id: number, deletedById: number) {
-    await this.get(id);
+    await this.get(id, { id: deletedById, role: "ADMIN" } as AuthenticatedUser);
     const result = await programRepository.delete(id, deletedById);
     await prisma.auditLog.create({
       data: {

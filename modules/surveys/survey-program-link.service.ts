@@ -1,11 +1,12 @@
 import { surveyProgramLinkRepositoryWithSurvey } from "./survey-program-link.repository";
 import type { SurveyProgramLinkInput } from "./survey-program-link.repository";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 export const surveyProgramLinkService = {
   async list(surveyId: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat link survey.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat link survey.", 403);
     }
     return surveyProgramLinkRepositoryWithSurvey.list(surveyId);
   },
@@ -16,7 +17,7 @@ export const surveyProgramLinkService = {
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat link survey ke program.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat link survey ke program.", 403);
     }
     return surveyProgramLinkRepositoryWithSurvey.create(surveyId, {
       ...input,
@@ -26,7 +27,7 @@ export const surveyProgramLinkService = {
 
   async delete(linkId: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat menghapus link.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat menghapus link.", 403);
     }
     return surveyProgramLinkRepositoryWithSurvey.delete(linkId);
   },

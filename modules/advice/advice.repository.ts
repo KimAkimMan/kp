@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { AdviceStatus } from "@/generated/prisma/client";
+import { publicUserSelect } from "../auth/auth.repository";
 
 export type AdviceListFilters = {
   search?: string;
@@ -39,7 +40,7 @@ export const adviceRepository = {
     const [items, total] = await Promise.all([
       prisma.adviceRecord.findMany({
         where,
-        include: { program: true, pimpinan: true, operator: true },
+        include: { program: true, pimpinan: { select: publicUserSelect }, operator: { select: publicUserSelect } },
         orderBy: { createdAt: "desc" },
         ...(filters.pagination === undefined
           ? {}
@@ -53,7 +54,7 @@ export const adviceRepository = {
   findById(id: string) {
     return prisma.adviceRecord.findUnique({
       where: { id },
-      include: { program: true, pimpinan: true, operator: true },
+      include: { program: true, pimpinan: { select: publicUserSelect }, operator: { select: publicUserSelect } },
     });
   },
 
@@ -71,7 +72,7 @@ export const adviceRepository = {
   }) {
     return prisma.adviceRecord.create({
       data: input,
-      include: { program: true, pimpinan: true, operator: true },
+      include: { program: true, pimpinan: { select: publicUserSelect }, operator: { select: publicUserSelect } },
     });
   },
 
@@ -79,11 +80,23 @@ export const adviceRepository = {
     return prisma.adviceRecord.update({
       where: { id },
       data,
-      include: { program: true, pimpinan: true, operator: true },
+      include: { program: true, pimpinan: { select: publicUserSelect }, operator: { select: publicUserSelect } },
     });
   },
 
-  delete(id: string) {
+  delete(id: string, userId?: number) {
+    // Audit log sebelum hard delete
+    if (userId !== undefined) {
+      void prisma.auditLog.create({
+        data: {
+          userId,
+          action: "DELETE",
+          entity: "AdviceRecord",
+          entityId: id,
+          details: {},
+        },
+      });
+    }
     return prisma.adviceRecord.delete({ where: { id }, select: { id: true } });
   },
 };

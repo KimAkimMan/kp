@@ -2,6 +2,7 @@ import { ApiError } from "@/lib/http/api-error";
 import { hashPassword } from "@/modules/auth/auth.crypto";
 import { userRepository } from "./user.repository";
 import type { CreateUserInput, UpdateUserInput } from "./user.types";
+import { UserRole } from "@/generated/prisma/client";
 
 export type UserListFilters = {
   search?: string;
@@ -52,8 +53,19 @@ export const userService = {
     });
   },
 
-  async remove(id: number) {
-    await this.get(id);
+  async remove(id: number, currentUserId?: number) {
+    const user = await this.get(id);
+    // Jangan boleh menghapus diri sendiri
+    if (currentUserId !== undefined && id === currentUserId) {
+      throw new ApiError("FORBIDDEN", "Tidak dapat menghapus akun sendiri.", 403);
+    }
+    // Jangan boleh menghapus admin terakhir
+    if (user.role === UserRole.ADMIN) {
+      const adminCount = await userRepository.countAdmins();
+      if (adminCount <= 1) {
+        throw new ApiError("FORBIDDEN", "Tidak dapat menghapus admin terakhir.", 403);
+      }
+    }
     return userRepository.delete(id);
   },
 };

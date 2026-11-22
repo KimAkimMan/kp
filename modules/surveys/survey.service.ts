@@ -64,7 +64,7 @@ export const surveyService = {
     return prisma.$transaction(async (tx) => {
       const updated = await tx.fieldSurvey.update({
         where: { id },
-        data: input as any,
+        data: input,
         include: { program: true, surveyorUser: { select: publicUserSelect } },
       });
       if (input.status !== undefined && input.status !== survey.status) {
@@ -104,10 +104,11 @@ export const surveyService = {
         where: { id },
         data: {
           status: "DIVERIFIKASI",
+          ...(programId !== undefined && programId !== null ? { programId } : {}),
           verifiedById: reviewerId,
           verifiedAt: new Date(),
         },
-        include: { program: true, surveyorUser: true },
+        include: { program: true, surveyorUser: { select: publicUserSelect } },
       });
       await tx.surveyReview.create({
         data: {
@@ -124,6 +125,16 @@ export const surveyService = {
           changedById: reviewerId,
         },
       });
+      // Tautkan survey ke program jika programId disediakan saat verifikasi
+      if (programId !== undefined && programId !== null) {
+        await tx.surveyProgramLink.create({
+          data: {
+            surveyId: id,
+            programId,
+            relationType: "LINKED_AT_VERIFY",
+          },
+        });
+      }
       return updated;
     });
   },

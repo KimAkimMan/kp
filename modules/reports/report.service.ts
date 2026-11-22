@@ -12,12 +12,7 @@ export const reportService = {
       deletedAt: null,
       ...(filters.operatorId === undefined
         ? {}
-        : {
-            OR: [
-              { operatorPengelolaId: filters.operatorId },
-              { operatorPengelolaId: null },
-            ],
-          }),
+        : { operatorPengelolaId: filters.operatorId }),
       ...(filters.periode === undefined ? {} : { periode: filters.periode }),
       ...(filters.kecamatan === undefined ? {} : { kecamatan: filters.kecamatan }),
       ...(filters.status === undefined ? {} : { status: filters.status }),

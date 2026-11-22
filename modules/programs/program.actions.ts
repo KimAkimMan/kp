@@ -85,9 +85,8 @@ export const programActions = {
       const updated = await tx.program.update({
         where: { id: programId },
         data: {
-          realisasi: input.nilai,
-          realisasiVolume: input.nilai,
-          status: input.status as ProgramStatus,
+          // Realisasi dan status Program HANYA diupdate saat progres DIVERIFIKASI
+          // (lihat program-progress.repository.ts verify), bukan saat DIAJUKAN.
           update: date.toISOString(),
           catatan: input.keterangan,
           sumber: "Input progres Operator",

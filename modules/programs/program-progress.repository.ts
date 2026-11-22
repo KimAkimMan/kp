@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ProgressStatus } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/http/api-error";
+import { publicUserSelect } from "@/modules/auth/auth.repository";
 
 export const programProgressRepository = {
   async list(programId: number) {
@@ -67,6 +68,26 @@ export const programProgressRepository = {
           },
         },
       });
+
+      // Realisasi Program hanya dihitung dari progres yang DIVERIFIKASI.
+      // Saat DITOLAK, realisasi Program tidak berubah (belum pernah ditambah).
+      if (decision === "APPROVED") {
+        const approved = await tx.programProgress.aggregate({
+          where: {
+            programId: progress.programId,
+            status: ProgressStatus.DIVERIFIKASI,
+          },
+          _sum: { volume: true },
+        });
+        const totalRealisasi = Number(approved._sum.volume ?? 0);
+        await tx.program.update({
+          where: { id: progress.programId },
+          data: {
+            realisasi: totalRealisasi,
+            realisasiVolume: totalRealisasi,
+          },
+        });
+      }
 
       return updated;
     });

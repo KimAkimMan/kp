@@ -195,23 +195,15 @@ interface Props {
   programs: Program[];
 }
 
-const DEFAULT_YEAR = 2026;
 const AVAILABLE_YEARS = [2025, 2026, 2027];
 
 export const PimpinanAchievementSection: React.FC<Props> = ({ programs }) => {
-  // Period filter state
+  // Period filter state (inisiialisasi dengan tanggal sekarang tanpa useEffect)
+  const now = new Date();
   const [periodeType, setPeriodeType] = useState<PeriodeType>("tahunan");
-  const [selectedYear, setSelectedYear] = useState(DEFAULT_YEAR);
-  const [selectedMonth, setSelectedMonth] = useState(10);
-  const [selectedTriwulan, setSelectedTriwulan] = useState(4);
-
-  // Sync actual client date on mount without failing prerender
-  React.useEffect(() => {
-    const d = new Date();
-    setSelectedYear(d.getFullYear());
-    setSelectedMonth(d.getMonth() + 1);
-    setSelectedTriwulan(Math.ceil((d.getMonth() + 1) / 3));
-  }, []);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedTriwulan, setSelectedTriwulan] = useState(Math.ceil((now.getMonth() + 1) / 3));
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const { stats, isProportional } = useMemo(

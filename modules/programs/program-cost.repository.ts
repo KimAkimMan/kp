@@ -75,6 +75,22 @@ export const programCostRepository = {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId: reviewerId,
+          action: decision === "APPROVED" ? "APPROVE" : "REJECT",
+          entity: "ProgramCost",
+          entityId: String(costId),
+          details: {
+            programId: cost.programId,
+            fromStatus: cost.status,
+            toStatus: decision === "APPROVED" ? CostStatus.DIVERIFIKASI : CostStatus.DITOLAK,
+            nominal: updated.nominal,
+            rejectionReason: decision === "REJECTED" ? rejectionReason : null,
+          },
+        },
+      });
+
       // Biaya hanya mengurangi pagu saat DIVERIFIKASI. Saat DITOLAK, penggunaan tidak berubah
       // (karena tidak pernah ditambahkan saat DIAJUKAN).
       if (decision === "APPROVED") {

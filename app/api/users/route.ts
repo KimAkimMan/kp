@@ -6,13 +6,14 @@ import { requireRole } from "@/modules/auth/auth.context";
 import { handleRoute } from "@/lib/http/route-handler";
 import { parseRequestBody } from "@/lib/http/request";
 import { parsePagination } from "@/lib/pagination";
+import { ApiError } from "@/lib/http/api-error";
 
 const userRoles = ["Admin", "Operator", "Pimpinan"];
 
 function parseUserListFilters(params: URLSearchParams) {
   const role = params.get("role") ?? undefined;
   if (role && !userRoles.includes(role)) {
-    throw new Error("Role pengguna tidak valid.");
+    throw new ApiError("VALIDATION_ERROR", "Role pengguna tidak valid.", 400);
   }
   return {
     search: params.get("search")?.trim() || undefined,

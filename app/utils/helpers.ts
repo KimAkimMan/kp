@@ -8,11 +8,7 @@ export const quantity = (
   n: number | string | null | undefined,
   unit?: string
 ): string => {
-  let num = Number(n) || 0;
-  const rawUnit = String(unit ?? "").trim().toLowerCase();
-  if ((rawUnit === "km" || rawUnit.includes("kilometer")) && num > 0 && num <= 50) {
-    num = num * 1000;
-  }
+  const num = Number(n) || 0;
   const val = new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 2,
   }).format(num);
@@ -160,9 +156,8 @@ export const canEditProgram = (
   if (!currentUser) return false;
   if (currentUser.role === "Admin") return true;
   if (currentUser.role === "Operator") {
-    const owner = operatorAssignment(p);
-    // Unassigned activities added by Admin can be edited/claimed by Operator
-    if (!owner) return true;
+    // Operator hanya dapat mengedit program yang telah di-claim (memiliki operatorPengelolaId)
+    if (!p.operatorPengelolaId) return false;
     return isAssignedToCurrentOperator(p, currentUser);
   }
   return false;

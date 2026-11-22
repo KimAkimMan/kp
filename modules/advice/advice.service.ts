@@ -55,11 +55,7 @@ export const adviceService = {
 
   async updateStatus(id: string, status: AdviceStatus, user?: AuthenticatedUser) {
     const advice = await this.get(id);
-    if (
-      user?.role === "OPERATOR" &&
-      advice.operatorId !== null &&
-      advice.operatorId !== user.id
-    ) {
+    if (user?.role === "OPERATOR" && advice.operatorId !== user.id) {
       throw new ApiError("FORBIDDEN", "Arahan ini bukan ditujukan kepada Anda.", 403);
     }
     if (
@@ -71,8 +67,8 @@ export const adviceService = {
     return adviceRepository.update(id, { status });
   },
 
-  async remove(id: string) {
+  async remove(id: string, userId?: number) {
     await this.get(id);
-    return adviceRepository.delete(id);
+    return adviceRepository.delete(id, userId);
   },
 };

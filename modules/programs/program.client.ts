@@ -66,8 +66,8 @@ export const programApi = {
     input: CreateProgressInput,
     photoFiles?: File[],
   ) {
-    let storageKeys: string[] = [];
-    let originalNames: string[] = [];
+    const storageKeys: string[] = [];
+    const originalNames: string[] = [];
 
     // Jika ada file foto, upload setiap file langsung ke object storage
     if (photoFiles && photoFiles.length > 0) {
