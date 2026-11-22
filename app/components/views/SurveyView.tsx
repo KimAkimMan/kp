@@ -31,7 +31,7 @@ interface SurveyViewProps {
   currentUser: User;
   programs: Program[];
   surveys: FieldSurvey[];
-  onSaveSurvey: (survey: FieldSurvey) => void;
+  onSaveSurvey: (survey: FieldSurvey, photoFile?: File) => void;
   onDeleteSurvey: (id: string) => void;
   onNavigateToProgram?: (programId: number) => void;
 }
@@ -84,9 +84,9 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
   const [tingkatUrgensi, setTingkatUrgensi] = useState<"Rendah" | "Sedang" | "Tinggi / Mendesak">("Tinggi / Mendesak");
   const [uraianTemuan, setUraianTemuan] = useState("");
   const [rekomendasi, setRekomendasi] = useState("");
-  const [status, setStatus] = useState<"Draft" | "Selesai Survey" | "Diverifikasi">("Selesai Survey");
-  const [fotoUrl, setFotoUrl] = useState<string>("");
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [status, setStatus] = useState<"Draft" | "Selesai Survey" | "Menunggu Verifikasi" | "Perlu Revisi" | "Diverifikasi" | "Dikonversi">("Selesai Survey");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   // Auto-calculate Luas / Volume when panjang or lebar changes
@@ -117,6 +117,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
         if (prog.kecamatan) setKecamatan(prog.kecamatan);
         if (prog.desaKelurahan) setDesaKelurahan(prog.desaKelurahan);
         if (prog.detailLokasi) setDetailLokasi(prog.detailLokasi);
+        if (prog.satuan) setSatuan(prog.satuan);
         if (prog.kondisiJalan) {
           const k = prog.kondisiJalan;
           if (k === "Baik" || k === "Rusak Ringan" || k === "Rusak Sedang" || k === "Rusak Berat") {
@@ -150,11 +151,11 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     );
   };
 
-  // Photo upload handler
+  // Photo upload handler (object storage via presigned URL)
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validasi ukuran file maksimal 2MB (base64 ~2.7MB, aman untuk kolom TEXT)
+      // Validasi ukuran file maksimal 2MB
       const maxSize = 2 * 1024 * 1024;
       if (file.size > maxSize) {
         setErrorMessage(
@@ -162,12 +163,14 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
         );
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFotoUrl(reader.result as string);
-        setHasPhoto(true);
-      };
-      reader.readAsDataURL(file);
+      // Validasi tipe file
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      if (!allowedTypes.includes(file.type)) {
+        setErrorMessage("Tipe file foto tidak didukung. Gunakan JPG, PNG, WEBP, atau GIF.");
+        return;
+      }
+      setPhotoFile(file);
+      setErrorMessage("");
     }
   };
 
@@ -195,8 +198,8 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     setUraianTemuan("");
     setRekomendasi("");
     setStatus("Selesai Survey");
-    setFotoUrl("");
-    setHasPhoto(false);
+    setPhotoFile(null);
+    setUploadingPhoto(false);
     setErrorMessage("");
   };
 
@@ -223,9 +226,8 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
     setTingkatUrgensi(srv.tingkatUrgensi);
     setUraianTemuan(srv.uraianTemuan);
     setRekomendasi(srv.rekomendasi);
-    setStatus(srv.status === "Dikonversi" ? "Diverifikasi" : srv.status);
-    setFotoUrl(srv.fotoUrl || "");
-    setHasPhoto(!!srv.foto || !!srv.fotoUrl);
+    // Keep existing photo file state; do not clear it automatically
+    setStatus(srv.status);
     setErrorMessage("");
     setActiveTab("form");
   };
@@ -271,13 +273,12 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
       uraianTemuan: uraianTemuan.trim(),
       rekomendasi: rekomendasi.trim(),
       kontakPendamping: kontakPendamping.trim() || undefined,
-      foto: hasPhoto,
-      fotoUrl: fotoUrl || undefined,
+      foto: !!photoFile,
       status,
       createdAt: new Date().toISOString(),
     };
 
-    onSaveSurvey(newSurvey);
+    onSaveSurvey(newSurvey, photoFile ?? undefined);
     resetForm();
     setActiveTab("list");
   };
@@ -824,7 +825,10 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                     >
                       <option value="Selesai Survey">Selesai Survey (Data Lengkap)</option>
                       <option value="Draft">Draft (Belum Lengkap / Perlu Lanjutan)</option>
-                      <option value="Diverifikasi">Diverifikasi (Siap Masuk Usulan Rencana)</option>
+                      <option value="Menunggu Verifikasi">Menunggu Verifikasi (Siap Diperiksa Admin)</option>
+                      <option value="Perlu Revisi">Perlu Revisi (Perlu Perbaikan)</option>
+                      <option value="Diverifikasi">Diverifikasi (Disetujui Admin)</option>
+                      <option value="Dikonversi">Dikonversi (Sudah Jadi Program)</option>
                     </select>
                   </div>
                 </div>
@@ -861,8 +865,7 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setFotoUrl("https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=600&q=80");
-                        setHasPhoto(true);
+                        setPhotoFile(null);
                       }}
                       className="text-[11px] font-bold text-[#1E4E8C] underline hover:text-[#143965]"
                     >
@@ -872,12 +875,11 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setFotoUrl("https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=600&q=80");
-                        setHasPhoto(true);
+                        setPhotoFile(null);
                       }}
                       className="text-[11px] font-bold text-[#1E4E8C] underline hover:text-[#143965]"
                     >
-                      Saluran Drainase
+                      Kosongkan foto
                     </button>
                   </div>
                 </div>
@@ -887,19 +889,17 @@ export const SurveyView: React.FC<SurveyViewProps> = ({
                   <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
                     Pratinjau Bukti Visual
                   </label>
-                  {fotoUrl ? (
+                  {photoFile ? (
                     <div className="relative rounded-xl overflow-hidden border border-[#DCE5ED] bg-black/5 aspect-video max-h-48 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={fotoUrl}
+                        src={URL.createObjectURL(photoFile)}
                         alt="Pratinjau Survey Lapangan"
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          setFotoUrl("");
-                          setHasPhoto(false);
+                          setPhotoFile(null);
                         }}
                         className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white p-1 rounded-lg text-xs"
                         title="Hapus foto"

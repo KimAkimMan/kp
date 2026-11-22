@@ -9,6 +9,8 @@ export type CreateProgressInput = {
   satuan: string;
   keterangan: string;
   foto?: boolean;
+  storageKey?: string | null;
+  originalName?: string | null;
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
 };
 
@@ -56,6 +58,8 @@ export const programActions = {
           satuan: input.satuan,
           keterangan: input.keterangan,
           foto: input.foto ?? false,
+          storageKey: input.storageKey ?? null,
+          originalName: input.originalName ?? null,
           penginput: userName,
           inputById: userId,
           status: progressStatus,
@@ -74,6 +78,8 @@ export const programActions = {
           keterangan: input.keterangan,
           reportedById: userId,
           status: "DIAJUKAN",
+          storageKey: input.storageKey ?? null,
+          originalName: input.originalName ?? null,
         },
       });
       const updated = await tx.program.update({

@@ -142,6 +142,8 @@ export type CreateProgressInput = {
   satuan: string;
   keterangan: string;
   foto?: boolean;
+  storageKey?: string | null;
+  originalName?: string | null;
   status: ApiProgram["status"];
 };
 

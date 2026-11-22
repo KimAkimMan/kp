@@ -60,9 +60,66 @@ export const programApi = {
   claim(id: number) {
     return apiClient.post<ApiResponse<ApiProgram>>(`/programs/${id}/claim`);
   },
-  /** Menambahkan laporan progres pada program. */
-  addProgress(id: number, input: CreateProgressInput) {
-    return apiClient.post<ApiResponse<unknown>>(`/programs/${id}/progress`, input);
+  /** Menambahkan laporan progres pada program dengan opsional upload foto ke object storage. */
+  async addProgress(
+    id: number,
+    input: CreateProgressInput,
+    photoFiles?: File[],
+  ) {
+    let storageKeys: string[] = [];
+    let originalNames: string[] = [];
+
+    // Jika ada file foto, upload setiap file langsung ke object storage
+    if (photoFiles && photoFiles.length > 0) {
+      for (const photoFile of photoFiles) {
+        // 1. Minta presigned upload URL dari server
+        const presigned = await apiClient.post<ApiResponse<{
+          uploadUrl: string;
+          storageKey: string;
+          expiresAt: string;
+          expiresInSeconds: number;
+          contentType: string;
+        }>>(
+          `/programs/${id}/progress/presign`,
+          { originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
+        );
+        const { uploadUrl: presignedUrl, storageKey: sk } = presigned.data;
+        storageKeys.push(sk);
+        originalNames.push(photoFile.name);
+
+        // 2. Upload file langsung ke object storage (bypass server)
+        try {
+          const putResponse = await fetch(presignedUrl, {
+            method: "PUT",
+            body: photoFile,
+            headers: { "Content-Type": photoFile.type },
+          });
+          if (!putResponse.ok) {
+            const text = await putResponse.text().catch(() => "");
+            throw new Error(`Object storage PUT gagal (${putResponse.status}): ${text}`);
+          }
+        } catch (err) {
+          throw new Error(`Gagal mengupload foto progres ke object storage: ${err instanceof Error ? err.message : String(err)}`);
+        }
+
+        // 3. Beri tahu server bahwa upload selesai
+        await apiClient.post<ApiResponse<unknown>>(
+          `/programs/${id}/progress/complete`,
+          {
+            storageKey: sk,
+            originalName: photoFile.name,
+            mimeType: photoFile.type,
+            fileSize: photoFile.size,
+          },
+        );
+      }
+    }
+
+    return apiClient.post<ApiResponse<unknown>>(`/programs/${id}/progress`, {
+      ...input,
+      storageKey: storageKeys.length > 0 ? storageKeys[0] : null,
+      originalName: originalNames.length > 0 ? originalNames[0] : null,
+    });
   },
   /** Menambahkan biaya pada program. */
   addCost(id: number, input: CreateCostInput) {
@@ -76,6 +133,12 @@ export const programApi = {
   history(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/history`); },
   /** Mengambil daftar progres program. */
   progress(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/progress`); },
+  /** Ambil URL unduhan foto progres (presigned download URL). */
+  progressPhoto(progressId: number) {
+    return apiClient.get<ApiResponse<{ photo: { id: number; storageKey: string; originalName: string | null; tahap: string; tanggal: string }; downloadUrl: string; expiresAt: string; expiresInSeconds: number }>>(
+      `/programs/progress/photos/${encodeURIComponent(String(progressId))}/download`,
+    );
+  },
   /** Mengambil daftar biaya program. */
   costs(id: number) { return apiClient.get<ApiResponse<unknown[]>>(`/programs/${id}/costs`); },
   /** Mengambil penugasan operator untuk program. */
@@ -94,8 +157,34 @@ export const programApi = {
   verifyCost(id: number, input: { decision: "APPROVED" | "REJECTED"; rejectionReason?: string }) { return apiClient.patch<ApiResponse<unknown>>(`/costs/${id}`, input); },
   /** Mengambil daftar dokumen bukti biaya. */
   costDocuments(costId: number) { return apiClient.get<ApiResponse<unknown[]>>(`/costs/${costId}`); },
-  /** Mengunggah dokumen bukti biaya melalui multipart form. */
-  uploadCostDocument(costId: number, file: File) { const body = new FormData(); body.append("file", file); return apiClient.request<ApiResponse<unknown>>(`/costs/${costId}`, { method: "POST", body }); },
+  /** Mengunggah dokumen bukti biaya ke object storage langsung (bypass server). */
+  async uploadCostDocument(costId: number, file: File) {
+    // 1. Minta presigned upload URL dari server
+    const presigned = await apiClient.post<ApiResponse<{
+      uploadUrl: string;
+      storageKey: string;
+      expiresAt: string;
+      expiresInSeconds: number;
+      contentType: string;
+    }>>(
+      `/costs/${costId}/documents/presign`,
+      { originalName: file.name, mimeType: file.type, fileSize: file.size },
+    );
+    const { uploadUrl, storageKey } = presigned.data;
+
+    // 2. Upload file langsung ke object storage (bypass server)
+    await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+
+    // 3. Beri tahu server bahwa upload selesai
+    return apiClient.post<ApiResponse<unknown>>(
+      `/costs/${costId}/documents/complete`,
+      { storageKey, originalName: file.name, mimeType: file.type, fileSize: file.size },
+    );
+  },
   /** Menghapus dokumen bukti biaya berdasarkan ID dokumen. */
   removeCostDocument(costId: number, documentId: string) { return apiClient.delete<ApiResponse<unknown>>(`/costs/${costId}/documents/${encodeURIComponent(documentId)}`); },
 };

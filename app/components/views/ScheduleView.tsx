@@ -37,7 +37,7 @@ interface ScheduleViewProps {
     realisasi: number;
     catatan: string;
     hasPhoto: boolean;
-    fotoUrls?: string[];
+    photoFiles?: File[];
   }) => void;
   onMarkComplete: (program: Program, hasPhoto: boolean, fotoUrls?: string[]) => void;
   onNotify: (message: string, type?: "success" | "error") => void;
@@ -81,7 +81,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     program?.realisasi !== undefined ? String(program.realisasi) : "0"
   );
   const [updateNote, setUpdateNote] = useState(program?.catatan || "");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [progressError, setProgressError] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -104,18 +104,26 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       setProgressError("");
     }
 
-    const readers = filesToProcess.map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then((newPhotos) => {
-      setPhotos((prev) => [...prev, ...newPhotos].slice(0, 3));
+    // Validasi tipe file
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const invalidFiles = filesToProcess.filter((f) => !allowedTypes.includes(f.type));
+    if (invalidFiles.length > 0) {
+      setProgressError("Tipe file tidak didukung. Gunakan JPG, PNG, WEBP, atau GIF.");
       if (fileInputRef.current) fileInputRef.current.value = "";
-    });
+      return;
+    }
+
+    // Validasi ukuran file (maksimal 2MB per file)
+    const maxSize = 2 * 1024 * 1024;
+    const oversizedFiles = filesToProcess.filter((f) => f.size > maxSize);
+    if (oversizedFiles.length > 0) {
+      setProgressError("Salah satu foto terlalu besar (maksimal 2MB per foto).");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setPhotos((prev) => [...prev, ...filesToProcess].slice(0, 3));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -174,7 +182,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       realisasi: val,
       catatan: updateNote.trim(),
       hasPhoto: true,
-      fotoUrls: photos,
+      photoFiles: photos,
     });
   };
 
@@ -191,7 +199,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       return;
     }
 
-    onMarkComplete(program, true, photos);
+    onMarkComplete(program, true);
   };
 
   const handleDownloadPdf = async () => {
@@ -441,13 +449,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
               {/* Photo Previews */}
               {photos.length > 0 && (
                 <div className="grid grid-cols-3 gap-3 mb-3">
-                  {photos.map((src, index) => (
+                  {photos.map((file, index) => (
                     <div
                       key={index}
                       className="relative group rounded-xl overflow-hidden border-2 border-[#1E4E8C]/30 bg-[#F8FAFC] aspect-video sm:aspect-square flex items-center justify-center shadow-xs"
                     >
                       <img
-                        src={src}
+                        src={URL.createObjectURL(file)}
                         alt={`Preview foto ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

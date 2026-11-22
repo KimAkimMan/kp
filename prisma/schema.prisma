@@ -296,6 +296,8 @@ model ProgramHistory {
   satuan     String         @db.VarChar(191)
   keterangan String         @db.Text
   foto       Boolean        @default(false)
+  storageKey String?        @db.VarChar(512)
+  originalName String?     @db.VarChar(255)
   penginput  String         @db.VarChar(191)
   inputById  Int?
   inputBy    User?          @relation("HistoryInput", fields: [inputById], references: [id], onDelete: SetNull)
@@ -365,6 +367,8 @@ model ProgramProgress {
   status          ProgressStatus @default(DIAJUKAN)
   verifiedAt      DateTime?
   rejectionReason String?        @db.Text
+  storageKey      String?        @db.VarChar(512)
+  originalName    String?        @db.VarChar(255)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
@@ -405,7 +409,7 @@ model FieldSurvey {
   rekomendasi      String                @db.Text
   kontakPendamping String?               @db.VarChar(255)
   foto             Boolean               @default(false)
-  fotoUrl          String?               @db.Text
+  fotoUrl          String?   @db.LongText
   status           SurveyStatus
   submittedAt      DateTime?
   verifiedAt       DateTime?

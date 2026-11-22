@@ -80,10 +80,10 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
     foto: input.foto === undefined ? false : input.foto === true,
     fotoUrl: (() => {
       const url = optionalString(input, "fotoUrl");
-      if (url !== null && url !== undefined && url.length > 2000) {
+      if (url !== null && url !== undefined && url.length > 5_000_000) {
         throw new ApiError(
           "VALIDATION_ERROR",
-          "URL foto terlalu panjang (maksimal 2000 karakter).",
+          "URL foto terlalu panjang (maksimal 5MB teks).",
           400,
         );
       }

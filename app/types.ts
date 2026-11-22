@@ -137,6 +137,6 @@ export interface FieldSurvey {
   kontakPendamping?: string;
   foto?: boolean;
   fotoUrl?: string;
-  status: "Draft" | "Selesai Survey" | "Diverifikasi" | "Dikonversi";
+  status: "Draft" | "Selesai Survey" | "Menunggu Verifikasi" | "Perlu Revisi" | "Diverifikasi" | "Dikonversi";
   createdAt: string;
 }

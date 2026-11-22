@@ -67,4 +67,28 @@ export const programProgressRepository = {
       return updated;
     });
   },
+
+  async updatePhoto(progressId: number, storageKey: string, originalName: string | null) {
+    const progress = await this.findById(progressId);
+    return prisma.programProgress.update({
+      where: { id: progressId },
+      data: {
+        storageKey,
+        originalName,
+      },
+    });
+  },
+
+  async findPhotoByProgressId(progressId: number) {
+    return prisma.programProgress.findFirst({
+      where: { id: progressId, storageKey: { not: null } },
+      select: {
+        id: true,
+        storageKey: true,
+        originalName: true,
+        tahap: true,
+        tanggal: true,
+      },
+    });
+  },
 };

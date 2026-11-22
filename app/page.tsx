@@ -4,7 +4,8 @@ import React, { useCallback, useRef, useState, useEffect } from "react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey } from "./types";
 import { SurveyStatus } from "@/generated/prisma/enums";
 import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
-import { ApiClientError, adviceApi, authApi, programApi, surveyApi, userApi } from "@/lib/api";
+import { ApiClientError, adviceApi, authApi, programApi, surveyApi, userApi, apiClient } from "@/lib/api";
+import type { ApiResponse } from "@/lib/api/client";
 import {
   mapApiAdviceToAdvice,
   mapApiProgramToProgram,
@@ -190,7 +191,7 @@ export default function Home() {
     useState<Program | null>(null);
 
   // Save / Update Survey Lapangan
-  const handleSaveSurvey = async (survey: FieldSurvey) => {
+  const handleSaveSurvey = async (survey: FieldSurvey, photoFile?: File) => {
     const kondisiMap: Record<FieldSurvey["kondisi"], "BAIK" | "RUSAK_RINGAN" | "RUSAK_SEDANG" | "RUSAK_BERAT"> = {
       Baik: "BAIK",
       "Rusak Ringan": "RUSAK_RINGAN",
@@ -239,17 +240,29 @@ export default function Home() {
       rekomendasi: survey.rekomendasi,
       kontakPendamping: survey.kontakPendamping,
       foto: survey.foto,
-      fotoUrl: survey.fotoUrl,
       status: statusStringToSurveyStatus[survey.status] ?? SurveyStatus.MENUNGGU_VERIFIKASI,
     };
     try {
       const exists = surveys.some((s) => s.id === survey.id);
+      let createdSurvey: { id: string } | null = null;
       if (exists) {
         await surveyApi.update(survey.id, input);
         showToast(`Data survey ${survey.kodeSurvey} berhasil diperbarui.`);
+        createdSurvey = { id: survey.id };
       } else {
-        await surveyApi.create(input);
+        const response = await surveyApi.create(input);
+        createdSurvey = response.data;
         showToast(`Survey lapangan ${survey.kodeSurvey} berhasil disimpan!`);
+      }
+      // Upload foto ke object storage jika ada file foto
+      if (createdSurvey && photoFile) {
+        try {
+          await surveyApi.uploadPhoto(createdSurvey.id, photoFile);
+          showToast("Foto survey berhasil diupload ke object storage.");
+        } catch (uploadError) {
+          const msg = uploadError instanceof Error ? uploadError.message : "Gagal mengupload foto.";
+          showToast(`Survey tersimpan, tetapi ${msg}`, "error");
+        }
       }
       await refreshSurveys();
     } catch (error) {
@@ -567,15 +580,83 @@ export default function Home() {
     catatan: string;
     hasPhoto: boolean;
     fotoUrls?: string[];
+    photoFiles?: File[];
   }) => {
     try {
+      const program = programs.find((p) => p.id === selectedProgramId);
+      if (!program) {
+        showToast("Program tidak ditemukan.", "error");
+        return;
+      }
+
+      // Upload semua foto ke object storage terlebih dahulu, kumpulkan storageKey
+      let firstStorageKey: string | null = null;
+      let firstOriginalName: string | null = null;
+
+      if (progressData.photoFiles && progressData.photoFiles.length > 0) {
+        for (const photoFile of progressData.photoFiles) {
+          // 1. Minta presigned upload URL dari server
+          const presigned = await apiClient.post<ApiResponse<{
+            uploadUrl: string;
+            storageKey: string;
+            expiresAt: string;
+            expiresInSeconds: number;
+            contentType: string;
+          }>>(
+            `/programs/${selectedProgramId}/progress/presign`,
+            { originalName: photoFile.name, mimeType: photoFile.type, fileSize: photoFile.size },
+          );
+          const { uploadUrl, storageKey } = presigned.data;
+
+          // Simpan storageKey pertama untuk referensi di database
+          if (!firstStorageKey) {
+            firstStorageKey = storageKey;
+            firstOriginalName = photoFile.name;
+          }
+
+          // 2. Upload file langsung ke object storage (bypass server)
+          try {
+            const putResponse = await fetch(uploadUrl, {
+              method: "PUT",
+              body: photoFile,
+              headers: { "Content-Type": photoFile.type },
+            });
+            if (!putResponse.ok) {
+              const text = await putResponse.text().catch(() => "");
+              throw new Error(`Object storage PUT gagal (${putResponse.status}): ${text}`);
+            }
+          } catch (err) {
+            showToast(
+              `Gagal mengupload foto progres: ${err instanceof Error ? err.message : String(err)}`,
+              "error",
+            );
+            return;
+          }
+
+          // 3. Beri tahu server bahwa upload selesai
+          await apiClient.post<ApiResponse<unknown>>(
+            `/programs/${selectedProgramId}/progress/complete`,
+            {
+              storageKey,
+              originalName: photoFile.name,
+              mimeType: photoFile.type,
+              fileSize: photoFile.size,
+            },
+          );
+        }
+        showToast(`${progressData.photoFiles.length} foto progres berhasil diupload ke object storage.`);
+      }
+
+      // 4. Simpan progres ke database (jangan melewatkan photoFiles lagi agar tidak double upload)
       await programApi.addProgress(selectedProgramId, {
         tanggal: progressData.tanggal,
         tahap: progressData.tahap,
         nilai: progressData.realisasi,
-        satuan: programs.find((p) => p.id === selectedProgramId)?.satuan || "Unit",
+        satuan: program.satuan || "Unit",
         keterangan: progressData.catatan,
         foto: progressData.hasPhoto,
+        storageKey: firstStorageKey,
+        originalName: firstOriginalName,
         status:
           progressData.status === "Selesai Dikerjakan"
             ? "SELESAI_DIKERJAKAN"

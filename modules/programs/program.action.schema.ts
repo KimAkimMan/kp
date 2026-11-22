@@ -15,6 +15,8 @@ export function parseProgressInput(body: unknown): CreateProgressInput {
     satuan: requiredString(input, "satuan"),
     keterangan: requiredString(input, "keterangan"),
     foto: input.foto === undefined ? false : input.foto === true,
+    storageKey: typeof input.storageKey === "string" ? input.storageKey : null,
+    originalName: typeof input.originalName === "string" ? input.originalName : null,
     status: status as CreateProgressInput["status"],
   };
 }

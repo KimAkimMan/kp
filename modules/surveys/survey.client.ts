@@ -104,7 +104,56 @@ export const surveyApi = {
    * @param input - Metadata opsional (caption, latitude, longitude)
    * @returns Promise berisi `data` foto yang diupload
    */
-  uploadPhoto(id: string, file: File, input?: { caption?: string; latitude?: number; longitude?: number }) { const body = new FormData(); body.append("file", file); if (input?.caption) body.append("caption", input.caption); if (input?.latitude !== undefined) body.append("latitude", String(input.latitude)); if (input?.longitude !== undefined) body.append("longitude", String(input.longitude)); return apiClient.request<ApiResponse<unknown>>(`/surveys/${encodeURIComponent(id)}/photos`, { method: "POST", body }); },
+  async uploadPhoto(id: string, file: File, input?: { caption?: string; latitude?: number; longitude?: number }) {
+    try {
+      // 1. Minta presigned upload URL dari server (tidak mengirim file lewat server)
+      const presigned = await apiClient.post<ApiResponse<{
+        uploadUrl: string;
+        storageKey: string;
+        expiresAt: string;
+        expiresInSeconds: number;
+        contentType: string;
+      }>>(
+        `/surveys/${encodeURIComponent(id)}/photos/presign`,
+        { originalName: file.name, mimeType: file.type, fileSize: file.size },
+      );
+      const { uploadUrl, storageKey } = presigned.data;
+
+      // 2. Upload file langsung ke object storage (bypass server)
+      try {
+        const putResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+        if (!putResponse.ok) {
+          const text = await putResponse.text().catch(() => "");
+          throw new Error(`Object storage PUT gagal (${putResponse.status}): ${text}`);
+        }
+      } catch (err) {
+        throw new Error(`Gagal mengupload file ke object storage: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // 3. Beri tahu server bahwa upload selesai, simpan metadata ke database
+      return apiClient.post<ApiResponse<unknown>>(
+        `/surveys/${encodeURIComponent(id)}/photos/complete`,
+        {
+          storageKey,
+          originalName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          caption: input?.caption ?? null,
+          latitude: input?.latitude ?? null,
+          longitude: input?.longitude ?? null,
+        },
+      );
+    } catch (err) {
+      if (err instanceof Error) {
+        throw new Error(`Upload foto gagal: ${err.message}`);
+      }
+      throw new Error("Upload foto gagal: kesalahan tidak diketahui");
+    }
+  },
 
   /**
    * Hapus foto survey.
