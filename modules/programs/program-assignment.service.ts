@@ -1,19 +1,20 @@
 import { programAssignmentRepository } from "./program-assignment.repository";
 import type { ProgramAssignmentInput, ProgramAssignmentUpdateInput } from "./program-assignment.repository";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 export const programAssignmentService = {
   async list(programId: number, user: AuthenticatedUser) {
     // Hanya Admin dan Operator yang dapat melihat assignment
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat assignment.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat assignment.", 403);
     }
     return programAssignmentRepository.list(programId);
   },
 
   async create(programId: number, input: ProgramAssignmentInput, user: AuthenticatedUser) {
     if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat menugaskan operator.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat menugaskan operator.", 403);
     }
     return programAssignmentRepository.create(programId, {
       ...input,
@@ -25,21 +26,21 @@ export const programAssignmentService = {
     return programAssignmentRepository.accept(assignmentId, operatorId);
   },
 
-  async release(assignmentId: number, operatorId: number, isAdmin: boolean) {
-    return programAssignmentRepository.release(assignmentId, operatorId, isAdmin);
+  async release(assignmentId: number, operatorId: number, isAdmin: boolean, programId?: number) {
+    return programAssignmentRepository.release(assignmentId, operatorId, isAdmin, programId);
   },
 
   async update(assignmentId: number, input: ProgramAssignmentUpdateInput, user: AuthenticatedUser) {
     if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat mengubah assignment.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat mengubah assignment.", 403);
     }
     return programAssignmentRepository.update(assignmentId, input);
   },
 
-  async delete(assignmentId: number, user: AuthenticatedUser) {
+  async delete(assignmentId: number, user: AuthenticatedUser, programId?: number) {
     if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat menghapus assignment.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat menghapus assignment.", 403);
     }
-    return programAssignmentRepository.delete(assignmentId);
+    return programAssignmentRepository.delete(assignmentId, programId);
   },
 };

@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 export const programProgressService = {
   async list(programId: number, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat progress.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat progress.", 403);
     }
     return programProgressRepository.list(programId);
   },
@@ -18,7 +18,7 @@ export const programProgressService = {
     rejectionReason?: string,
   ) {
     if (user.role !== "ADMIN") {
-      throw new Error("Hanya Admin yang dapat memverifikasi progres.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat memverifikasi progres.", 403);
     }
     return programProgressRepository.verify(progressId, decision, user.id, rejectionReason);
   },
@@ -29,7 +29,7 @@ export const programProgressService = {
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat mengunggah foto progres.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
     return presignDirectUpload(`progress/${progressId}/photos`, input, "image");
   },
@@ -40,7 +40,7 @@ export const programProgressService = {
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat mengunggah foto progres.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
     // Hanya verifikasi upload ke object storage. Penyimpanan storageKey ke database
     // dilakukan oleh addProgress setelah progress record dibuat.
@@ -50,7 +50,7 @@ export const programProgressService = {
 
   async download(progressId: number, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR" && user.role !== "PIMPINAN") {
-      throw new Error("Hanya Admin, Operator, dan Pimpinan yang dapat melihat foto progres.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin, Operator, dan Pimpinan yang dapat melihat foto progres.", 403);
     }
     const photo = await programProgressRepository.findPhotoByProgressId(progressId);
     if (!photo) throw new ApiError("PROGRESS_PHOTO_NOT_FOUND", "Foto progres tidak ditemukan.", 404);

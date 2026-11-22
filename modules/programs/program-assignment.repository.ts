@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ProgramAssignmentStatus } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/http/api-error";
+import { publicUserSelect } from "../auth/auth.repository";
 
 export type ProgramAssignmentInput = {
   operatorId: number;
@@ -45,6 +46,15 @@ export const programAssignmentRepository = {
     });
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
 
+    // Validasi target user adalah Operator aktif
+    const operator = await prisma.user.findFirst({
+      where: { id: input.operatorId, role: "OPERATOR", isActive: true, deletedAt: null },
+      select: publicUserSelect,
+    });
+    if (!operator) {
+      throw new ApiError("OPERATOR_NOT_FOUND", "Operator tidak ditemukan atau tidak aktif.", 404);
+    }
+
     // Cek apakah operator sudah memiliki assignment aktif
     const existing = await prisma.programAssignment.findFirst({
       where: {
@@ -61,24 +71,50 @@ export const programAssignmentRepository = {
       );
     }
 
-    return prisma.programAssignment.create({
-      data: {
-        programId,
-        operatorId: input.operatorId,
-        assignedById: input.assignedById,
-        status: ProgramAssignmentStatus.DITUGASKAN,
-        notes: input.notes ?? null,
-        assignedAt: new Date(),
-      },
-      include: {
-        operator: { select: { id: true, nama: true, email: true, role: true } },
-        assignedBy: { select: { id: true, nama: true, role: true } },
-      },
+    return prisma.$transaction(async (tx) => {
+      const assignment = await tx.programAssignment.create({
+        data: {
+          programId,
+          operatorId: input.operatorId,
+          assignedById: input.assignedById,
+          status: ProgramAssignmentStatus.DITUGASKAN,
+          notes: input.notes ?? null,
+          assignedAt: new Date(),
+        },
+        include: {
+          operator: { select: publicUserSelect },
+          assignedBy: { select: publicUserSelect },
+        },
+      });
+
+      // Sinkronkan operatorPengelolaId ke Program saat ditugaskan
+      await tx.program.update({
+        where: { id: programId },
+        data: {
+          operatorPengelolaId: input.operatorId,
+          operatorPengelola: operator.nama,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: input.assignedById ?? 0,
+          action: "CREATE",
+          entity: "ProgramAssignment",
+          entityId: String(assignment.id),
+          details: { programId, operatorId: input.operatorId },
+        },
+      });
+
+      return assignment;
     });
   },
 
-  async update(id: number, input: ProgramAssignmentUpdateInput) {
+  async update(id: number, input: ProgramAssignmentUpdateInput, programId?: number) {
     const assignment = await this.findById(id);
+    if (programId !== undefined && assignment.programId !== programId) {
+      throw new ApiError("ASSIGNMENT_NOT_FOUND", "Assignment tidak milik program ini.", 404);
+    }
     return prisma.programAssignment.update({
       where: { id },
       data: {
@@ -88,14 +124,26 @@ export const programAssignmentRepository = {
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       },
       include: {
-        operator: { select: { id: true, nama: true, email: true, role: true } },
-        assignedBy: { select: { id: true, nama: true, role: true } },
+        operator: { select: publicUserSelect },
+        assignedBy: { select: publicUserSelect },
       },
     });
   },
 
-  async delete(id: number) {
-    await this.findById(id);
+  async delete(id: number, programId?: number) {
+    const assignment = await this.findById(id);
+    if (programId !== undefined && assignment.programId !== programId) {
+      throw new ApiError("ASSIGNMENT_NOT_FOUND", "Assignment tidak milik program ini.", 404);
+    }
+    await prisma.auditLog.create({
+      data: {
+        userId: 0,
+        action: "DELETE",
+        entity: "ProgramAssignment",
+        entityId: String(id),
+        details: { programId: assignment.programId, operatorId: assignment.operatorId },
+      },
+    });
     return prisma.programAssignment.delete({ where: { id } });
   },
 
@@ -111,34 +159,74 @@ export const programAssignmentRepository = {
         409,
       );
     }
-    return prisma.programAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        status: ProgramAssignmentStatus.DITERIMA,
-        acceptedAt: new Date(),
-      },
-      include: {
-        operator: { select: { id: true, nama: true, email: true, role: true } },
-        assignedBy: { select: { id: true, nama: true, role: true } },
-      },
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.programAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          status: ProgramAssignmentStatus.DITERIMA,
+          acceptedAt: new Date(),
+        },
+        include: {
+          operator: { select: publicUserSelect },
+          assignedBy: { select: publicUserSelect },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: operatorId,
+          action: "ACCEPT",
+          entity: "ProgramAssignment",
+          entityId: String(assignmentId),
+          details: { programId: assignment.programId, operatorId: assignment.operatorId },
+        },
+      });
+
+      return updated;
     });
   },
 
-  async release(assignmentId: number, operatorId: number, isAdmin: boolean) {
+  async release(assignmentId: number, operatorId: number, isAdmin: boolean, programId?: number) {
     const assignment = await this.findById(assignmentId);
+    if (programId !== undefined && assignment.programId !== programId) {
+      throw new ApiError("ASSIGNMENT_NOT_FOUND", "Assignment tidak milik program ini.", 404);
+    }
     if (!isAdmin && assignment.operatorId !== operatorId) {
       throw new ApiError("FORBIDDEN", "Anda bukan operator yang ditugaskan.", 403);
     }
-    return prisma.programAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        status: ProgramAssignmentStatus.DILEPAS,
-        releasedAt: new Date(),
-      },
-      include: {
-        operator: { select: { id: true, nama: true, email: true, role: true } },
-        assignedBy: { select: { id: true, nama: true, role: true } },
-      },
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.programAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          status: ProgramAssignmentStatus.DILEPAS,
+          releasedAt: new Date(),
+        },
+        include: {
+          operator: { select: publicUserSelect },
+          assignedBy: { select: publicUserSelect },
+        },
+      });
+
+      // Kosongkan operatorPengelolaId pada Program jika assignment ini yang aktif
+      const program = await tx.program.findFirst({ where: { id: assignment.programId, deletedAt: null } });
+      if (program && program.operatorPengelolaId === assignment.operatorId) {
+        await tx.program.update({
+          where: { id: assignment.programId },
+          data: { operatorPengelolaId: null, operatorPengelola: null },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: operatorId,
+          action: "RELEASE",
+          entity: "ProgramAssignment",
+          entityId: String(assignmentId),
+          details: { programId: assignment.programId, operatorId: assignment.operatorId },
+        },
+      });
+
+      return updated;
     });
   },
 };

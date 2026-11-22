@@ -14,7 +14,7 @@ export const programCostService = {
 
   async list(programId: number, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat biaya.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat biaya.", 403);
     }
     return programCostRepository.list(programId);
   },
@@ -25,8 +25,8 @@ export const programCostService = {
     user: AuthenticatedUser,
     rejectionReason?: string,
   ) {
-    if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat memverifikasi biaya.");
+    if (user.role !== "ADMIN") {
+      throw new ApiError("FORBIDDEN", "Hanya Admin yang dapat memverifikasi biaya.", 403);
     }
     return programCostRepository.verify(costId, decision, user.id, rejectionReason);
   },
@@ -41,7 +41,7 @@ export const programCostService = {
 
   async presignDirect(costId: number, input: DirectUploadInput, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat menambahkan dokumen biaya.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat menambahkan dokumen biaya.", 403);
     }
     await this.assertCanManage(costId, user);
     return presignDirectUpload(`costs/${costId}/documents`, input, "document");
@@ -53,7 +53,7 @@ export const programCostService = {
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat menambahkan dokumen biaya.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat menambahkan dokumen biaya.", 403);
     }
     await this.assertCanManage(costId, user);
     await completeDirectUpload(`costs/${costId}/documents`, input, "document");
@@ -62,7 +62,7 @@ export const programCostService = {
 
   async download(costId: number, documentId: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat dokumen biaya.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat dokumen biaya.", 403);
     }
     const document = await programCostRepository.findDocumentById(documentId);
     if (document.costId !== costId) {

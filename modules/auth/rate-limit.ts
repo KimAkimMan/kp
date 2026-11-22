@@ -7,8 +7,15 @@ const WINDOW_MS = 60 * 60 * 1000;
 const MAX_FAILURES = 5;
 const entries = new Map<string, Entry>();
 
+// CATATAN KEAMANAN: x-forwarded-for dapat dipalsukan klien. Header ini hanya
+// aman dipakai jika aplikasi berjalan di balik reverse proxy tepercaya yang
+// sudah menyaring/menimpa x-forwarded-for dengan IP socket sebenarnya.
+// Jika berjalan langsung di internet tanpa proxy tepercaya, gunakan IP socket
+// asli daripada header ini.
 function key(request: NextRequest, email: string): string {
-  return `${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}:${email}`;
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ua = request.headers.get("user-agent") ?? "unknown";
+  return `${forwarded}:${ua}:${email.toLowerCase()}`;
 }
 
 export const loginRateLimiter = {

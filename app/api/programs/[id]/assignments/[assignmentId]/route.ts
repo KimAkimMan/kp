@@ -4,6 +4,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePositiveId } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string; assignmentId: string }> };
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest, context: Context) {
 export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const { assignmentId } = await context.params;
+      const { id, assignmentId } = await context.params;
       const user = await requireUser();
       const assignmentIdNum = parsePositiveId(assignmentId);
       const body = await request.json();
@@ -36,24 +37,26 @@ export async function PATCH(request: NextRequest, context: Context) {
       if (user.role === "OPERATOR") {
         // Operator hanya dapat release assignment miliknya
         if (action !== "release") {
-          throw new Error("Operator hanya dapat melepass assignment.");
+          throw new ApiError("FORBIDDEN", "Operator hanya dapat melepass assignment.", 403);
         }
         const result = await programAssignmentService.release(
           assignmentIdNum,
           user.id,
           false,
+          parsePositiveId(id),
         );
         return successResponse(result);
       }
 
       // Admin dapat release
       if (action !== "release") {
-        throw new Error("Action tidak valid.");
+        throw new ApiError("VALIDATION_ERROR", "Action tidak valid.", 400);
       }
       const result = await programAssignmentService.release(
         assignmentIdNum,
         user.id,
         true,
+        parsePositiveId(id),
       );
       return successResponse(result);
     },
@@ -66,10 +69,11 @@ export async function DELETE(_request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
-      const { assignmentId } = await context.params;
+      const { id, assignmentId } = await context.params;
       const result = await programAssignmentService.delete(
         parsePositiveId(assignmentId),
         user,
+        parsePositiveId(id),
       );
       return successResponse(result);
     },

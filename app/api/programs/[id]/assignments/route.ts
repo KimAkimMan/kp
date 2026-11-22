@@ -5,6 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePositiveId } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest, context: Context) {
       const { operatorId, notes } = body;
 
       if (!operatorId || typeof operatorId !== "number") {
-        throw new Error("operatorId wajib diisi.");
+        throw new ApiError("VALIDATION_ERROR", "operatorId wajib diisi.", 400);
       }
 
       const result = await programAssignmentService.create(

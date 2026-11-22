@@ -16,7 +16,7 @@ export const surveyPhotoService = {
 
   async list(surveyId: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat foto survey.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat foto survey.", 403);
     }
     await this.assertCanManage(surveyId, user);
     return surveyPhotoRepository.list(surveyId);
@@ -24,7 +24,7 @@ export const surveyPhotoService = {
 
   async addPhoto(surveyId: string, input: Omit<SurveyPhotoInput, "surveyId">, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat menambahkan foto.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat menambahkan foto.", 403);
     }
     await this.assertCanManage(surveyId, user);
     return surveyPhotoRepository.addPhoto({
@@ -36,7 +36,7 @@ export const surveyPhotoService = {
 
   async presignDirect(surveyId: string, input: DirectUploadInput, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat menambahkan foto.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat menambahkan foto.", 403);
     }
     await this.assertCanManage(surveyId, user);
     return presignDirectUpload(`surveys/${surveyId}/photos`, input, "image");
@@ -48,7 +48,7 @@ export const surveyPhotoService = {
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat menambahkan foto.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat menambahkan foto.", 403);
     }
     await this.assertCanManage(surveyId, user);
     await completeDirectUpload(`surveys/${surveyId}/photos`, input, "image");
@@ -57,7 +57,7 @@ export const surveyPhotoService = {
 
   async download(id: string, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
-      throw new Error("Hanya Admin dan Operator yang dapat melihat foto survey.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat foto survey.", 403);
     }
     const photo = await surveyPhotoRepository.findById(id);
     if (user.role === "OPERATOR") {
@@ -72,7 +72,7 @@ export const surveyPhotoService = {
   async deletePhoto(id: string, user: AuthenticatedUser) {
     const photo = await surveyPhotoRepository.findById(id);
     if (user.role !== "ADMIN" && photo.uploadedById !== user.id) {
-      throw new Error("Hanya Admin atau pemilik foto yang dapat menghapus.");
+      throw new ApiError("FORBIDDEN", "Hanya Admin atau pemilik foto yang dapat menghapus.", 403);
     }
     return surveyPhotoRepository.deletePhoto(id, user.id);
   },

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { SurveyInput } from "./survey.types";
 import { prisma } from "@/lib/prisma";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { publicUserSelect } from "../auth/auth.repository";
 
 function generateKodeSurvey(): string {
   const now = new Date();
@@ -47,7 +48,7 @@ export const surveyService = {
   },
 
   async update(id: string, input: Partial<SurveyInput>, user?: AuthenticatedUser) {
-    const survey = await this.get(id);
+    const survey = await this.get(id, user);
     if (user?.role === "OPERATOR" && survey.surveyorId !== user.id) {
       throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah survey operator lain.", 403);
     }
@@ -60,7 +61,25 @@ export const surveyService = {
     if (survey.status === "DIVERIFIKASI" || survey.status === "DIKONVERSI") {
       throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat diubah.", 409);
     }
-    return surveyRepository.update(id, input);
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.fieldSurvey.update({
+        where: { id },
+        data: input as any,
+        include: { program: true, surveyorUser: { select: publicUserSelect } },
+      });
+      if (input.status !== undefined && input.status !== survey.status) {
+        await tx.surveyStatusHistory.create({
+          data: {
+            surveyId: id,
+            fromStatus: survey.status,
+            toStatus: input.status,
+            changedById: user?.id ?? null,
+            reason: input.status === "PERLU_REVISI" ? "Permintaan revisi dari admin" : undefined,
+          },
+        });
+      }
+      return updated;
+    });
   },
 
   async remove(id: string) {
@@ -168,6 +187,15 @@ export const surveyService = {
       await tx.fieldSurvey.update({
         where: { id },
         data: { programId: program.id, status: "DIKONVERSI" },
+      });
+      await tx.surveyStatusHistory.create({
+        data: {
+          surveyId: id,
+          fromStatus: survey.status,
+          toStatus: "DIKONVERSI",
+          changedById: createdById ?? null,
+          reason: "Konversi survey menjadi program",
+        },
       });
       await tx.surveyProgramLink.create({
         data: {

@@ -4,6 +4,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole } from "@/modules/auth/auth.context";
 import { parsePositiveId } from "@/lib/http/request";
 import { programProgressRepository } from "@/modules/programs/program-progress.repository";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ progressId: string }> };
 
@@ -16,7 +17,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       const { decision, rejectionReason } = body;
 
       if (!decision || !["APPROVED", "REJECTED"].includes(decision)) {
-        throw new Error("Decision harus 'APPROVED' atau 'REJECTED'.");
+        throw new ApiError("VALIDATION_ERROR", "Decision harus 'APPROVED' atau 'REJECTED'.", 400);
       }
 
       const result = await programProgressRepository.verify(

@@ -53,6 +53,21 @@ export const programProgressRepository = {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId: reviewerId,
+          action: decision === "APPROVED" ? "APPROVE" : "REJECT",
+          entity: "ProgramProgress",
+          entityId: String(progressId),
+          details: {
+            programId: progress.programId,
+            fromStatus: progress.status,
+            toStatus: decision === "APPROVED" ? ProgressStatus.DIVERIFIKASI : ProgressStatus.DITOLAK,
+            rejectionReason: decision === "REJECTED" ? rejectionReason : null,
+          },
+        },
+      });
+
       return updated;
     });
   },
