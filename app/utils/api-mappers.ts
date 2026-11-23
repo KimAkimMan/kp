@@ -121,6 +121,9 @@ export function mapApiProgramToProgram(p: Record<string, unknown>): Program {
         })
       : [],
     costs: Array.isArray(p.costs) ? (p.costs as Program["costs"]) : [],
+    assignments: Array.isArray(p.assignments)
+      ? (p.assignments as Program["assignments"])
+      : [],
   };
 }
 

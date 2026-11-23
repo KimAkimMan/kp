@@ -50,6 +50,9 @@ export default function Home() {
     handleViewMasterActivity,
     handleNavigateSchedulePage,
     handleClaimProgram,
+    handleAcceptAssignment,
+    handleReleaseAssignment,
+    handleDeleteAssignment,
     handleSaveUser,
     handleDeleteUser,
     handleDeleteActivity,
@@ -170,6 +173,9 @@ export default function Home() {
               onOpenScheduleModal={(p: Program) => { setTargetProgramForSchedule(p); setScheduleModalOpen(true); }}
               onClaimProgram={handleClaimProgram}
               onNavigateSchedulePage={handleNavigateSchedulePage}
+              onAcceptAssignment={handleAcceptAssignment}
+              onReleaseAssignment={handleReleaseAssignment}
+              onDeleteAssignment={handleDeleteAssignment}
             />
           )}
 

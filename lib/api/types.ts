@@ -50,6 +50,19 @@ export type ApiProgram = {
   penggunaan?: number;
   status: "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN";
   updatedAt: string;
+  assignments?: Array<{
+    id: number;
+    programId: number;
+    operatorId: number;
+    operator: { id: number; nama: string; email: string; role: string };
+    assignedBy?: { id: number; nama: string; role: string } | null;
+    assignedById?: number | null;
+    status: "DITUGASKAN" | "DITERIMA" | "DILEPAS";
+    notes?: string | null;
+    assignedAt: string;
+    acceptedAt: string | null;
+    releasedAt: string | null;
+  }>;
 };
 
 export type PublicProgram = {

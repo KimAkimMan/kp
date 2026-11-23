@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, RotateCcw, Eye, Edit3, Lock } from "lucide-react";
+import { Search, RotateCcw, Eye, Edit3, Lock, Plus, CheckCircle2, X } from "lucide-react";
 import { Program, User } from "../../types";
 import {
   calculateSummary,
@@ -26,6 +26,9 @@ interface ProgramsViewProps {
   onOpenScheduleModal: (p: Program) => void;
   onClaimProgram: (id: number) => void;
   onNavigateSchedulePage: (id: number) => void;
+  onAcceptAssignment: (programId: number, assignmentId: number) => void;
+  onReleaseAssignment: (programId: number, assignmentId: number) => void;
+  onDeleteAssignment: (programId: number, assignmentId: number) => void;
 }
 
 export const ProgramsView: React.FC<ProgramsViewProps> = ({
@@ -35,6 +38,9 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
   onOpenScheduleModal,
   onClaimProgram,
   onNavigateSchedulePage,
+  onAcceptAssignment,
+  onReleaseAssignment,
+  onDeleteAssignment,
 }) => {
   const isOperator = currentUser.role === "Operator";
 
@@ -322,7 +328,92 @@ export const ProgramsView: React.FC<ProgramsViewProps> = ({
                             <Eye className="w-3.5 h-3.5" /> Lihat
                           </button>
 
-                          {isOperator && (
+                          {/* Assignment management */}
+                          {(() => {
+                            const activeAssignment = p.assignments?.find(
+                              (a) =>
+                                a.status === "DITUGASKAN" ||
+                                a.status === "DITERIMA"
+                            );
+                            if (!activeAssignment) return null;
+
+                            const isAssignedToMe =
+                              activeAssignment.operatorId === currentUser.id;
+
+                            // Admin: hapus assignment
+                            if (currentUser.role === "Admin") {
+                              return (
+                                <button
+                                  onClick={() =>
+                                    onDeleteAssignment(
+                                      p.id,
+                                      activeAssignment.id
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#FDEEED] text-[#BD493B] hover:bg-[#F8C8C4] transition shadow-xs"
+                                  title="Hapus penugasan operator"
+                                >
+                                  <X className="w-3.5 h-3.5" /> Hapus
+                                </button>
+                              );
+                            }
+
+                            // Operator: terima atau lepas assignment
+                            if (currentUser.role === "Operator") {
+                              if (activeAssignment.status === "DITUGASKAN") {
+                                if (isAssignedToMe) {
+                                  return (
+                                    <button
+                                      onClick={() =>
+                                        onAcceptAssignment(
+                                          p.id,
+                                          activeAssignment.id
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#E7F6ED] text-[#258050] hover:bg-[#D4EFE0] transition shadow-xs"
+                                      title="Terima penugasan kegiatan ini"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Terima
+                                    </button>
+                                  );
+                                }
+                                // Ditugaskan kepada operator lain
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#65778B] bg-[#F1F5F9] px-2 py-1 rounded-md"
+                                  >
+                                    <Plus className="w-3 h-3" /> Menunggu diterima
+                                  </span>
+                                );
+                              }
+
+                              if (
+                                activeAssignment.status === "DITERIMA" &&
+                                isAssignedToMe
+                              ) {
+                                return (
+                                  <button
+                                    onClick={() =>
+                                      onReleaseAssignment(
+                                        p.id,
+                                        activeAssignment.id
+                                    )
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#FFF3E8] text-[#BD6C1E] hover:bg-[#FCDDC0] transition shadow-xs"
+                                    title="Lepas penugasan kegiatan ini"
+                                  >
+                                    <X className="w-3.5 h-3.5" /> Lepas
+                                  </button>
+                                );
+                              }
+                            }
+
+                            return null;
+                          })()}
+
+                          {isOperator && !p.assignments?.some(
+                            (a) => a.status === "DITUGASKAN" || a.status === "DITERIMA"
+                          ) && (
                             <>
                               {isLocked ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#258050] bg-[#E7F6ED] px-2 py-1 rounded-md">

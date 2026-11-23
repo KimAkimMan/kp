@@ -66,6 +66,9 @@ export interface UseAppStateReturn {
   handleViewMasterActivity: (id: number) => void;
   handleNavigateSchedulePage: (id: number) => void;
   handleClaimProgram: (id: number) => Promise<void>;
+  handleAcceptAssignment: (programId: number, assignmentId: number) => Promise<void>;
+  handleReleaseAssignment: (programId: number, assignmentId: number) => Promise<void>;
+  handleDeleteAssignment: (programId: number, assignmentId: number) => Promise<void>;
   handleSaveUser: (userData: Partial<User>) => Promise<void>;
   handleDeleteUser: (user: User) => Promise<void>;
   handleDeleteActivity: (program: Program) => Promise<void>;
@@ -351,6 +354,40 @@ export function useAppState(): UseAppStateReturn {
       setScheduleModalOpen(true);
     } catch (error) {
       showToast(error instanceof ApiClientError ? error.message : "Kegiatan gagal diambil.", "error");
+    }
+  };
+
+  const handleAcceptAssignment = async (programId: number, assignmentId: number) => {
+    if (!currentUser || currentUser.role !== "Operator") return;
+    try {
+      await programApi.acceptAssignment(programId, assignmentId);
+      await refreshPrograms();
+      showToast("Penugasan diterima. Anda dapat mengedit kegiatan ini.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Gagal menerima penugasan.", "error");
+    }
+  };
+
+  const handleReleaseAssignment = async (programId: number, assignmentId: number) => {
+    if (!currentUser) return;
+    try {
+      await programApi.releaseAssignment(programId, assignmentId);
+      await refreshPrograms();
+      showToast("Penugasan dilepas. Kegiatan tersedia untuk Operator lain.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Gagal melepas penugasan.", "error");
+    }
+  };
+
+  const handleDeleteAssignment = async (programId: number, assignmentId: number) => {
+    if (!currentUser || currentUser.role !== "Admin") return;
+    if (!window.confirm("Yakin ingin menghapus penugasan ini?")) return;
+    try {
+      await programApi.removeAssignment(programId, assignmentId);
+      await refreshPrograms();
+      showToast("Penugasan berhasil dihapus.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Gagal menghapus penugasan.", "error");
     }
   };
 
@@ -726,6 +763,9 @@ export function useAppState(): UseAppStateReturn {
     handleViewMasterActivity,
     handleNavigateSchedulePage,
     handleClaimProgram,
+    handleAcceptAssignment,
+    handleReleaseAssignment,
+    handleDeleteAssignment,
     handleSaveUser,
     handleDeleteUser,
     handleDeleteActivity,
