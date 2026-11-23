@@ -1,278 +1,53 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Landmark, ExternalLink, RefreshCw } from "lucide-react";
-import {
-  programApi,
-  type DocumentationPhoto,
-  type PublicProgram,
-} from "@/lib/api";
-import { mapPublicProgramToProgram } from "../utils/api-mappers";
-import {
-  calculateSummary,
-  statusCount,
-  currency,
-  quantity,
-  getProgramYear,
-  getProgramDesa,
-  getProgramKecamatan,
-} from "../utils/helpers";
-import { PROGRAM_STATUS_LABELS } from "../utils/api-mappers";
-import { LeafletMap } from "./LeafletMap";
-import { PimpinanAchievementSection } from "./PimpinanAchievementSection";
-import { ActivityFilters } from "./views/ActivityFilters";
+import React from "react";
+import { PimpninAchievementSection } from "./PimpninAchievementSection";
+import { usePublicLanding } from "./landing/usePublicLanding";
+import { PublicLandingHeader } from "./landing/PublicLandingHeader";
+import { PublicLandingHero } from "./landing/PublicLandingHero";
+import { PublicLandingStats } from "./landing/PublicLandingStats";
+import { PublicLandingProjects } from "./landing/PublicLandingProjects";
+import { PublicLandingDocumentation } from "./landing/PublicLandingDocumentation";
+import { PublicLandingLocation } from "./landing/PublicLandingLocation";
+import { PublicLandingFooter } from "./landing/PublicLandingFooter";
 
 interface PublicLandingProps {
   onOpenLogin: () => void;
   onSelectProgram: (id: number) => void;
 }
 
-/** Batas maksimum `pageSize` pada kontrak pagination backend. */
-const PUBLIC_PROGRAMS_PAGE_SIZE = 100;
-
 export const PublicLanding: React.FC<PublicLandingProps> = ({
   onOpenLogin,
   onSelectProgram,
 }) => {
-  const [landingYearFilter, setLandingYearFilter] = useState("");
-  const [landingCategoryFilter, setLandingCategoryFilter] = useState("");
-  const [programs, setPrograms] = useState<PublicProgram[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const [heroIndex, setHeroIndex] = useState(0);
-
-  // Dokumentasi foto dari object storage (R2) via API, bukan aset statis.
-  const [documentationPhotos, setDocumentationPhotos] = useState<DocumentationPhoto[]>([]);
-
-  // Map PublicProgram (DTO API) → Program (tipe tampilan) untuk helpers UI
-  const displayPrograms = programs.map(mapPublicProgramToProgram);
-
-  // Kartu dokumentasi dihasilkan dari foto di object storage melalui API.
-  // Jika belum ada data, array kosong dan akan ditampilkan keterangan kosong di UI.
-  const documentationCards =
-    documentationPhotos.length > 0
-      ? documentationPhotos.slice(0, 6).map((photo) => {
-          const programStatus = photo.program?.status;
-          const statusLabel =
-            programStatus &&
-            programStatus in PROGRAM_STATUS_LABELS
-              ? PROGRAM_STATUS_LABELS[
-                  programStatus as keyof typeof PROGRAM_STATUS_LABELS
-                ]
-              : "Belum Dikerjakan";
-          const badgeClass =
-            statusLabel === "Selesai Dikerjakan"
-              ? "selesai"
-              : statusLabel === "Sedang Dikerjakan"
-              ? "sedang"
-              : "belum";
-          return {
-            key: photo.id,
-            src: photo.downloadUrl,
-            alt: photo.caption ?? photo.originalName,
-            title: photo.program?.nama ?? photo.originalName,
-            location: photo.program?.lokasi ?? "Kabupaten Kuningan",
-            year: new Date(photo.createdAt).getFullYear().toString(),
-            status: statusLabel,
-            badgeClass,
-            onClick: photo.program ? () => onSelectProgram(photo.program!.id) : undefined,
-          };
-        })
-      : [];
-
-  // Gambar statis default untuk hero slideshow di bagian atas halaman.
-  // Tidak menggunakan API — ini adalah identitas visual halaman utama.
-  const HERO_STATIC_FALLBACKS = [
-    {
-      src: "/dokumentasi/hero-jalan-ancaran.jpg",
-      alt: "Pembangunan jalan lingkungan di Ancaran, Kecamatan Kuningan",
-      caption: "Jalan Lingkungan — Ancaran, Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/hero-jalan-ciporang.jpg",
-      alt: "Jalan lingkungan Ciporang, Kecamatan Sindangagung",
-      caption: "Jalan Lingkungan — Ciporang, Kec. Sindangagung",
-    },
-    {
-      src: "/dokumentasi/jalan-lingkungan.jpg",
-      alt: "Pembangunan jalan lingkungan Kabupaten Kuningan",
-      caption: "Jalan Lingkungan — Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/drainase-tpt.jpg",
-      alt: "Pembangunan drainase permukiman Kabupaten Kuningan",
-      caption: "Drainase / TPT — Kec. Kuningan",
-    },
-    {
-      src: "/dokumentasi/konstruksi-lainnya.jpg",
-      alt: "Konstruksi tembok penahan tanah Kabupaten Kuningan",
-      caption: "Konstruksi Lainnya — Kec. Kuningan",
-    },
-  ];
-
-  // Hero slideshow: selalu pakai gambar statis default (identitas halaman utama).
-  const heroSlides = HERO_STATIC_FALLBACKS;
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHeroIndex((i) => (i + 1) % heroSlides.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [heroSlides.length]);
-
-  const fetchPrograms = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Ringkasan publik (pagu, capaian, filter tahun/kategori) dihitung dari
-      // seluruh data, jadi seluruh halaman diambil — bukan hanya halaman pertama.
-      const firstPage = await programApi.public({
-        page: 1,
-        pageSize: PUBLIC_PROGRAMS_PAGE_SIZE,
-      });
-      const items: PublicProgram[] = [...firstPage.data];
-      for (let page = 2; page <= firstPage.meta.totalPages; page += 1) {
-        const nextPage = await programApi.public({
-          page,
-          pageSize: PUBLIC_PROGRAMS_PAGE_SIZE,
-        });
-        items.push(...nextPage.data);
-      }
-      setPrograms(items);
-    } catch (err) {
-      setError("Gagal memuat data kegiatan dari server.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchDocumentationPhotos = useCallback(async () => {
-    try {
-      const { data } = await programApi.documentation();
-      setDocumentationPhotos(data ?? []);
-    } catch (err) {
-      // Fallback gambar statis akan ditampilkan bila API gagal.
-      console.error("Gagal memuat foto dokumentasi:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    const load = async () => {
-      await fetchPrograms();
-      await fetchDocumentationPhotos();
-    };
-
-    load();
-    const interval = setInterval(() => {
-      void fetchPrograms();
-      void fetchDocumentationPhotos();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [fetchPrograms, fetchDocumentationPhotos, refreshKey]);
-
-  const triggerRefresh = () => {
-    setRefreshKey((k) => k + 1);
-  };
-
-
-  const availableYears = Array.from(
-    new Set([
-      "2026",
-      "2025",
-      "2024",
-      ...displayPrograms.map((p) => getProgramYear(p)),
-    ])
-  ).sort((a, b) => b.localeCompare(a));
-
-  const availableCategories = Array.from(
-    new Set([...displayPrograms.map((p) => p.kategori).filter(Boolean)])
-  );
-
-  const filteredProjects = displayPrograms.filter((p) => {
-    if (landingYearFilter && getProgramYear(p) !== landingYearFilter)
-      return false;
-    if (landingCategoryFilter && p.kategori !== landingCategoryFilter)
-      return false;
-    return true;
-  });
-
-  const summary = calculateSummary(filteredProjects);
-  const activeCount = statusCount(filteredProjects, "Sedang Dikerjakan");
-  const doneCount = statusCount(filteredProjects, "Selesai Dikerjakan");
-  const paguBelumDitetapkan =
-    filteredProjects.length > 0 &&
-    filteredProjects.every((p) => (p.pagu ?? 0) <= 0);
+  const {
+    landingYearFilter,
+    setLandingYearFilter,
+    landingCategoryFilter,
+    setLandingCategoryFilter,
+    loading,
+    error,
+    heroIndex,
+    setHeroIndex,
+    documentationCards,
+    availableYears,
+    availableCategories,
+    filteredProjects,
+    summary,
+    activeCount,
+    doneCount,
+    paguBelumDitetapkan,
+    triggerRefresh,
+  } = usePublicLanding({ onSelectProgram });
 
   return (
     <div className="w-full min-h-screen bg-[#F5F8FB]">
-      {/* Public Nav */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-[#DCE5ED] px-[5%] py-3.5 flex justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#1E4E8C] text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Landmark className="w-5 h-5" />
-          </div>
-          <div>
-            <strong className="block text-[#143965] font-bold text-base leading-tight">
-              SIPANTAU
-            </strong>
-            <small className="block text-[#65778B] text-xs">
-              Penyimpanan Data & Pemantauan Kegiatan PSU
-            </small>
-          </div>
-        </div>
+      <PublicLandingHeader
+        onOpenLogin={onOpenLogin}
+        triggerRefresh={triggerRefresh}
+      />
 
-        <nav
-          className="hidden md:flex items-center gap-6"
-          aria-label="Navigasi publik"
-        >
-          <a
-            href="#proyek"
-            className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
-          >
-            Proyek
-          </a>
-          <a
-            href="#dokumentasi"
-            className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
-          >
-            Dokumentasi
-          </a>
-          <a
-            href="#pencapaian"
-            className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
-          >
-            Pencapaian Kegiatan
-          </a>
-          <a
-            href="#lokasi"
-            className="text-sm font-semibold text-[#496178] hover:text-[#1E4E8C] transition"
-          >
-            Lokasi
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={triggerRefresh}
-            className="p-2 rounded-lg text-[#65778B] hover:text-[#1E4E8C] transition bg-[#F5F8FB] hover:bg-[#E8EFF5]"
-            title="Segarkan data"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onOpenLogin}
-            className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shadow-sm"
-          >
-            Login
-          </button>
-        </div>
-      </header>
-
-      {/* Loading state */}
       {loading && !error && (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E4E8C] mb-4"></div>
@@ -280,12 +55,11 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         </div>
       )}
 
-      {/* Error state */}
-      {error && !loading && programs.length === 0 && (
+      {error && !loading && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-[#65778B] text-sm mb-3">{error}</p>
           <button
-            onClick={fetchPrograms}
+            onClick={triggerRefresh}
             className="px-4 py-2 rounded-lg text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition"
           >
             Coba lagi
@@ -295,365 +69,51 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 
       {!loading && (
         <>
-          {heroSlides.length > 0 ? (
-      <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
-        {/* Slides */}
-        {heroSlides.map((slide, i) => (
-          <div
-            key={i}
-            aria-hidden={i !== heroIndex}
-            className="absolute inset-0 transition-opacity duration-1000"
-            style={{ opacity: i === heroIndex ? 1 : 0 }}
-          >
-            <img
-              src={slide.src}
-              alt={slide.alt}
-              className="w-full h-full object-cover"
-              style={{ minHeight: "420px" }}
-              loading={i === 0 ? "eager" : "lazy"}
-            />
-          </div>
-        ))}
+          <PublicLandingHero heroIndex={heroIndex} setHeroIndex={setHeroIndex} />
 
-        {/* Dark overlay gradient */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(14,38,70,0.82) 0%, rgba(14,38,70,0.60) 55%, rgba(14,38,70,0.25) 100%)",
-          }}
-        />
+          <PublicLandingStats
+            activeCount={activeCount}
+            doneCount={doneCount}
+            summary={summary}
+            paguBelumDitetapkan={paguBelumDitetapkan}
+          />
 
-        {/* Content */}
-        <div className="relative z-10 px-[7%] py-16 md:py-20 max-w-3xl">
-          <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
-            SIPANTAU — SISTEM INFORMASI PENYIMPANAN DATA DAN PEMANTAUAN KEGIATAN PSU
-          </span>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-white mb-4">
-            Data Tersimpan, Progres Terpantau.
-          </h1>
-          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl">
-            Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU Kabupaten Kuningan.
-            Pantau kegiatan, target, realisasi, dokumentasi, dan penggunaan
-            anggaran secara terbuka, akuntabel, dan terukur.
-          </p>
-        </div>
+          <PublicLandingProjects
+            filteredProjects={filteredProjects}
+            availableYears={availableYears}
+            availableCategories={availableCategories}
+            yearFilter={landingYearFilter}
+            categoryFilter={landingCategoryFilter}
+            onYearChange={setLandingYearFilter}
+            onCategoryChange={setLandingCategoryFilter}
+            onReset={() => {
+              setLandingYearFilter("");
+              setLandingCategoryFilter("");
+            }}
+            onSelectProgram={onSelectProgram}
+          />
 
-        {/* Caption bawah kiri */}
-        <div className="absolute bottom-4 left-[7%] z-10">
-          <span className="text-[11px] text-white/70 bg-black/30 px-2.5 py-1 rounded-full backdrop-blur-sm">
-            {heroSlides[heroIndex].caption}
-          </span>
-        </div>
+          <PublicLandingDocumentation documentationCards={documentationCards} />
 
-        {/* Dot navigasi */}
-        <div className="absolute bottom-4 right-[7%] z-10 flex items-center gap-2">
-          {heroSlides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setHeroIndex(i)}
-              aria-label={`Slide ${i + 1}`}
-              className="transition-all duration-300 rounded-full"
-              style={{
-                width: i === heroIndex ? "24px" : "8px",
-                height: "8px",
-                background: i === heroIndex ? "#fff" : "rgba(255,255,255,0.4)",
-              }}
-            />
-          ))}
-        </div>
-      </section>
-    ) : (
-      <section className="relative text-white overflow-hidden" style={{ minHeight: "420px" }}>
-        {/* Dark overlay gradient */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(14,38,70,0.82) 0%, rgba(14,38,70,0.60) 55%, rgba(14,38,70,0.25) 100%)",
-          }}
-        />
-
-        {/* Empty state content */}
-        <div className="relative z-10 px-[7%] py-20 md:py-24 max-w-3xl mx-auto text-center">
-          <span className="inline-block text-xs font-bold tracking-widest text-[#BFE3E1] uppercase mb-3">
-            SIPANTAU — SISTEM INFORMASI PENYIMPANAN DATA DAN PEMANTAUAN KEGIATAN PSU
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight text-white mb-4">
-            Data Tersimpan, Progres Terpantau.
-          </h1>
-          <p className="text-base sm:text-lg text-[#E0EDF7] leading-relaxed max-w-2xl mx-auto">
-            Dokumentasi kegiatan PSU akan ditampilkan di sini setelah survey
-            diunggah dan program selesai dikerjakan.
-          </p>
-        </div>
-      </section>
-    )}
-      {/* Floating Public Stats */}
-      <section className="px-[5%] -mt-10 sm:-mt-12 relative z-10 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#1E4E8C]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Program aktif</p>
-            <strong className="block text-2xl sm:text-3xl font-bold text-[#143965] mt-2">
-              {activeCount} Kegiatan
-            </strong>
-          </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#148B87]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Program selesai</p>
-            <strong className="block text-2xl sm:text-3xl font-bold text-[#148B87] mt-2">
-              {doneCount} Kegiatan
-            </strong>
-          </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#E78A31]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Total pagu</p>
-            <strong className="block text-xl sm:text-2xl font-bold text-[#143965] mt-2">
-              {paguBelumDitetapkan ? "Belum ditetapkan" : currency(summary.pagu)}
-            </strong>
-          </article>
-          <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#258050]">
-            <p className="text-sm text-[#65778B] font-medium m-0">Total penggunaan</p>
-            <strong className="block text-xl sm:text-2xl font-bold text-[#258050] mt-2">
-              {currency(summary.penggunaan)}
-            </strong>
-          </article>
-        </div>
-      </section>
-
-      {/* Proyek Berjalan with Category Sort by Year */}
-      <section id="proyek" className="px-[5%] py-16 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
-            TRANSPARANSI PELAKSANAAN
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-            Proyek Pembangunan Permukiman
-          </h2>
-          <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-            Pilih kategori tahun untuk menyortir dan melihat kegiatan prioritas yang terdaftar pada tahun anggaran tersebut.
-          </p>
-        </div>
-
-        <ActivityFilters
-          years={availableYears}
-          categories={availableCategories}
-          yearFilter={landingYearFilter}
-          categoryFilter={landingCategoryFilter}
-          totalCount={displayPrograms.length}
-          onYearChange={setLandingYearFilter}
-          onCategoryChange={setLandingCategoryFilter}
-          onReset={() => {
-            setLandingYearFilter("");
-            setLandingCategoryFilter("");
-          }}
-          showReset
-          className="mb-8 bg-white"
-        />
-
-        {/* Project Cards Grid */}
-        {filteredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {filteredProjects.map((p) => {
-              const badgeClass =
-                p.status === "Belum Dikerjakan"
-                  ? "belum"
-                  : p.status === "Sedang Dikerjakan"
-                  ? "sedang"
-                  : "selesai";
-
-              const desaDisplay = getProgramDesa(p);
-              const kecamatanDisplay = getProgramKecamatan(p);
-              const yearDisplay = getProgramYear(p);
-
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => onSelectProgram(p.id)}
-                  className="bg-white border border-[#E1E9F0] rounded-2xl p-5 hover:border-[#A8C9DC] hover:-translate-y-1 transition duration-200 shadow-sm cursor-pointer flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex justify-between items-start gap-2 mb-3">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
-                          TA {yearDisplay}
-                        </span>
-                        <span className={`badge ${badgeClass}`}>{p.status}</span>
-                      </div>
-                      <span className="text-xs text-[#65778B] font-mono">
-                        {p.kode}
-                      </span>
-                    </div>
-                    <span className="inline-block bg-[#EDF5FB] text-[#1E4E8C] px-2 py-0.5 rounded text-[10px] font-semibold mb-2">
-                      {p.kategori}
-                    </span>
-                    <h3 className="text-base font-bold text-[#143965] mb-2 leading-snug">
-                      {p.nama}
-                    </h3>
-                    <p className="text-xs text-[#65778B] mb-3">
-                      <strong className="text-[#143965]">{desaDisplay}</strong>, Kec. {kecamatanDisplay}
-                    </p>
-                  </div>
-                  <div className="pt-3 border-t border-[#F0F4F8] text-xs sm:text-sm">
-                    <span className="text-[#65778B]">
-                      Target:{" "}
-                      <strong className="text-[#143965]">
-                        {quantity(p.target, p.satuan)}
-                      </strong>
-                    </span>
-                    <span className="block text-[#148B87] mt-0.5 font-medium">
-                      Realisasi: {quantity(p.realisasi, p.satuan)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-[#CCD9E4] text-[#65778B] text-sm">
-            Tidak ada proyek yang sesuai dengan kategori tahun yang dipilih.
-          </div>
-        )}
-      </section>
-
-      {/* Dokumentasi Lapangan */}
-      <section id="dokumentasi" className="bg-[#EDF4F8] px-[5%] py-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
-              DOKUMENTASI LAPANGAN
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-              Dokumentasi Kegiatan
-            </h2>
-            <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-              Dokumentasi lapangan sebagai bagian dari transparansi pembangunan
-              dan pemantauan kegiatan dinas di setiap wilayah.
-            </p>
-          </div>
-
-          {documentationCards.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {documentationCards.map((card) => (
-                <article
-                  key={card.key}
-                  onClick={card.onClick}
-                  className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E1E9F0] hover:shadow-md transition flex flex-col ${
-                    card.onClick ? "cursor-pointer" : ""
-                  }`}
-                >
-                  <img
-                    src={card.src}
-                    alt={card.alt}
-                    className="w-full h-52 object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F2F8] text-[#1E4E8C]">
-                        TA {card.year}
-                      </span>
-                      <span className={`badge ${card.badgeClass}`}>{card.status}</span>
-                    </div>
-                    <strong className="block text-sm font-bold text-[#143965] mt-2">
-                      {card.title}
-                    </strong>
-                    <span className="block text-xs text-[#65778B] mt-1">
-                      {card.location}
-                    </span>
-                  </div>
-                </article>
-              ))}
+          <section id="pencapaian" className="bg-[#F5F8FB] px-[5%] py-16">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="mb-2">
+                <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
+                  TRANSPARANSI KINERJA
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
+                  Pencapaian Kegiatan & Capaian Fisik
+                </h2>
+                <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
+                  Akumulasi capaian target dan realisasi fisik per kategori kegiatan pembangunan infrastruktur permukiman secara transparan.
+                </p>
+              </div>
+              <PimpninAchievementSection programs={filteredProjects} />
             </div>
-          ) : (
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#CCD9E4]">
-              <span className="text-xs font-bold tracking-widest text-[#65778B] uppercase mb-2">
-                Belum ada dokumentasi
-              </span>
-              <p className="text-[#65778B] text-sm">
-                Dokumentasi kegiatan akan ditampilkan di sini setelah survey diunggah
-                dan program selesai dikerjakan.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+          </section>
 
-      {/* Ringkasan Pencapaian Program Publik (Sama dengan Tampilan Pimpinan) */}
-      <section id="pencapaian" className="bg-[#F5F8FB] px-[5%] py-16">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="mb-2">
-            <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
-              TRANSPARANSI KINERJA
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-              Pencapaian Kegiatan &amp; Capaian Fisik
-            </h2>
-            <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-              Akumulasi capaian target dan realisasi fisik per kategori kegiatan pembangunan infrastruktur permukiman secara transparan.
-            </p>
-          </div>
-
-          <PimpinanAchievementSection programs={filteredProjects} />
-        </div>
-      </section>
-
-      {/* Lokasi Kami */}
-      <section id="lokasi" className="px-[5%] py-16 max-w-7xl mx-auto">
-        <div className="mb-8">
-          <span className="text-xs font-bold tracking-widest text-[#148B87] uppercase">
-            AREA PEMANTAUAN
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#143965] mt-1 mb-2">
-            Lokasi Kami
-          </h2>
-          <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-            Area pemantauan mencakup wilayah Dinas Perumahan, Kawasan Permukiman
-            dan Pertanahan Kabupaten Kuningan, Jawa Barat.
-          </p>
-        </div>
-
-        <div className="bg-white border border-[#E1E9F0] rounded-2xl p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-[#143965]">
-                Disperkimtan Kabupaten Kuningan, Jawa Barat
-              </h3>
-              <p className="text-sm text-[#65778B] mt-1">
-                Jl. RE. Martadinata No. 528 Ancaran, Kec. Sindangagung, Kuningan
-              </p>
-            </div>
-            <a
-              href="https://www.google.com/maps/search/?api=1&query=Dinas+Perumahan+Kawasan+Permukiman+dan+Pertanahan+Kuningan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shrink-0"
-            >
-              Buka di Maps <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-
-          <div className="h-80 w-full rounded-xl overflow-hidden">
-            <LeafletMap />
-          </div>
-        </div>
-      </section>
-
-      {/* Public Footer */}
-      <footer className="bg-[#143965] text-[#D7E7F5] px-[5%] py-8 border-t border-[#1E4E8C]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
-          <div>
-            <strong className="block text-white font-bold text-base">
-              SIPANTAU - Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU
-            </strong>
-            <p className="text-xs sm:text-sm text-[#B8D0E4] mt-1">
-              Data Tersimpan, Progres Terpantau · Dinas Perumahan, Kawasan Permukiman dan Pertanahan Kabupaten
-              Kuningan © 2026. Seluruh hak cipta dilindungi undang-undang.
-            </p>
-          </div>
-          <div className="text-xs text-[#8BAFCF]">
-            Bidang Kawasan Permukiman · Kabupaten Kuningan
-          </div>
-        </div>
-      </footer>
+          <PublicLandingLocation />
+          <PublicLandingFooter />
         </>
       )}
     </div>
