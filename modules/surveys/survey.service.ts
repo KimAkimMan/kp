@@ -145,7 +145,7 @@ export const surveyService = {
     periode: string;
     satuan: string;
     target: number;
-    pagu: number;
+    pagu?: number;
     operatorPengelolaId?: number | null;
   }, createdById?: number) {
     return prisma.$transaction(async (tx) => {
@@ -163,6 +163,9 @@ export const surveyService = {
         ? await tx.user.findUnique({ where: { id: targetOperatorId }, select: { nama: true } })
             .then(u => u?.nama ?? null)
         : null;
+
+      // Pagu default dari estimasiBiaya survey, bisa di-override oleh input.pagu.
+      const paguValue = input.pagu ?? survey.estimasiBiaya ?? 0;
 
       const program = await tx.program.create({
         data: {
@@ -188,7 +191,7 @@ export const surveyService = {
           update: new Date().toISOString(),
           sumber: `Hasil Survey Lapangan (${survey.kodeSurvey})`,
           catatan: `${survey.uraianTemuan} Rekomendasi: ${survey.rekomendasi}`,
-          pagu: input.pagu,
+          pagu: paguValue,
           penggunaan: 0,
           penggunaanBiaya: 0,
           lebarJalan: survey.lebar,

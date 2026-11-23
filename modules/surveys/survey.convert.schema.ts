@@ -8,7 +8,7 @@ export function parseConvertSurveyInput(body: unknown) {
     periode: requiredString(input, "periode"),
     satuan: requiredString(input, "satuan"),
     target: nonNegativeNumber(input, "target") as number,
-    pagu: nonNegativeNumber(input, "pagu") as number,
+    pagu: input.pagu === undefined ? undefined : nonNegativeNumber(input, "pagu") as number | undefined,
     operatorPengelolaId: optionalNullableNumber(input, "operatorPengelolaId"),
   };
 }

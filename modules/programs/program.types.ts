@@ -6,7 +6,10 @@ export type CreateProgramInput = {
   periode: string;
   satuan: string;
   target: number;
-  pagu: number;
+  // Pagu dan nilaiKontrak ditentukan oleh operator bersama CV,
+  // bukan oleh admin saat inisiasi. Default 0 / null.
+  pagu?: number;
+  nilaiKontrak?: number | null;
   createdById?: number;
   // Field tambahan yang sebelumnya di-update secara terpisah setelah create,
   // sekarang dapat disertakan langsung untuk transaksi atomik.

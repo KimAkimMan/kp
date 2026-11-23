@@ -68,6 +68,10 @@ export const programRepository = {
 
   async create(input: CreateProgramInput) {
     const createdById = input.createdById ?? 0;
+    // Pagu dan nilaiKontrak ditentukan oleh operator bersama CV,
+    // bukan admin saat inisiasi. Default pagu 0, nilaiKontrak null.
+    const paguValue = Number(input.pagu ?? 0);
+    const nilaiKontrakValue = input.nilaiKontrak ?? null;
     const recentDuplicate = await prisma.program.findFirst({
       where: {
         deletedAt: null,
@@ -78,7 +82,7 @@ export const programRepository = {
         periode: input.periode,
         satuan: input.satuan,
         target: input.target,
-        pagu: input.pagu,
+        pagu: paguValue,
         createdAt: { gte: new Date(Date.now() - 300_000) },
       },
       orderBy: { createdAt: "desc" },
@@ -101,6 +105,8 @@ export const programRepository = {
           catatan: input.catatan ?? "",
           penggunaan: input.penggunaan ?? 0,
           penggunaanBiaya: input.penggunaanBiaya ?? 0,
+          pagu: paguValue,
+          nilaiKontrak: nilaiKontrakValue,
         },
       });
 
@@ -123,6 +129,10 @@ export const programRepository = {
   },
 
   async upsertByKode(input: CreateProgramInput, createdById: number) {
+    // Pagu dan nilaiKontrak ditentukan oleh operator bersama CV,
+    // bukan admin saat inisiasi. Default pagu 0, nilaiKontrak null.
+    const paguValue = Number(input.pagu ?? 0);
+    const nilaiKontrakValue = input.nilaiKontrak ?? null;
     return prisma.$transaction(async (tx) => {
       const existing = await tx.program.findFirst({
         where: { kode: input.kode, deletedAt: null },
@@ -135,7 +145,8 @@ export const programRepository = {
         periode: input.periode,
         satuan: input.satuan,
         target: input.target,
-        pagu: input.pagu,
+        pagu: paguValue,
+        nilaiKontrak: nilaiKontrakValue,
         namaKegiatan: input.namaKegiatan ?? input.nama,
         kecamatan: input.kecamatan,
         desaKelurahan: input.desaKelurahan,
@@ -167,7 +178,10 @@ export const programRepository = {
         explicitlySet("periode", data.periode);
         explicitlySet("satuan", data.satuan);
         explicitlySet("target", data.target);
-        explicitlySet("pagu", data.pagu);
+        // Pagu dan nilaiKontrak hanya di-overwrite jika admin/operator
+        // secara eksplisit mengirimnya dalam update (bukan default 0 dari inisiasi).
+        if (input.pagu !== undefined) explicitlySet("pagu", data.pagu);
+        if (input.nilaiKontrak !== undefined) explicitlySet("nilaiKontrak", data.nilaiKontrak);
         explicitlySet("namaKegiatan", data.namaKegiatan);
         explicitlySet("kecamatan", data.kecamatan);
         explicitlySet("desaKelurahan", data.desaKelurahan);

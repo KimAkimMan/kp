@@ -18,7 +18,16 @@ export function parseCreateProgramInput(body: unknown): CreateProgramInput {
     periode: requiredString(input, "periode"),
     satuan: requiredString(input, "satuan"),
     target: nonNegativeNumber(input, "target") as number,
-    pagu: nonNegativeNumber(input, "pagu") as number,
+    // Pagu dan nilaiKontrak ditetapkan oleh operator bersama CV,
+    // bukan oleh admin saat inisiasi. Default 0 / null.
+    pagu:
+      input.pagu !== undefined && input.pagu !== null
+        ? nonNegativeNumber(input, "pagu", false) as number | undefined
+        : undefined,
+    nilaiKontrak:
+      input.nilaiKontrak !== undefined && input.nilaiKontrak !== null
+        ? nonNegativeNumber(input, "nilaiKontrak", false) as number | undefined
+        : null,
     namaKegiatan: input.namaKegiatan !== undefined ? requiredString(input, "namaKegiatan") : undefined,
     kecamatan: optionalString(input, "kecamatan"),
     desaKelurahan: optionalString(input, "desaKelurahan"),
