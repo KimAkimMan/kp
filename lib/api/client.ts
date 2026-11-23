@@ -5,6 +5,8 @@ export type ApiErrorPayload = {
   requestId?: string;
 };
 
+import { getIdempotencyStore } from "@/lib/idempotency-store";
+
 export type ApiResponse<T> = {
   data: T;
 };
@@ -113,9 +115,6 @@ export class ApiClient {
   // Menyimpan promise request read-only (GET/HEAD) yang sedang berlangsung
   // untuk mencegah duplikasi request yang sama ke backend.
   private readonly inflight = new Map<string, Promise<unknown>>();
-  // Menyimpan respons yang sudah diproses berdasarkan kunci idempotensi
-  // untuk mencegah duplikasi request mutasi (POST/PATCH/DELETE).
-  private readonly idempotencyCache = new Map<string, { payload: unknown; status: number }>();
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = getBaseUrl(options.baseUrl);
@@ -257,9 +256,10 @@ export class ApiClient {
     // Kunci mencakup method + path agar kunci yang sama tidak bentrok lintas endpoint.
     if (idempotencyKey) {
       const cacheKey = `${method}|${path}|${idempotencyKey}`;
-      const cached = this.idempotencyCache.get(cacheKey);
+      const store = getIdempotencyStore();
+      const cached = await store.get(cacheKey);
       if (cached) {
-        return cached.payload as T;
+        return cached.body as T;
       }
     }
 
@@ -295,10 +295,16 @@ export class ApiClient {
       throw new ApiClientError(result.response.status, error);
     }
 
-    // Simpan ke cache idempotensi untuk request mutasi.
-    if (idempotencyKey && (method === "POST" || method === "PATCH" || method === "DELETE" || method === "PUT")) {
+    // Simpan ke cache idempotensi untuk request mutasi HANYA jika sukses (2xx).
+    // Jangan cache error agar client dapat retry dengan aman.
+    if (
+      idempotencyKey &&
+      (method === "POST" || method === "PATCH" || method === "DELETE" || method === "PUT") &&
+      result.response.ok
+    ) {
       const cacheKey = `${method}|${path}|${idempotencyKey}`;
-      this.idempotencyCache.set(cacheKey, { payload: result.payload, status: result.response.status });
+      const store = getIdempotencyStore();
+      await store.set(cacheKey, { status: result.response.status, body: result.payload }, 24 * 60 * 60 * 1000);
     }
 
     if (method === "GET" || method === "HEAD") {

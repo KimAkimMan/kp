@@ -585,6 +585,26 @@ export const openapiDocument = {
     "/surveys/{id}/reviews": {
       parameters: [{ $ref: "#/components/parameters/StringId" }],
       get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar review survey" } } },
+      post: {
+        tags: ["Surveys"],
+        security: [{ sessionCookie: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["decision"],
+                properties: {
+                  decision: { type: "string", enum: ["DISETUJUI", "DITOLAK", "PERLU_REVISI"] },
+                  notes: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "Review survey dicatat" } },
+      },
     },
     "/surveys/{id}/status-history": {
       parameters: [{ $ref: "#/components/parameters/StringId" }],

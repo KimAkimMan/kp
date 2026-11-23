@@ -3,23 +3,17 @@ import { headers } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { ApiError } from "./api-error";
 import { getSessionToken } from "@/modules/auth/auth.context";
+import {
+  getIdempotencyStore,
+  IDEMPOTENCY_TTL_MS,
+} from "@/lib/idempotency-store";
 
 export const DEFAULT_ROUTE_TIMEOUT_MS = 30_000;
 
 // Metode yang dimutasi dan layak disimpan ke cache idempotensi.
 const MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
-// Cache idempotensi di server (in-memory).
-// Kunci: <metode>|<path>|<Idempotency-Key>, sehingga kunci yang sama pada
-// endpoint berbeda tidak saling menimpa. Nilai: { status, body } dari response
-// yang sudah diproses. TTL 24 jam untuk mencegah pertumbuhan tak terbatas.
-const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 type IdempotencyScope = { method: string; path: string };
-const idempotencyCache = new Map<string, {
-  status: number;
-  body: unknown;
-  expiresAt: number;
-}>();
 
 async function getIdempotencyKey(): Promise<string | null> {
   try {
@@ -30,9 +24,15 @@ async function getIdempotencyKey(): Promise<string | null> {
   }
 }
 
-function cacheKey(scope: IdempotencyScope | undefined, key: string, sessionToken?: string): string {
+function cacheKey(
+  scope: IdempotencyScope | undefined,
+  key: string,
+  sessionToken?: string,
+): string {
   if (!scope) return key;
-  return `${scope.method.toUpperCase()}|${scope.path}|${sessionToken ?? "anon"}|${key}`;
+  return `${scope.method.toUpperCase()}|${scope.path}|${
+    sessionToken ?? "anon"
+  }|${key}`;
 }
 
 export async function handleRoute(
@@ -40,9 +40,10 @@ export async function handleRoute(
   timeoutMs = DEFAULT_ROUTE_TIMEOUT_MS,
   options: { idempotencyScope?: IdempotencyScope } = {},
 ): Promise<Response> {
-  const effectiveTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs > 0
-    ? timeoutMs
-    : DEFAULT_ROUTE_TIMEOUT_MS;
+  const effectiveTimeoutMs =
+    Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? timeoutMs
+      : DEFAULT_ROUTE_TIMEOUT_MS;
   let requestId: string = randomUUID();
   try {
     requestId = (await headers()).get("x-request-id") ?? requestId;
@@ -50,8 +51,6 @@ export async function handleRoute(
     // Route unit tests can run without a Next request context.
   }
 
-  // Baca session token untuk memisahkan cache idempotensi per user,
-  // sehingga dua user dengan key yang sama tidak saling menimpa.
   let sessionToken: string | null = null;
   try {
     sessionToken = await getSessionToken();
@@ -61,11 +60,7 @@ export async function handleRoute(
 
   // Bersihkan entri kadaluarsa sebelum pemeriksaan.
   const now = Date.now();
-  for (const [key, entry] of idempotencyCache.entries()) {
-    if (entry.expiresAt < now) {
-      idempotencyCache.delete(key);
-    }
-  }
+  await getIdempotencyStore().cleanup();
 
   const idempotencyKey = await getIdempotencyKey();
   const { idempotencyScope } = options;
@@ -78,8 +73,8 @@ export async function handleRoute(
     idempotencyScope &&
     MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
   ) {
-    const cached = idempotencyCache.get(
-      cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined)
+    const cached = await getIdempotencyStore().get(
+      cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined),
     );
     if (cached) {
       return new Response(JSON.stringify(cached.body), {
@@ -97,32 +92,41 @@ export async function handleRoute(
   try {
     const timeout = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new ApiError(
-          "GATEWAY_TIMEOUT",
-          "Permintaan melewati batas waktu pemrosesan server.",
-          504,
-        ));
+        reject(
+          new ApiError(
+            "GATEWAY_TIMEOUT",
+            "Permintaan melewati batas waktu pemrosesan server.",
+            504,
+          ),
+        );
       }, effectiveTimeoutMs);
       timeoutId.unref?.();
     });
 
+    // Catatan: Promise.race tidak benar-benar membatalkan eksekusi handler di
+    // background setelah timeout. Handler tetap berjalan sampai selesai, tetapi
+    // responsnya akan dibuang dan klien menerima 504. Untuk pembatalan sebenarnya
+    // membutuhkan AbortController yang di-support handler secara eksklusif.
     const response = await Promise.race([handler(), timeout]);
     if (timeoutId) clearTimeout(timeoutId);
     response.headers.set("x-request-id", requestId);
 
-    // Simpan ke cache idempotensi untuk request mutasi dengan scope.
+    // Simpan ke cache idempotensi HANYA jika response sukses (2xx).
+    // Jangan cache error response agar client bisa retry dengan aman.
     if (
       idempotencyKey &&
       idempotencyScope &&
-      MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
+      MUTATION_METHODS.has(idempotencyScope.method.toUpperCase()) &&
+      response.status >= 200 &&
+      response.status < 300
     ) {
       try {
         const body = await response.clone().json();
-        idempotencyCache.set(cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined), {
-          status: response.status,
-          body,
-          expiresAt: now + IDEMPOTENCY_TTL_MS,
-        });
+        await getIdempotencyStore().set(
+          cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined),
+          { status: response.status, body },
+          IDEMPOTENCY_TTL_MS,
+        );
       } catch {
         // Jika body tidak dapat di-parse, abaikan caching.
       }

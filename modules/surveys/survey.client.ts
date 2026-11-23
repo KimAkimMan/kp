@@ -170,6 +170,16 @@ export const surveyApi = {
   reviews(id: string) { return apiClient.get<ApiResponse<unknown[]>>(`/surveys/${encodeURIComponent(id)}/reviews`); },
 
   /**
+   * Berikan keputusan review (tolak/revisi/setuju) pada survey.
+   * @param id - ID survey
+   * @param decision - "DITOLAK" | "PERLU_REVISI" | "DISETUJUI"
+   * @param notes - Catatan alasan keputusan
+   */
+  review(id: string, decision: "DITOLAK" | "PERLU_REVISI" | "DISETUJUI", notes?: string) {
+    return apiClient.post<ApiResponse<unknown>>(`/surveys/${encodeURIComponent(id)}/reviews`, { decision, notes });
+  },
+
+  /**
    * Ambil riwayat status survey.
    * @param id - ID survey
    * @returns Promise berisi array riwayat status
