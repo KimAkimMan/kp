@@ -89,6 +89,7 @@ export interface AdviceRecord {
   namaKegiatan: string;
   identitasPimpinan: string;
   operatorPenerima: string;
+  operatorId?: number | null;
   isi: string;
   tanggal: string;
   status: string;

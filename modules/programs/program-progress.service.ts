@@ -3,6 +3,7 @@ import { programRepository } from "./program.repository";
 import { completeDirectUpload, presignDirectUpload, presignDownload, type DirectUploadInput } from "@/modules/storage/direct-upload.service";
 import { ApiError } from "@/lib/http/api-error";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { prisma } from "@/lib/prisma";
 
 export const programProgressService = {
   async list(programId: number, user: AuthenticatedUser) {
@@ -57,9 +58,25 @@ export const programProgressService = {
     // Validasi programId ada (progress record belum dibuat saat upload foto presigned)
     const program = await programRepository.findById(programId);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-    // Hanya verifikasi upload ke object storage. Penyimpanan storageKey ke database
-    // dilakukan oleh addProgress setelah progress record dibuat.
+    // Hanya verifikasi upload ke object storage.
     await completeDirectUpload(`progress/${programId}/photos`, input, "image");
+    // Simpan storageKey ke database sebagai progress record agar tidak hilang
+    // jika addProgress tidak segera dipanggil setelahnya.
+    await prisma.programProgress.create({
+      data: {
+        programId,
+        tanggal: new Date(),
+        tahap: input.caption ?? "Upload foto progres",
+        volume: 0,
+        satuan: program.satuan ?? "Unit",
+        persentase: null,
+        keterangan: input.caption ?? "",
+        reportedById: user.id,
+        status: "DRAFT",
+        storageKey: input.storageKey,
+        originalName: input.originalName,
+      },
+    });
     return { storageKey: input.storageKey, originalName: input.originalName };
   },
 

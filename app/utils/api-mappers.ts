@@ -227,6 +227,7 @@ export function mapApiAdviceToAdvice(a: Record<string, unknown>): AdviceRecord {
     namaKegiatan: String(a.namaKegiatan || ""),
     identitasPimpinan: String(a.identitasPimpinan || ""),
     operatorPenerima: String(a.operatorPenerima || ""),
+    operatorId: a.operatorId ? Number(a.operatorId) : null,
     isi: String(a.isi || ""),
     tanggal: formattedDate,
     status,

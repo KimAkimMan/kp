@@ -486,7 +486,7 @@ export default function Home() {
   };
 
   // Convert Survey to Master Activity (Admin)
-  const handleVerifySurvey = async (survey: FieldSurvey) => {
+  const handleVerifySurvey = async (survey: FieldSurvey, reason?: string) => {
     try {
       await surveyApi.verify(survey.id, survey.programId ?? null);
       await refreshSurveys();
@@ -494,6 +494,40 @@ export default function Home() {
     } catch (error) {
       showToast(
         error instanceof ApiClientError ? error.message : "Verifikasi survey gagal.",
+        "error",
+      );
+    }
+  };
+
+  const handleRejectSurvey = async (survey: FieldSurvey, reason?: string) => {
+    if (!reason || !reason.trim()) {
+      showToast("Alasan penolakan wajib diisi.", "error");
+      return;
+    }
+    try {
+      await surveyApi.review(survey.id, "DITOLAK", reason.trim());
+      await refreshSurveys();
+      showToast(`Survey ${survey.kodeSurvey} telah ditolak.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError ? error.message : "Penolakan survey gagal.",
+        "error",
+      );
+    }
+  };
+
+  const handleRequestRevision = async (survey: FieldSurvey, reason?: string) => {
+    if (!reason || !reason.trim()) {
+      showToast("Alasan revisi wajib diisi.", "error");
+      return;
+    }
+    try {
+      await surveyApi.review(survey.id, "PERLU_REVISI", reason.trim());
+      await refreshSurveys();
+      showToast(`Survey ${survey.kodeSurvey} diminta revisi.`);
+    } catch (error) {
+      showToast(
+        error instanceof ApiClientError ? error.message : "Permintaan revisi gagal.",
         "error",
       );
     }
@@ -901,6 +935,8 @@ export default function Home() {
               programs={programs}
               operators={users}
               onVerifySurvey={handleVerifySurvey}
+              onRejectSurvey={handleRejectSurvey}
+              onRequestRevision={handleRequestRevision}
               onCreateProgramFromSurvey={handleCreateProgramFromSurvey}
               onViewProgram={handleViewProgram}
             />

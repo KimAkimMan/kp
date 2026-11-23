@@ -8,39 +8,30 @@ import {
   MapPin,
   Calendar,
   User as UserIcon,
-  AlertTriangle,
   CheckCircle2,
   Eye,
   ExternalLink,
   Printer,
   X,
-  ArrowRight,
   ArrowLeft,
-  Layers,
   Sparkles,
-  Info,
   Compass,
   FileCheck2,
-  Clock,
   RotateCcw,
-  Building2,
-  FileText,
-  BadgeAlert,
 } from "lucide-react";
 import { FieldSurvey, Program, User } from "../../types";
 import { currency } from "../../utils/helpers";
-import { defaultKecamatanList, standardCategories } from "../../data/initialData";
-import { Button } from "@/app/components/ui/Button";
+import { defaultKecamatanList } from "../../data/initialData";
 import { Input, Select } from "@/app/components/ui/Input";
-import { Badge } from "@/app/components/ui/Badge";
-import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 interface AdminSurveyViewProps {
   currentUser: User;
   surveys: FieldSurvey[];
   programs: Program[];
   operators: User[];
-  onVerifySurvey: (survey: FieldSurvey) => void | Promise<void>;
+  onVerifySurvey: (survey: FieldSurvey, reason?: string) => void | Promise<void>;
+  onRejectSurvey: (survey: FieldSurvey, reason?: string) => void | Promise<void>;
+  onRequestRevision: (survey: FieldSurvey, reason?: string) => void | Promise<void>;
   onCreateProgramFromSurvey: (
     survey: FieldSurvey,
     customData?: Partial<Program>
@@ -49,15 +40,14 @@ interface AdminSurveyViewProps {
 }
 
 export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
-  currentUser,
   surveys,
   programs,
   operators,
   onVerifySurvey,
+  onRejectSurvey,
+  onRequestRevision,
   onCreateProgramFromSurvey,
-  onViewProgram,
 }) => {
-  // Filter & Search states
   const [searchTerm, setSearchTerm] = useState("");
   const [filterKategori, setFilterKategori] = useState("");
   const [filterStatusKonversi, setFilterStatusKonversi] = useState<
@@ -66,10 +56,8 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   const [filterUrgensi, setFilterUrgensi] = useState("");
   const [filterKecamatan, setFilterKecamatan] = useState("");
 
-  // Dedicated Detail Page state: holds id of survey being viewed in full detail
   const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
 
-  // Conversion Confirmation Modal state
   const [convertingSurvey, setConvertingSurvey] = useState<FieldSurvey | null>(
     null
   );
@@ -83,10 +71,8 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   const [convertedDetailLokasi, setConvertedDetailLokasi] = useState("");
   const [convertedOperatorId, setConvertedOperatorId] = useState<string>("");
 
-  // Filter operators to only those with Operator role
   const operatorOptions = operators.filter((u) => u.role === "Operator");
 
-  // Open conversion modal with prefilled data
   const handleOpenConversionModal = (srv: FieldSurvey, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setConvertingSurvey(srv);
@@ -103,14 +89,12 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     setConvertedKecamatan(srv.kecamatan);
     setConvertedDesa(srv.desaKelurahan);
     setConvertedDetailLokasi(srv.detailLokasi);
-    // Pre-select the surveyor as the default operator
     const surveyorOp = operatorOptions.find(
       (op) => op.nama === srv.surveyor || op.email === srv.surveyor
     );
     setConvertedOperatorId(surveyorOp ? String(surveyorOp.id) : "");
   };
 
-  // Confirm conversion to Master Activity
   const handleConfirmConversion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!convertingSurvey) return;
@@ -141,18 +125,15 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     setSelectedSurveyId(null);
   };
 
-  // Helper to check if survey is already converted to a program
   const getConnectedProgram = (srv: FieldSurvey): Program | undefined => {
     if (!srv.programId) return undefined;
     return programs.find((p) => p.id === srv.programId);
   };
 
-  // Active survey for dedicated detail page
   const detailSurvey = selectedSurveyId
     ? surveys.find((s) => s.id === selectedSurveyId)
     : null;
 
-  // Filtering surveys for list view
   const filteredSurveys = surveys.filter((s) => {
     const connected = getConnectedProgram(s);
     const isConverted = !!connected || s.status === "Dikonversi";
@@ -179,7 +160,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     return true;
   });
 
-  // Metrics
   const totalSurveys = surveys.length;
   const unconvertedCount = surveys.filter(
     (s) => !getConnectedProgram(s) && s.status !== "Dikonversi"
@@ -208,9 +188,15 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
         ? "bg-[#FFF3E8] text-[#BD6C1E] border-[#FCDDC0]"
         : "bg-[#FDEEED] text-[#BD493B] border-[#F8C8C4]";
 
+    const kondisiClass =
+      detailSurvey.tingkatUrgensi === "Tinggi / Mendesak"
+        ? "bg-[#FDEEED] text-[#BD493B]"
+        : detailSurvey.tingkatUrgensi === "Sedang"
+        ? "bg-[#FFF3E8] text-[#BD6C1E]"
+        : "bg-[#E7F6ED] text-[#258050]";
+
     return (
       <div className="space-y-6">
-        {/* Navigation Bar / Top Breadcrumb */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <button
             onClick={() => setSelectedSurveyId(null)}
@@ -230,7 +216,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
           </div>
         </div>
 
-        {/* Status Alert Banner */}
         {isConverted ? (
           <div className="p-4 rounded-2xl bg-[#E7F6ED] border border-[#C8E8D5] shadow-xs">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -285,6 +270,53 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                   <FolderPlus className="w-4 h-4" />
                   Buat Kegiatan Baru
                 </button>
+              ) : detailSurvey.status === "Menunggu Verifikasi" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const reason = window.prompt("Masukkan alasan verifikasi (opsional):");
+                      void onVerifySurvey(detailSurvey, reason ?? undefined);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#258050] text-white hover:bg-[#1D6840] shadow-xs flex items-center gap-1.5 shrink-0"
+                  >
+                    <FileCheck2 className="w-4 h-4" />
+                    Verifikasi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const reason = window.prompt("Alasan penolakan (wajib diisi):");
+                      if (reason && reason.trim()) {
+                        void onRejectSurvey(detailSurvey, reason.trim());
+                      } else {
+                        window.alert("Alasan penolakan wajib diisi.");
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#BD493B] text-white hover:bg-[#9B2C2C] shadow-xs flex items-center gap-1.5 shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                    Tolak
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const reason = window.prompt("Alasan permintaan revisi (wajib diisi):");
+                      if (reason && reason.trim()) {
+                        void onRequestRevision(detailSurvey, reason.trim());
+                      } else {
+                        window.alert("Alasan revisi wajib diisi.");
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D97706] text-white hover:bg-[#B45309] shadow-xs flex items-center gap-1.5 shrink-0"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Minta Revisi
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"
@@ -299,43 +331,26 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
           </div>
         )}
 
-        {/* Main Details Panel */}
         <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E1E9F0] shadow-xs space-y-6">
-          {/* Header Info */}
           <div className="flex flex-col lg:flex-row justify-between items-start gap-4 pb-6 border-b border-[#EAF0F4]">
             <div className="space-y-2 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs font-bold text-[#143965] bg-[#F1F5F9] px-2.5 py-1 rounded-md">
                   {detailSurvey.kodeSurvey}
                 </span>
-
                 <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-[#EDF5FB] text-[#1E4E8C] border border-[#D0E3F0]">
                   {detailSurvey.kategori}
                 </span>
-
-                <span
-                  className={`text-xs font-bold px-2.5 py-1 rounded-md border ${badgeKondisi}`}
-                >
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${badgeKondisi}`}>
                   Kondisi: {detailSurvey.kondisi}
                 </span>
-
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
-                    detailSurvey.tingkatUrgensi === "Tinggi / Mendesak"
-                      ? "bg-[#FDEEED] text-[#BD493B]"
-                      : detailSurvey.tingkatUrgensi === "Sedang"
-                      ? "bg-[#FFF3E8] text-[#BD6C1E]"
-                      : "bg-[#E7F6ED] text-[#258050]"
-                  }`}
-                >
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${kondisiClass}`}>
                   Urgensi: {detailSurvey.tingkatUrgensi}
                 </span>
               </div>
-
               <h2 className="text-2xl font-bold text-[#143965] leading-tight">
                 {detailSurvey.namaKegiatan}
               </h2>
-
               <p className="text-xs sm:text-sm text-[#65778B] flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#BD493B] shrink-0" />
                 <span>
@@ -345,8 +360,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 </span>
               </p>
             </div>
-
-            {/* Quick Metrics Widget Box */}
             <div className="bg-[#F8FAFC] border border-[#E1E9F0] p-4 rounded-xl text-xs min-w-[240px] space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[#65778B]">Tanggal Survey:</span>
@@ -367,7 +380,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             </div>
           </div>
 
-          {/* 4 Technical Parameter Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl border border-[#E1E9F0] bg-[#FAFBFD]">
               <span className="text-[11px] text-[#65778B] uppercase font-bold block">
@@ -377,7 +389,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 {detailSurvey.kondisi}
               </strong>
             </div>
-
             <div className="p-4 rounded-xl border border-[#E1E9F0] bg-[#FAFBFD]">
               <span className="text-[11px] text-[#65778B] uppercase font-bold block">
                 Tipe Konstruksi
@@ -386,7 +397,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 {detailSurvey.tipeKonstruksi || "Rabat Beton K-250"}
               </strong>
             </div>
-
             <div className="p-4 rounded-xl border border-[#E1E9F0] bg-[#FAFBFD]">
               <span className="text-[11px] text-[#65778B] uppercase font-bold block">
                 Dimensi Lapangan
@@ -397,7 +407,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                   : "—"}
               </strong>
             </div>
-
             <div className="p-4 rounded-xl border border-[#E1E9F0] bg-[#FAFBFD]">
               <span className="text-[11px] text-[#65778B] uppercase font-bold block">
                 Volume / Luas
@@ -410,7 +419,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             </div>
           </div>
 
-          {/* Informasi Geografis & Titik Koordinat GPS */}
           <div className="p-4 rounded-2xl bg-[#F6F9FB] border border-[#E1E9F0] space-y-3">
             <div className="flex items-center gap-2">
               <Compass className="w-4 h-4 text-[#1E4E8C]" />
@@ -418,7 +426,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 Lokasi Geografis & Titik Koordinat Lapangan
               </h4>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <span className="text-[#65778B] block">Kecamatan:</span>
@@ -439,16 +446,14 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 </strong>
               </div>
             </div>
-
             {detailSurvey.kontakPendamping && (
               <p className="text-xs text-[#65778B] pt-2 border-t border-[#EAF0F4]">
-                Tokoh / Pendamping Lapangan:{" "}
+                Tokoh / Pendamping Lapangan:{ " " }
                 <strong className="text-[#143965]">
                   {detailSurvey.kontakPendamping}
                 </strong>
               </p>
             )}
-
             {detailSurvey.koordinat && (
               <div className="flex items-center justify-between pt-2 border-t border-[#EAF0F4]">
                 <span className="font-mono text-xs text-[#143965]">
@@ -466,7 +471,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             )}
           </div>
 
-          {/* Uraian Temuan Kerusakan & Rekomendasi Teknis */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-2xl bg-[#FFFBF7] border border-[#FAD8B8] space-y-2">
               <strong className="block text-xs font-bold text-[#9C5311] uppercase tracking-wider">
@@ -476,7 +480,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 {detailSurvey.uraianTemuan}
               </p>
             </div>
-
             <div className="p-4 rounded-2xl bg-[#F4F9FD] border border-[#CFE1EE] space-y-2">
               <strong className="block text-xs font-bold text-[#1E4E8C] uppercase tracking-wider">
                 Rekomendasi Penanganan Teknis
@@ -488,14 +491,12 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             </div>
           </div>
 
-          {/* Foto Dokumentasi Fisik 0% Lapangan */}
           {detailSurvey.fotoUrl && (
             <div className="space-y-2 pt-2 border-t border-[#EAF0F4]">
               <strong className="block text-xs font-bold text-[#35536F] uppercase tracking-wider">
                 Dokumentasi Fisik Lapangan (Kondisi Titik 0%)
               </strong>
               <div className="rounded-2xl overflow-hidden border border-[#DCE5ED] aspect-video max-h-96 bg-black/5 shadow-xs">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={detailSurvey.fotoUrl}
                   alt="Dokumentasi Survey Lapangan"
@@ -505,7 +506,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             </div>
           )}
 
-          {/* Bottom Action Footer */}
           <div className="pt-6 border-t border-[#EAF0F4] flex flex-col sm:flex-row justify-between items-center gap-3">
             <button
               onClick={() => setSelectedSurveyId(null)}
@@ -515,192 +515,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             </button>
           </div>
         </section>
-
-        {/* Modal Konversi (if opened from detail page) */}
-        {convertingSurvey && (
-          <div className="fixed inset-0 z-50 bg-[#0B2540]/65 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl border border-[#DCE5ED]">
-              <div className="flex items-center justify-between p-6 border-b border-[#EAF0F4]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#E8F2F8] text-[#1E4E8C] flex items-center justify-center">
-                    <FolderPlus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-[#143965]">
-                      Buat Master Kegiatan dari Survey
-                    </h3>
-                    <p className="text-xs text-[#65778B]">
-                      Sumber: {convertingSurvey.kodeSurvey} (
-                      {convertingSurvey.surveyor})
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setConvertingSurvey(null)}
-                  className="p-1.5 rounded-lg text-[#65778B] hover:text-[#143965] hover:bg-[#F4F7FA] transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleConfirmConversion} className="p-6 space-y-4">
-                <div className="p-3.5 rounded-xl bg-[#F0F7FD] border border-[#CDE1F3] text-xs text-[#1E4E8C] flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>
-                    Data teknis, lokasi, dan estimasi biaya dari hasil survey telah
-                    diisikan secara otomatis ke Master Kegiatan.
-                  </span>
-                </div>
-
-                {/* Kategori Kegiatan */}
-                <div>
-                  <Select
-                    label="Kategori Kegiatan *"
-                    value={convertedKategori}
-                    onChange={(e) => setConvertedKategori(e.target.value)}
-                    required
-                  >
-                    <option value="Jalan Lingkungan">Jalan Lingkungan</option>
-                    <option value="Drainase/TPT">Drainase/TPT</option>
-                    <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
-                  </Select>
-                </div>
-
-                {/* Nama Kegiatan */}
-                <div>
-                  <Input
-                    label="Nama Master Kegiatan *"
-                    type="text"
-                    value={convertedNama}
-                    onChange={(e) => setConvertedNama(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Lokasi Matrix */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Input
-                      label="Kecamatan"
-                      type="text"
-                      value={convertedKecamatan}
-                      onChange={(e) => setConvertedKecamatan(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="Desa / Kelurahan"
-                      type="text"
-                      value={convertedDesa}
-                      onChange={(e) => setConvertedDesa(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Input
-                    label="Detail Lokasi / Ruas Jalan"
-                    type="text"
-                    value={convertedDetailLokasi}
-                    onChange={(e) => setConvertedDetailLokasi(e.target.value)}
-                  />
-                </div>
-
-                {/* Pagu Anggaran */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Input
-                      label="Pagu Anggaran Kegiatan (Rp) *"
-                      type="number"
-                      value={convertedPagu}
-                      onChange={(e) =>
-                        setConvertedPagu(e.target.value === "" ? "" : Number(e.target.value))
-                      }
-                      placeholder="Contoh: 150000000"
-                      className="font-mono"
-                      required
-                    />
-                    {typeof convertedPagu === "number" && convertedPagu > 0 && (
-                      <span className="text-[11px] text-[#148B87] font-semibold mt-0.5 block">
-                        {currency(convertedPagu)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Target Volume & Satuan */}
-                  <div>
-                    <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
-                      Target Volume & Satuan
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={convertedTarget}
-                        onChange={(e) =>
-                          setConvertedTarget(
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="font-mono w-1/2"
-                      />
-                      <Select
-                        value={convertedSatuan}
-                        onChange={(e) => setConvertedSatuan(e.target.value)}
-                        className="w-1/2"
-                      >
-                        <option value="m'">m&#39;</option>
-                        <option value="m2">m2</option>
-                        <option value="m3">m3</option>
-                        <option value="Unit">Unit</option>
-                        <option value="ha">ha</option>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Operator Pengelola */}
-                <div>
-                  <Select
-                    label="Operator Pengelola *"
-                    value={convertedOperatorId}
-                    onChange={(e) => setConvertedOperatorId(e.target.value)}
-                    required
-                  >
-                    <option value="">Pilih Operator Pengelola</option>
-                    {operatorOptions.map((op) => (
-                      <option key={op.id} value={String(op.id)}>
-                        {op.nama}
-                      </option>
-                    ))}
-                  </Select>
-                  {convertedOperatorId && (
-                    <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
-                      {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setConvertingSurvey(null)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#65778B] hover:text-[#143965] border border-[#CCD9E4]"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs flex items-center gap-1.5 transition"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Simpan & Masukkan ke Master Kegiatan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -710,7 +524,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
   // =========================================================================
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -730,7 +543,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
         </div>
       </div>
 
-      {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-xs card-indicator">
           <p className="text-xs font-semibold text-[#65778B] m-0">
@@ -743,7 +555,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             Dari seluruh operator dinas
           </span>
         </article>
-
         <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-xs card-indicator orange">
           <p className="text-xs font-semibold text-[#65778B] m-0">
             Belum Jadi Kegiatan
@@ -755,7 +566,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             Menunggu konversi ke Master
           </span>
         </article>
-
         <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-xs card-indicator green">
           <p className="text-xs font-semibold text-[#65778B] m-0">
             Sudah Jadi Master Kegiatan
@@ -767,7 +577,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
             Telah diagendakan di dinas
           </span>
         </article>
-
         <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-xs card-indicator teal">
           <p className="text-xs font-semibold text-[#65778B] m-0">
             Estimasi Usulan Menunggu
@@ -781,9 +590,7 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
         </article>
       </div>
 
-      {/* Main List Section */}
       <section className="bg-white rounded-2xl border border-[#E1E9F0] shadow-xs overflow-hidden">
-        {/* Filter Bar */}
         <div className="p-5 border-b border-[#EAF0F4] space-y-3.5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
@@ -796,44 +603,35 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
               </p>
             </div>
 
-            {/* Quick Status Pill Filter */}
             <div className="flex items-center gap-1.5 bg-[#F4F7FA] p-1 rounded-xl border border-[#CCD9E4] text-xs font-bold">
               <button
                 onClick={() => setFilterStatusKonversi("all")}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  filterStatusKonversi === "all"
-                    ? "bg-[#1E4E8C] text-white shadow-xs"
-                    : "text-[#65778B] hover:text-[#143965]"
-                }`}
+                className={filterStatusKonversi === "all"
+                  ? "px-3 py-1.5 rounded-lg bg-[#1E4E8C] text-white shadow-xs"
+                  : "px-3 py-1.5 rounded-lg text-[#65778B] hover:text-[#143965]"}
               >
                 Semua ({totalSurveys})
               </button>
               <button
                 onClick={() => setFilterStatusKonversi("unconverted")}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
-                  filterStatusKonversi === "unconverted"
-                    ? "bg-[#E78A31] text-white shadow-xs"
-                    : "text-[#65778B] hover:text-[#143965]"
-                }`}
+                className={filterStatusKonversi === "unconverted"
+                  ? "px-3 py-1.5 rounded-lg bg-[#E78A31] text-white shadow-xs"
+                  : "px-3 py-1.5 rounded-lg text-[#65778B] hover:text-[#143965]"}
               >
                 Belum Jadi Kegiatan ({unconvertedCount})
               </button>
               <button
                 onClick={() => setFilterStatusKonversi("converted")}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  filterStatusKonversi === "converted"
-                    ? "bg-[#258050] text-white shadow-xs"
-                    : "text-[#65778B] hover:text-[#143965]"
-                }`}
+                className={filterStatusKonversi === "converted"
+                  ? "px-3 py-1.5 rounded-lg bg-[#258050] text-white shadow-xs"
+                  : "px-3 py-1.5 rounded-lg text-[#65778B] hover:text-[#143965]"}
               >
                 Sudah Jadi Kegiatan ({convertedCount})
               </button>
             </div>
           </div>
 
-          {/* Search and Dropdown Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-            {/* Search */}
             <div className="relative">
               <Search className="w-4 h-4 text-[#8AA2B5] absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
@@ -845,7 +643,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
               />
             </div>
 
-            {/* Kategori Kegiatan Filter */}
             <Select
               value={filterKategori}
               onChange={(e) => setFilterKategori(e.target.value)}
@@ -857,7 +654,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
               <option value="Konstruksi Lainnya">Konstruksi Lainnya</option>
             </Select>
 
-            {/* Urgensi Filter */}
             <Select
               value={filterUrgensi}
               onChange={(e) => setFilterUrgensi(e.target.value)}
@@ -869,7 +665,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
               <option value="Rendah">Rendah</option>
             </Select>
 
-            {/* Kecamatan Filter */}
             <Select
               value={filterKecamatan}
               onChange={(e) => setFilterKecamatan(e.target.value)}
@@ -885,7 +680,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
           </div>
         </div>
 
-        {/* LIST HASIL SURVEY */}
         <div className="p-5 sm:p-6 space-y-3.5 bg-[#FAFBFD]">
           {filteredSurveys.length > 0 ? (
             filteredSurveys.map((srv) => {
@@ -906,18 +700,15 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 <div
                   key={srv.id}
                   onClick={() => setSelectedSurveyId(srv.id)}
-                  className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:border-[#1E4E8C]/40 ${
+                  className={
                     !isConverted
-                      ? "border-l-4 border-l-[#E78A31] border-[#E1E9F0]"
-                      : "border-l-4 border-l-[#258050] border-[#E1E9F0]"
-                  }`}
+                      ? "bg-white rounded-2xl p-4 sm:p-5 border border-l-4 border-l-[#E78A31] border-[#E1E9F0] transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:border-[#1E4E8C]/40"
+                      : "bg-white rounded-2xl p-4 sm:p-5 border border-l-4 border-l-[#258050] border-[#E1E9F0] transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:border-[#1E4E8C]/40"
+                  }
                 >
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    {/* Left Details */}
                     <div className="space-y-2 flex-1 min-w-0">
-                      {/* Meta Tags Row */}
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* Status Konversi Badge */}
                         {isConverted ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E7F6ED] text-[#258050] border border-[#C8E8D5]">
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -929,35 +720,24 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                             Belum Jadi Kegiatan
                           </span>
                         )}
-
                         <span className="font-mono text-xs font-bold text-[#143965] bg-[#F1F5F9] px-2 py-0.5 rounded-md">
                           {srv.kodeSurvey}
                         </span>
-
                         <span className="text-xs text-[#65778B] flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
                           {srv.tanggal}
                         </span>
-
                         <span className="text-xs text-[#1E4E8C] font-semibold flex items-center gap-1 bg-[#E8F2F8] px-2 py-0.5 rounded-md">
                           <UserIcon className="w-3.5 h-3.5" />
                           Surveyor: {srv.surveyor}
                         </span>
-
-                        {/* Kategori badge */}
                         <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-[#EDF5FB] text-[#1E4E8C] border border-[#D0E3F0]">
                           {srv.kategori}
                         </span>
-
-                        {/* Kondisi badge */}
-                        <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-md border ${badgeKondisi}`}
-                        >
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${badgeKondisi}`}>
                           {srv.kondisi}
                         </span>
                       </div>
-
-                      {/* Title & Location */}
                       <div>
                         <h4 className="text-base sm:text-lg font-bold text-[#143965] leading-snug hover:text-[#1E4E8C] transition">
                           {srv.namaKegiatan}
@@ -975,14 +755,10 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                           )}
                         </p>
                       </div>
-
-                      {/* Brief findings summary */}
                       <p className="text-xs text-[#496178] line-clamp-1 italic bg-[#F8FAFC] p-2 rounded-lg border border-[#EAF0F4]">
                         &ldquo;{srv.uraianTemuan}&rdquo;
                       </p>
                     </div>
-
-                    {/* Right Metrics & Action Buttons */}
                     <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-[#EAF0F4] gap-3 shrink-0">
                       <div className="text-left lg:text-right">
                         <span className="text-[11px] text-[#65778B] uppercase font-bold block">
@@ -1002,8 +778,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                           </strong>
                         </span>
                       </div>
-
-                      {/* Action buttons with requested name "Cek Detail Lengkap" */}
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -1015,29 +789,71 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                         >
                           <Eye className="w-3.5 h-3.5" /> Cek Detail Lengkap
                         </button>
-
-                        {!isConverted && (isVerified ? (
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenConversionModal(srv, e)}
-                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs transition flex items-center gap-1.5"
-                          >
-                            <FolderPlus className="w-3.5 h-3.5" />
-                            Buat Kegiatan Baru
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void onVerifySurvey(srv);
-                            }}
-                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#258050] text-white hover:bg-[#1D6840] shadow-xs transition flex items-center gap-1.5"
-                          >
-                            <FileCheck2 className="w-3.5 h-3.5" />
-                            Verifikasi Survey
-                          </button>
-                        ))}
+                        {!isConverted && (() => {
+                          if (isVerified) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenConversionModal(srv, e)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1E4E8C] text-white hover:bg-[#143965] shadow-xs transition flex items-center gap-1.5"
+                              >
+                                <FolderPlus className="w-3.5 h-3.5" />
+                                Buat Kegiatan Baru
+                              </button>
+                            );
+                          } else if (srv.status === "Menunggu Verifikasi") {
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const reason = window.prompt("Masukkan alasan verifikasi (opsional):");
+                                    void onVerifySurvey(srv, reason ?? undefined);
+                                  }}
+                                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#258050] text-white hover:bg-[#1D6840] shadow-xs transition flex items-center gap-1.5"
+                                >
+                                  <FileCheck2 className="w-3.5 h-3.5" />
+                                  Verifikasi
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const reason = window.prompt("Alasan penolakan (wajib diisi):");
+                                    if (reason && reason.trim()) {
+                                      void onRejectSurvey(srv, reason.trim());
+                                    } else {
+                                      window.alert("Alasan penolakan wajib diisi.");
+                                    }
+                                  }}
+                                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#BD493B] text-white hover:bg-[#9B2C2C] shadow-xs transition flex items-center gap-1.5"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Tolak
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const reason = window.prompt("Alasan permintaan revisi (wajib diisi):");
+                                    if (reason && reason.trim()) {
+                                      void onRequestRevision(srv, reason.trim());
+                                    } else {
+                                      window.alert("Alasan revisi wajib diisi.");
+                                    }
+                                  }}
+                                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D97706] text-white hover:bg-[#B45309] shadow-xs transition flex items-center gap-1.5"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  Minta Revisi
+                                </button>
+                              </>
+                            );
+                          } else {
+                            return null;
+                          }
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1077,7 +893,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
         </div>
       </section>
 
-      {/* Modal Konversi (if opened from list view) */}
       {convertingSurvey && (
         <div className="fixed inset-0 z-50 bg-[#0B2540]/65 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl border border-[#DCE5ED]">
@@ -1108,12 +923,10 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   Data teknis, lokasi, dan estimasi biaya dari hasil survey telah
-                  diisikan secara otomatis. Anda dapat meninjau dan menyesuaikan sebelum
-                  disimpan ke Master Kegiatan.
+                  diisikan secara otomatis ke Master Kegiatan.
                 </span>
               </div>
 
-              {/* Kategori Kegiatan */}
               <div>
                 <Select
                   label="Kategori Kegiatan *"
@@ -1127,7 +940,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 </Select>
               </div>
 
-              {/* Nama Kegiatan */}
               <div>
                 <Input
                   label="Nama Master Kegiatan *"
@@ -1138,7 +950,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 />
               </div>
 
-              {/* Lokasi Matrix */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Input
@@ -1167,7 +978,6 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 />
               </div>
 
-              {/* Pagu Anggaran */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Input
@@ -1189,62 +999,54 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
                 </div>
               </div>
 
-              {/* Target Volume & Satuan */}
-                <div>
-                  <Input
-                    label="Target Volume & Satuan"
-                    type="number"
-                    step="0.01"
-                    value={convertedTarget}
-                    onChange={(e) =>
-                      setConvertedTarget(
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
-                    }
-                    className="font-mono w-1/2"
-                  />
-                  <Select
-                    value={convertedSatuan}
-                    onChange={(e) => setConvertedSatuan(e.target.value)}
-                    className="w-1/2"
-                  >
-                    <option value="m'">m&#39;</option>
-                    <option value="m2">m2</option>
-                    <option value="m3">m3</option>
-                    <option value="Unit">Unit</option>
-                    <option value="ha">ha</option>
-                  </Select>
-                </div>
+              <div>
+                <Input
+                  label="Target Volume & Satuan"
+                  type="number"
+                  step="0.01"
+                  value={convertedTarget}
+                  onChange={(e) =>
+                    setConvertedTarget(
+                      e.target.value === "" ? "" : Number(e.target.value)
+                    )
+                  }
+                  className="font-mono w-1/2"
+                />
+                <Select
+                  value={convertedSatuan}
+                  onChange={(e) => setConvertedSatuan(e.target.value)}
+                  className="w-1/2"
+                >
+                  <option value="m'">m&#39;</option>
+                  <option value="m2">m2</option>
+                  <option value="m3">m3</option>
+                  <option value="Unit">Unit</option>
+                  <option value="ha">ha</option>
+                </Select>
+              </div>
 
-                {/* Operator Pengelola */}
-                <div>
-                  <Select
-                    label="Operator Pengelola *"
-                    value={convertedOperatorId}
-                    onChange={(e) => setConvertedOperatorId(e.target.value)}
-                    required
-                  >
-                    <option value="">Pilih Operator Pengelola</option>
-                    {operatorOptions.map((op) => (
-                      <option key={op.id} value={String(op.id)}>
-                        {op.nama}
-                      </option>
-                    ))}
-                  </Select>
-                  {convertedOperatorId && (
-                    <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
-                      {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <Select
+                  label="Operator Pengelola *"
+                  value={convertedOperatorId}
+                  onChange={(e) => setConvertedOperatorId(e.target.value)}
+                  required
+                >
+                  <option value="">Pilih Operator Pengelola</option>
+                  {operatorOptions.map((op) => (
+                    <option key={op.id} value={String(op.id)}>
+                      {op.nama}
+                    </option>
+                  ))}
+                </Select>
+                {convertedOperatorId && (
+                  <p className="text-[11px] text-[#148B87] font-medium mt-0.5">
+                    {operatorOptions.find((op) => String(op.id) === convertedOperatorId)?.nama}
+                  </p>
+                )}
+              </div>
 
-                              <div className="p-3 bg-[#F8FAFC] border border-[#EAF0F4] rounded-xl text-xs text-[#65778B]">
-                                <p>
-                                  <strong>Kondisi Fisik Terdata:</strong> {convertingSurvey.kondisi}
-                                </p>
-                              </div>
-
-                              <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
+              <div className="pt-4 border-t border-[#EAF0F4] flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setConvertingSurvey(null)}
@@ -1267,3 +1069,5 @@ export const AdminSurveyView: React.FC<AdminSurveyViewProps> = ({
     </div>
   );
 };
+
+export default AdminSurveyView;
