@@ -18,6 +18,7 @@ import {
   getProgramDesa,
   getProgramKecamatan,
 } from "../utils/helpers";
+import { PROGRAM_STATUS_LABELS } from "../utils/api-mappers";
 import { LeafletMap } from "./LeafletMap";
 import { PimpinanAchievementSection } from "./PimpinanAchievementSection";
 import { ActivityFilters } from "./views/ActivityFilters";
@@ -53,17 +54,33 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   // Jika belum ada data, array kosong dan akan ditampilkan keterangan kosong di UI.
   const documentationCards =
     documentationPhotos.length > 0
-      ? documentationPhotos.slice(0, 6).map((photo) => ({
-          key: photo.id,
-          src: photo.downloadUrl,
-          alt: photo.caption ?? photo.originalName,
-          title: photo.program?.nama ?? photo.originalName,
-          location: photo.program?.lokasi ?? "Kabupaten Kuningan",
-          year: new Date(photo.createdAt).getFullYear().toString(),
-          status: "Selesai Dikerjakan",
-          badgeClass: "selesai",
-          onClick: photo.program ? () => onSelectProgram(photo.program!.id) : undefined,
-        }))
+      ? documentationPhotos.slice(0, 6).map((photo) => {
+          const programStatus = photo.program?.status;
+          const statusLabel =
+            programStatus &&
+            programStatus in PROGRAM_STATUS_LABELS
+              ? PROGRAM_STATUS_LABELS[
+                  programStatus as keyof typeof PROGRAM_STATUS_LABELS
+                ]
+              : "Belum Dikerjakan";
+          const badgeClass =
+            statusLabel === "Selesai Dikerjakan"
+              ? "selesai"
+              : statusLabel === "Sedang Dikerjakan"
+              ? "sedang"
+              : "belum";
+          return {
+            key: photo.id,
+            src: photo.downloadUrl,
+            alt: photo.caption ?? photo.originalName,
+            title: photo.program?.nama ?? photo.originalName,
+            location: photo.program?.lokasi ?? "Kabupaten Kuningan",
+            year: new Date(photo.createdAt).getFullYear().toString(),
+            status: statusLabel,
+            badgeClass,
+            onClick: photo.program ? () => onSelectProgram(photo.program!.id) : undefined,
+          };
+        })
       : [];
 
   // Gambar statis default untuk hero slideshow di bagian atas halaman.

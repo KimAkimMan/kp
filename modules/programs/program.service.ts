@@ -87,6 +87,7 @@ export type DocumentationPhoto = {
     nama: string;
     kategori: string;
     lokasi: string;
+    status: string;
   } | null;
 };
 

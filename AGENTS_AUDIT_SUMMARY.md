@@ -20,6 +20,7 @@ Based on a read-only audit of /home/dika/kp/kp (Next.js 16 + Prisma 7 + MariaDB)
 4. ✅ **ProgramStatus enum** - app/types.ts dan lib/api/types.ts sudah menggunakan code values (BELUM_DIKERJAKAN, SEDANG_DIKERJAKAN, SELESAI_DIKERJAKAN) yang konsisten dengan Prisma
 5. ✅ **SurveyStatus enum** - app/types.ts dan lib/api/types.ts sudah menggunakan code values (DRAFT, SELESAI_SURVEY, MENUNGGU_VERIFIKASI, PERLU_REVISI, DIVERIFIKASI, DIKONVERSI) yang konsisten dengan Prisma
 6. ✅ **openapi Advice.status** - Sudah diberikan enum restriction yang sesuai
+7. ✅ **Dokumentasi status hardcoded** - `documentationCards` di `PublicLanding.tsx` sebelumnya selalu menampilkan `"Selesai Dikerjakan"` regardless of actual program status. Sekarang memetakan status program sebenarnya via `PROGRAM_STATUS_LABELS`. `findDocumentationPhotos()` juga men-select `status` field dan `DocumentationPhoto.program` type updated.
 
 ## Fixed Issues (Severity 4 - All Resolved)
 

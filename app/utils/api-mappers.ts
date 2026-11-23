@@ -12,7 +12,7 @@ const ROLE_LABELS: Record<ApiUser["role"], Role> = {
   PIMPINAN: "Pimpinan",
 };
 
-const PROGRAM_STATUS_LABELS: Record<PublicProgram["status"], Program["status"]> = {
+export const PROGRAM_STATUS_LABELS: Record<PublicProgram["status"], Program["status"]> = {
   BELUM_DIKERJAKAN: "Belum Dikerjakan",
   SEDANG_DIKERJAKAN: "Sedang Dikerjakan",
   SELESAI_DIKERJAKAN: "Selesai Dikerjakan",

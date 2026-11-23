@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(request.nextUrl.searchParams);
     const where = {
       deletedAt: null,
-      status: ProgramStatus.SELESAI_DIKERJAKAN,
+      status: { in: [ProgramStatus.SEDANG_DIKERJAKAN, ProgramStatus.SELESAI_DIKERJAKAN] },
       operatorPengelolaId: { not: null },
     };
     const [items, total] = await Promise.all([

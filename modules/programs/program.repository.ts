@@ -350,11 +350,12 @@ export const programRepository = {
   },
 
   async findDocumentationPhotos() {
-    // Program yang sudah selesai dan memiliki operator pengelola (dapat divisualisasikan publik)
+    // Program yang sudah selesai atau sedang dikerjakan dan memiliki operator pengelola
+    // (dapat divisualisasikan publik sebagai dokumentasi kegiatan)
     const programs = await prisma.program.findMany({
       where: {
         deletedAt: null,
-        status: "SELESAI_DIKERJAKAN",
+        status: { in: ["SELESAI_DIKERJAKAN", "SEDANG_DIKERJAKAN"] },
         operatorPengelolaId: { not: null },
       },
       select: {
@@ -365,6 +366,7 @@ export const programRepository = {
         lokasi: true,
         kecamatan: true,
         desaKelurahan: true,
+        status: true,
         updatedAt: true,
       },
       orderBy: { updatedAt: "desc" },
@@ -391,7 +393,7 @@ export const programRepository = {
       where: {
         programId: { in: programIds },
         deletedAt: null,
-        status: { in: ["DIVERIFIKASI", "DIKONVERSI"] },
+        status: { in: ["SELESAI_SURVEY", "DIVERIFIKASI", "DIKONVERSI"] },
       },
       select: {
         id: true,
@@ -424,7 +426,7 @@ export const programRepository = {
     });
 
     // Map survey → program untuk menampilkan info kegiatan
-    const surveyToProgram = new Map<string, { id: number; kode: string; nama: string; kategori: string; lokasi: string }>();
+    const surveyToProgram = new Map<string, { id: number; kode: string; nama: string; kategori: string; lokasi: string; status: string }>();
     for (const link of surveyLinks) {
       const program = programs.find((p) => p.id === link.programId);
       if (program) surveyToProgram.set(link.surveyId, program);
