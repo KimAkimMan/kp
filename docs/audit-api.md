@@ -288,3 +288,42 @@ Audit ini adalah pemeriksaan statis terhadap kode yang dibaca. Test suite,
 type-check, lint, dan verifikasi terhadap database/server tidak dijalankan untuk
 laporan ini. Karena itu, temuan perlu dikonfirmasi melalui regression test dan
 validasi pada lingkungan pengujian sebelum dinyatakan tertutup.
+
+## Re-audit kode terkini — 23 November 2026
+
+### Sudah diperbaiki
+
+- Review survey kini membatasi role ke Admin dan memvalidasi status awal.
+- PATCH survey menolak perubahan langsung ke status `DIVERIFIKASI` dan
+  `DIKONVERSI`.
+- Akses detail program, daftar progress, dan daftar biaya kini memeriksa
+  kepemilikan operator.
+- Pembuatan link survey kini memeriksa kepemilikan.
+- Verifikasi progress menggunakan transisi status bersyarat.
+- Create program menolak beberapa field state yang seharusnya dihasilkan
+  workflow.
+- Path OpenAPI untuk koleksi biaya dan hapus foto telah disesuaikan.
+- CORS mencantumkan `PUT`.
+
+### Masih terbuka atau perlu ditinjau
+
+- Create survey masih menerima status `DIVERIFIKASI`/`DIKONVERSI`; operator juga
+  masih dapat mengirim `DIKONVERSI`.
+- Review survey yang disetujui belum mengisi `verifiedById` dan `verifiedAt`.
+- Riwayat dan assignment program, serta daftar/unduh dokumen biaya, belum
+  konsisten membatasi akses berdasarkan kepemilikan operator.
+- GET link survey belum memeriksa kepemilikan survey.
+- Cache idempotency masih dapat me-replay response sebelum handler memvalidasi
+  sesi.
+- `operatorPengelolaId` pada create program belum divalidasi sebagai operator
+  aktif.
+- Validasi `programId` link survey belum menolak angka negatif atau pecahan.
+- Pemeriksaan detail program berpotensi menolak role Pimpinan, padahal matriks
+  akses proyek menyebut Pimpinan dapat melihat detail kegiatan.
+
+### Kesimpulan re-audit
+
+Sebagian temuan awal sudah diperbaiki, tetapi API belum sepenuhnya siap: masih
+ada celah akses dan aturan workflow yang perlu ditutup. Test regression untuk
+temuan-temuan ini belum terlihat pada pemeriksaan statis ini. Test suite,
+type-check, dan lint belum dijalankan.
