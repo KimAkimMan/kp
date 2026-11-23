@@ -201,4 +201,14 @@ export const programCostRepository = {
       where: { id: documentId },
     });
   },
+
+  async listDocuments(costId: number) {
+    return prisma.programCostDocument.findMany({
+      where: { costId },
+      include: {
+        uploadedBy: { select: { id: true, nama: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
 };

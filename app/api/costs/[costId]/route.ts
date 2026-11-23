@@ -58,15 +58,7 @@ export async function GET(_request: NextRequest, context: Context) {
   return handleRoute(async () => {
     await requireRole("ADMIN", "OPERATOR");
     const costId = parsePositiveId((await context.params).costId);
-
-    const { prisma } = await import("@/lib/prisma");
-    const documents = await prisma.programCostDocument.findMany({
-      where: { costId },
-      include: {
-        uploadedBy: { select: { id: true, nama: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const documents = await programCostService.listDocuments(costId, await requireRole("ADMIN", "OPERATOR"));
     return successResponse(documents);
   });
 }

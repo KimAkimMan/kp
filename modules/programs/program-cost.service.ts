@@ -94,4 +94,11 @@ export const programCostService = {
     }
     return programCostRepository.deleteDocument(documentId);
   },
+
+  async listDocuments(costId: number, user: AuthenticatedUser) {
+    if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
+      throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat dokumen biaya.", 403);
+    }
+    return programCostRepository.listDocuments(costId);
+  },
 };

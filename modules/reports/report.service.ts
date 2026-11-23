@@ -13,7 +13,7 @@ export const reportService = {
       ...(filters.operatorId === undefined
         ? {}
         : { operatorPengelolaId: filters.operatorId }),
-      ...(filters.periode === undefined ? {} : { periode: filters.periode }),
+      ...(filters.periode === undefined ? {} : { periode: { contains: filters.periode } }),
       ...(filters.kecamatan === undefined ? {} : { kecamatan: filters.kecamatan }),
       ...(filters.status === undefined ? {} : { status: filters.status }),
     };

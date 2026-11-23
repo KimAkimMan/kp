@@ -4,11 +4,73 @@ import { ApiError } from "@/lib/http/api-error";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import type { ProgramActor } from "./program.types";
 import {
   presignDownload,
   type DirectUploadInput,
 } from "@/modules/storage/direct-upload.service";
+
+function toFlatProgram(program: {
+  id: number;
+  kode: string;
+  nama: string;
+  namaKegiatan: string | null;
+  kategori: string;
+  categoryId: number | null;
+  periodId: number | null;
+  lokasi: string;
+  kecamatan: string | null;
+  kecamatanId: number | null;
+  desaKelurahan: string | null;
+  villageId: number | null;
+  detailLokasi: string | null;
+  operatorPengelola: string | null;
+  operatorPengelolaId: number | null;
+  penyedia: string | null;
+  direktur: string | null;
+  noKontrak: string | null;
+  nilaiKontrak: number | Prisma.Decimal | null;
+  periode: string;
+  satuan: string | null;
+  target: number | Prisma.Decimal | null;
+  targetAwal: number | Prisma.Decimal | null;
+  targetVolume: number | Prisma.Decimal | null;
+  realisasi: number | Prisma.Decimal | null;
+  realisasiVolume: number | Prisma.Decimal | null;
+  pagu: number | Prisma.Decimal | null;
+  penggunaan: number | Prisma.Decimal | null;
+  penggunaanBiaya: number | Prisma.Decimal | null;
+  status: string;
+  jadwal: string | null;
+  lebarJalan: number | Prisma.Decimal | null;
+  kondisiJalan: string | null;
+  tanggalMulai: Date | null;
+  tanggalSelesai: Date | null;
+  catatan: string | null;
+  sumber: string | null;
+  update: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  deletedById: number | null;
+  histories?: unknown[];
+  costs?: unknown[];
+  assignments?: unknown[];
+  progressEntries?: unknown[];
+  surveys?: unknown[];
+  adviceRecords?: unknown[];
+  operator?: { id: number; nama: string; email: string; role: string } | null;
+} | null) {
+  if (!program) return null;
+  const { histories, costs, assignments, progressEntries, surveys, adviceRecords, operator, ...flat } = program;
+  return {
+    ...flat,
+    operatorPengelola: program.operatorPengelola ?? null,
+    operatorPengelolaId: program.operatorPengelolaId ?? null,
+    operator: operator ? { id: operator.id, nama: operator.nama, email: operator.email, role: operator.role } : null,
+  };
+}
 
 export type DocumentationPhoto = {
   id: string;
@@ -46,7 +108,7 @@ export const programService = {
         },
       });
     }
-    return { program: result.program, created: !result.isDuplicate };
+    return { program: toFlatProgram(result.program), created: !result.isDuplicate };
   },
 
   async upsert(input: CreateProgramInput, createdById: number) {
@@ -63,7 +125,7 @@ export const programService = {
         details: { kode: input.kode, nama: input.nama, created },
       },
     });
-    return { program, created };
+    return { program: toFlatProgram(program), created };
   },
 
   async claim(id: number, user: ProgramActor) {
@@ -86,7 +148,7 @@ export const programService = {
         details: { operatorId: user.id, operatorNama: user.nama },
       },
     });
-    return result;
+    return toFlatProgram(result);
   },
 
   async get(id: number, user?: AuthenticatedUser) {
@@ -95,13 +157,24 @@ export const programService = {
     // Non-admin tidak boleh melihat surveys dan adviceRecords (data exposure)
     if (user?.role !== "ADMIN") {
       const { surveys, adviceRecords, ...rest } = program;
-      return rest;
+      return toFlatProgram(rest);
     }
-    return program;
+    return toFlatProgram(program);
   },
 
   async update(id: number, input: UpdateProgramInput, user: AuthenticatedUser) {
     await this.get(id, user);
+    // Blokir field yang hanya boleh diubah melalui alur khusus (bukan PATCH langsung)
+    const BLOCKED_FIELDS = new Set(["realisasi", "realisasiVolume", "penggunaan", "penggunaanBiaya", "status"]);
+    const inputRecord = input as Record<string, unknown>;
+    const blocked = Object.keys(inputRecord).filter((k) => BLOCKED_FIELDS.has(k) && inputRecord[k] !== undefined);
+    if (blocked.length > 0) {
+      throw new ApiError(
+        "FORBIDDEN",
+        `Field ${blocked.join(", ")} tidak dapat diubah lewat PATCH. Gunakan endpoint yang sesuai (progress, cost, complete).`,
+        403,
+      );
+    }
     if (user.role === "OPERATOR") {
       if (
         input.operatorPengelolaId !== undefined &&
@@ -119,6 +192,7 @@ export const programService = {
         "penyedia", "direktur", "noKontrak", "jadwal",
         "lebarJalan", "kondisiJalan", "tanggalMulai", "tanggalSelesai",
         "catatan", "sumber", "update", "status",
+        "pagu", "nilaiKontrak",
       ]);
       const inputRecord = input as Record<string, unknown>;
       const forbidden = Object.keys(inputRecord).filter((k) => !OPERATOR_ALLOWED.has(k) && inputRecord[k] !== undefined);
@@ -136,11 +210,12 @@ export const programService = {
         details: input,
       },
     });
-    return result;
+    return toFlatProgram(result);
   },
 
   async assertCanEdit(id: number, user: AuthenticatedUser) {
     const program = await this.get(id, user);
+    if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     if (user.role === "ADMIN") return program;
     if (user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah program ini.", 403);
@@ -166,7 +241,57 @@ export const programService = {
         details: { reason: "API admin delete" },
       },
     });
-    return result;
+    return toFlatProgram({ id: result.id, deletedAt: result.deletedAt } as unknown as {
+      id: number;
+      kode: string;
+      nama: string;
+      namaKegiatan: string | null;
+      kategori: string;
+      categoryId: number | null;
+      periodId: number | null;
+      lokasi: string;
+      kecamatan: string | null;
+      kecamatanId: number | null;
+      desaKelurahan: string | null;
+      villageId: number | null;
+      detailLokasi: string | null;
+      operatorPengelola: string | null;
+      operatorPengelolaId: number | null;
+      penyedia: string | null;
+      direktur: string | null;
+      noKontrak: string | null;
+      nilaiKontrak: number | Prisma.Decimal | null;
+      periode: string;
+      satuan: string | null;
+      target: number | Prisma.Decimal | null;
+      targetAwal: number | Prisma.Decimal | null;
+      targetVolume: number | Prisma.Decimal | null;
+      realisasi: number | Prisma.Decimal | null;
+      realisasiVolume: number | Prisma.Decimal | null;
+      pagu: number | Prisma.Decimal | null;
+      penggunaan: number | Prisma.Decimal | null;
+      penggunaanBiaya: number | Prisma.Decimal | null;
+      status: string;
+      jadwal: string | null;
+      lebarJalan: number | Prisma.Decimal | null;
+      kondisiJalan: string | null;
+      tanggalMulai: Date | null;
+      tanggalSelesai: Date | null;
+      catatan: string | null;
+      sumber: string | null;
+      update: string;
+      createdAt: Date;
+      updatedAt: Date;
+      deletedAt: Date | null;
+      deletedById: number | null;
+      histories?: unknown[];
+      costs?: unknown[];
+      assignments?: unknown[];
+      progressEntries?: unknown[];
+      surveys?: unknown[];
+      adviceRecords?: unknown[];
+      operator?: { id: number; nama: string; email: string; role: string } | null;
+    });
   },
 
   async getDocumentationPhotos() {

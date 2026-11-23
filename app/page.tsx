@@ -216,12 +216,15 @@ export default function Home() {
     const tanggal = Number.isNaN(parsedDate.getTime())
       ? new Date().toISOString().slice(0, 10)
       : parsedDate.toISOString().slice(0, 10);
+    const exists = surveys.some((s) => s.id === survey.id);
     const input = {
       kodeSurvey: survey.kodeSurvey,
       tanggal,
       surveyor: survey.surveyor,
-      surveyorId: survey.surveyorId ? Number(survey.surveyorId) : undefined,
-      programId: survey.programId ?? null,
+      // Hanya kirim surveyorId/programId saat CREATE; saat UPDATE biarkan backend
+      // gunakan nilai existing (hindari guard !== undefined yang memicu false positive)
+      ...(!exists && { surveyorId: survey.surveyorId ? Number(survey.surveyorId) : undefined }),
+      ...(!exists && { programId: survey.programId ?? null }),
       namaKegiatan: survey.namaKegiatan,
       kategori: survey.kategori,
       kecamatan: survey.kecamatan,
@@ -243,7 +246,6 @@ export default function Home() {
       status: statusStringToSurveyStatus[survey.status] ?? SurveyStatus.MENUNGGU_VERIFIKASI,
     };
     try {
-      const exists = surveys.some((s) => s.id === survey.id);
       let createdSurvey: { id: string } | null = null;
       if (exists) {
         await surveyApi.update(survey.id, input);
@@ -574,7 +576,7 @@ export default function Home() {
   // Save Progress & Realization (Operator)
   const handleSaveProgress = async (progressData: {
     tanggal: string;
-    status: "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan";
+    status: "Belum Dikerjakan" | "Sedang Dikerjakan";
     tahap: string;
     realisasi: number;
     catatan: string;
@@ -657,11 +659,9 @@ export default function Home() {
         storageKey: allStorageKeys.length > 0 ? allStorageKeys.join(",") : null,
         originalName: allOriginalNames.length > 0 ? allOriginalNames.join(",") : null,
         status:
-          progressData.status === "Selesai Dikerjakan"
-            ? "SELESAI_DIKERJAKAN"
-            : progressData.status === "Sedang Dikerjakan"
-              ? "SEDANG_DIKERJAKAN"
-              : "BELUM_DIKERJAKAN",
+          progressData.status === "Sedang Dikerjakan"
+            ? "SEDANG_DIKERJAKAN"
+            : "BELUM_DIKERJAKAN",
       });
       await refreshPrograms();
       showToast("Realisasi berhasil disimpan dan ringkasan diperbarui.");

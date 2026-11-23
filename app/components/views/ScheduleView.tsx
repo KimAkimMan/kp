@@ -73,7 +73,7 @@ interface ScheduleViewProps {
   onOpenCostModal: (p: Program) => void;
   onSaveProgress: (data: {
     tanggal: string;
-    status: "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan";
+    status: "Belum Dikerjakan" | "Sedang Dikerjakan";
     tahap: string;
     realisasi: number;
     catatan: string;
@@ -207,12 +207,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   // Form states for progress update
   const [updateDate, setUpdateDate] = useState("");
   const [progressStatus, setProgressStatus] = useState<
-    "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan"
-  >(program?.status || "Sedang Dikerjakan");
+    "Belum Dikerjakan" | "Sedang Dikerjakan"
+  >(program?.status === "Selesai Dikerjakan" ? "Sedang Dikerjakan" : program?.status || "Sedang Dikerjakan");
   const [progressStage, setProgressStage] = useState("");
-  const [realizationInput, setRealizationInput] = useState<string>(
-    program?.realisasi !== undefined ? String(program.realisasi) : "0"
-  );
+  const [realizationInput, setRealizationInput] = useState<string>("0");
   const [updateNote, setUpdateNote] = useState(program?.catatan || "");
   const [photos, setPhotos] = useState<File[]>([]);
   const [progressError, setProgressError] = useState("");
@@ -303,11 +301,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       setProgressError("Realisasi tidak boleh melebihi target kegiatan.");
       return;
     }
-    if (progressStatus === "Selesai Dikerjakan" && val < program.target) {
-      setProgressError("Status selesai hanya dapat dipilih jika realisasi telah mencapai target penuh.");
-      return;
-    }
-
+    // "Selesai Dikerjakan" tidak lagi tersedia di form progres;
+    // status selesai hanya melalui aksi "Tandai Selesai" (handleTriggerMarkComplete)
     onSaveProgress({
       tanggal: updateDate,
       status: progressStatus,
@@ -851,14 +846,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   value={progressStatus}
                   onChange={(e) =>
                     setProgressStatus(
-                      e.target.value as "Belum Dikerjakan" | "Sedang Dikerjakan" | "Selesai Dikerjakan"
+                      e.target.value as "Belum Dikerjakan" | "Sedang Dikerjakan"
                     )
                   }
                   required
                 >
                   <option value="Belum Dikerjakan">Belum Dikerjakan</option>
                   <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                  <option value="Selesai Dikerjakan">Selesai Dikerjakan</option>
                 </Select>
               </div>
 
@@ -875,7 +869,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
               <div>
                 <Input
-                  label={`Total Realisasi Kumulatif (${formatUnitSymbol(program.satuan)})`}
+                  label={`Tambahan Capaian (${formatUnitSymbol(program.satuan)})`}
                   type="number"
                   step="any"
                   min="0"

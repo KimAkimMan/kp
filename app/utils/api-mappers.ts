@@ -149,8 +149,12 @@ export function mapApiSurveyToSurvey(s: Record<string, unknown>): FieldSurvey {
       ? "Dikonversi"
       : statusKey === "DIVERIFIKASI" || s.status === "Diverifikasi"
       ? "Diverifikasi"
-      : statusKey === "SELESAI_SURVEY" || statusKey === "MENUNGGU_VERIFIKASI" || s.status === "Selesai Survey"
+      : statusKey === "PERLU_REVISI" || s.status === "Perlu Revisi"
+      ? "Perlu Revisi"
+      : statusKey === "SELESAI_SURVEY" || s.status === "Selesai Survey"
       ? "Selesai Survey"
+      : statusKey === "MENUNGGU_VERIFIKASI" || s.status === "Menunggu Verifikasi"
+      ? "Menunggu Verifikasi"
       : "Draft";
 
   let formattedDate = "";

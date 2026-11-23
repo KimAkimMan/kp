@@ -279,10 +279,25 @@ export const programRepository = {
       });
       if (!existing) return null;
 
+      // Jika operatorPengelolaId berubah, sinkronkan operatorPengelola string
+      let operatorPengelola: string | null | undefined = undefined;
+      if (input.operatorPengelolaId !== undefined && input.operatorPengelolaId !== existing.operatorPengelolaId) {
+        if (input.operatorPengelolaId !== null) {
+          const user = await tx.user.findUnique({
+            where: { id: input.operatorPengelolaId },
+            select: { nama: true },
+          });
+          if (user) operatorPengelola = user.nama;
+        } else {
+          operatorPengelola = null;
+        }
+      }
+
       const program = await tx.program.update({
         where: { id },
         data: {
           ...input,
+          ...(operatorPengelola !== undefined ? { operatorPengelola } : {}),
           ...(input.tanggalMulai === undefined ? {} : { tanggalMulai: input.tanggalMulai ? new Date(input.tanggalMulai) : null }),
           ...(input.tanggalSelesai === undefined ? {} : { tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null }),
         },

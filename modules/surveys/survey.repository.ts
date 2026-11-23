@@ -95,7 +95,7 @@ export const surveyRepository = {
           Object.entries(input).filter(([key]) => !["id", "kodeSurvey", "tanggal"].includes(key)),
         ),
       },
-      include: { program: true, surveyorUser: true },
+      include: { program: true, surveyorUser: { select: publicUserSelect } },
     });
   },
 

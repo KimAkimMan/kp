@@ -4,6 +4,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { adviceReplyService } from "@/modules/advice/advice-reply.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest, context: Context) {
       const { isi } = body;
 
       if (!isi || typeof isi !== "string" || isi.trim().length === 0) {
-        throw new Error("Isi balasan wajib diisi.");
+        throw new ApiError("VALIDATION_ERROR", "Isi balasan wajib diisi.", 400);
       }
 
       const result = await adviceReplyService.create(

@@ -27,6 +27,7 @@ export const programProgressRepository = {
       include: {
         reportedBy: { select: { id: true, nama: true, role: true } },
         verifiedBy: { select: { id: true, nama: true, role: true } },
+        program: { select: { operatorPengelolaId: true } },
       },
     });
     if (!progress) throw new ApiError("PROGRESS_NOT_FOUND", "Progress tidak ditemukan.", 404);
@@ -101,6 +102,7 @@ export const programProgressRepository = {
         }
 
         const selesai = target > 0 && totalRealisasi >= target;
+        const sedang = !selesai && totalRealisasi > 0 && prog.status === ProgramStatus.BELUM_DIKERJAKAN;
 
         await tx.program.update({
           where: { id: progress.programId },
@@ -111,6 +113,10 @@ export const programProgressRepository = {
               ? {
                   status: ProgramStatus.SELESAI_DIKERJAKAN,
                   tanggalSelesai: new Date().toISOString(),
+                }
+              : sedang
+              ? {
+                  status: ProgramStatus.SEDANG_DIKERJAKAN,
                 }
               : {}),
           },

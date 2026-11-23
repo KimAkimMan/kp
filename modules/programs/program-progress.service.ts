@@ -40,18 +40,19 @@ export const programProgressService = {
   },
 
   async completeDirect(
-    progressId: number,
+    programId: number,
     input: DirectUploadInput & { storageKey: string; caption?: string | null },
     user: AuthenticatedUser,
   ) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat mengunggah foto progres.", 403);
     }
-    // Validasi progressId ada
-    await programProgressRepository.findById(progressId);
+    // Validasi programId ada (progress record belum dibuat saat upload foto presigned)
+    const program = await programRepository.findById(programId);
+    if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     // Hanya verifikasi upload ke object storage. Penyimpanan storageKey ke database
     // dilakukan oleh addProgress setelah progress record dibuat.
-    await completeDirectUpload(`progress/${progressId}/photos`, input, "image");
+    await completeDirectUpload(`progress/${programId}/photos`, input, "image");
     return { storageKey: input.storageKey, originalName: input.originalName };
   },
 
@@ -61,6 +62,13 @@ export const programProgressService = {
     }
     const photo = await programProgressRepository.findPhotoByProgressId(progressId);
     if (!photo) throw new ApiError("PROGRESS_PHOTO_NOT_FOUND", "Foto progres tidak ditemukan.", 404);
+    // Operator hanya boleh download foto program yang dia kelola
+    if (user.role === "OPERATOR") {
+      const progress = await programProgressRepository.findById(progressId);
+      if (progress.program.operatorPengelolaId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat mengakses foto progres program ini.", 403);
+      }
+    }
     // storageKey dan originalName disimpan sebagai daftar koma-separated (bisa banyak foto)
     const keys = (photo.storageKey ?? "").split(",").filter(Boolean);
     const names = (photo.originalName ?? "").split(",").filter(Boolean);

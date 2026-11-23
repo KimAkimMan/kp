@@ -286,11 +286,13 @@ export class ApiClient {
     } as RequestOptions);
 
     if (!result.response.ok) {
-      const error = result.payload as ApiErrorPayload | undefined;
-      throw new ApiClientError(result.response.status, error ?? {
+      // Backend membungkus error di dalam { error: { code, message, details, requestId } }
+      const payload = result.payload as { error?: ApiErrorPayload } | undefined;
+      const error = payload?.error ?? {
         code: "UNKNOWN_API_ERROR",
         message: `Request gagal dengan status ${result.response.status}.`,
-      });
+      };
+      throw new ApiClientError(result.response.status, error);
     }
 
     // Simpan ke cache idempotensi untuk request mutasi.
