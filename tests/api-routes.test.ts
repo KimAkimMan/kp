@@ -268,7 +268,7 @@ describe("API route contracts", () => {
         tingkatUrgensi: "RENDAH", uraianTemuan: "Baik", rekomendasi: "Lanjutkan",
         status: "DRAFT",
       })), 201],
-      [surveyRoute.PATCH(request("/api/surveys/1", "PATCH", { status: "DIVERIFIKASI" }), context), 200],
+      [surveyRoute.PATCH(request("/api/surveys/1", "PATCH", { status: "SELESAI_SURVEY" }), context), 200],
       [verifyRoute.POST(request("/api/surveys/1/verify", "POST", {}), context), 200],
       [convertRoute.POST(request("/api/surveys/1/convert", "POST", {
         kode: "P-002", periode: "2026", satuan: "KM", target: 1, pagu: 1000,

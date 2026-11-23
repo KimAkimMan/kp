@@ -155,8 +155,15 @@ export const programService = {
   async get(id: number, user?: AuthenticatedUser) {
     const program = await programRepository.findById(id);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-    // Non-admin tidak boleh melihat surveys dan adviceRecords (data exposure)
+    // Non-admin hanya dapat melihat program yang dikelolanya (operator pengelola).
     if (user?.role !== "ADMIN") {
+      if (!user || program.operatorPengelolaId === null || program.operatorPengelolaId !== user.id) {
+        throw new ApiError(
+          "FORBIDDEN",
+          "Anda tidak dapat melihat program yang bukan bajo pengelolaan Anda.",
+          403,
+        );
+      }
       const { surveys, adviceRecords, ...rest } = program;
       return toFlatProgram(rest);
     }

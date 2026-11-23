@@ -44,7 +44,20 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
     }
     if (input.kondisi !== undefined) result.kondisi = enumField(input, "kondisi", enumValues.kondisi);
     if (input.tingkatUrgensi !== undefined) result.tingkatUrgensi = enumField(input, "tingkatUrgensi", enumValues.tingkatUrgensi);
-    if (input.status !== undefined) result.status = enumField(input, "status", enumValues.status);
+    if (input.status !== undefined) {
+      // Status terminal/verifikasi (DIVERIFIKASI, DIKONVERSI) hanya boleh diubah
+      // melalui action khusus (verify, convert), tidak lewat CRUD biasa.
+      const statusValue = requiredString(input, "status");
+      const terminalStatuses = ["DIVERIFIKASI", "DIKONVERSI"];
+      if (terminalStatuses.includes(statusValue)) {
+        throw new ApiError(
+          "VALIDATION_ERROR",
+          `Status ${statusValue} tidak dapat diubah melalui CRUD. Gunakan aksi verifikasi atau konversi survey.`,
+          400,
+        );
+      }
+      result.status = enumField(input, "status", enumValues.status);
+    }
     if (input.foto !== undefined && typeof input.foto !== "boolean") throw new ApiError("VALIDATION_ERROR", "Field foto harus boolean.", 400);
     if (input.foto !== undefined) result.foto = input.foto;
     if (Object.keys(result).length === 0) throw new ApiError("VALIDATION_ERROR", "Tidak ada data yang diubah.", 400);

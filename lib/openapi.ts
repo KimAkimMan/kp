@@ -433,6 +433,14 @@ export const openapiDocument = {
         responses: { "200": { description: "Daftar program publik" } },
       },
     },
+    "/public/documentation": {
+      get: {
+        tags: ["Programs"],
+        summary: "Dokumentasi foto kegiatan untuk halaman publik",
+        security: [{ sessionCookie: [] }],
+        responses: { "200": { description: "Daftar dokumentasi foto kegiatan" } },
+      },
+    },
     "/surveys/{id}/photos/presign": {
       post: { tags: ["Surveys"], summary: "Buat URL upload foto langsung ke object storage", security: [{ sessionCookie: [] }], parameters: [{ $ref: "#/components/parameters/StringId" }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["originalName", "mimeType", "fileSize"], properties: { originalName: { type: "string" }, mimeType: { type: "string" }, fileSize: { type: "integer", minimum: 1 } } } } } }, responses: { "200": { description: "Presigned upload URL" } } },
     },
@@ -560,14 +568,11 @@ export const openapiDocument = {
       parameters: [{ name: "progressId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
       patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Progress diverifikasi" } } },
     },
-    "/costs/{costId}/verify": {
+    "/costs/{costId}": {
       parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
-      patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Biaya diverifikasi" } } },
-    },
-    "/costs/{costId}/documents": {
-      parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
-      get: { tags: ["Programs"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar dokumen biaya" } } },
-      post: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { "201": { description: "Dokumen diupload" } } },
+      patch: { tags: ["Programs"], summary: "Verifikasi biaya (APPROVED/REJECTED)", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Biaya diverifikasi/ditolak" } } },
+      get: { tags: ["Programs"], summary: "Daftar dokumen biaya", security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar dokumen biaya" } } },
+      post: { tags: ["Programs"], summary: "Upload dokumen biaya", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { "201": { description: "Dokumen diupload" } } },
     },
     "/costs/{costId}/documents/{documentId}": {
       parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }, { name: "documentId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
@@ -578,8 +583,8 @@ export const openapiDocument = {
       get: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Daftar foto survey" } } },
       post: { tags: ["Surveys"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" }, caption: { type: "string" }, latitude: { type: "number" }, longitude: { type: "number" } } } } } }, responses: { "201": { description: "Foto diupload" } } },
     },
-    "/surveys/{id}/photos/{photoId}": {
-      parameters: [{ $ref: "#/components/parameters/StringId" }, { name: "photoId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
+    "/surveys/photos/{photoId}": {
+      parameters: [{ name: "photoId", in: "path", required: true, schema: { type: "string", minLength: 1 } }],
       delete: { tags: ["Surveys"], security: [{ sessionCookie: [] }], responses: { "200": { description: "Foto dihapus" } } },
     },
     "/surveys/{id}/reviews": {

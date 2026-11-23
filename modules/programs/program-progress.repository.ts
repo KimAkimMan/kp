@@ -41,28 +41,42 @@ export const programProgressRepository = {
     }
 
     return prisma.$transaction(async (tx) => {
-      // Kunci baris program terlebih dahulu (SELECT ... FOR UPDATE) agar dua admin
-      // yang memverifikasi progres pada program yang sama tidak saling race.
-      const program = await tx.$queryRawUnsafe<Array<{ id: number; target: Buffer | null; realisasi: Buffer | null; status: string; pagu: Buffer | null }>>(
-        `SELECT id, target, realisasi, status, pagu FROM Program WHERE id = ? FOR UPDATE`,
-        progress.programId,
-      );
-      if (!program || program.length === 0) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      const prog = program[0];
-
-      const updated = await tx.programProgress.update({
-        where: { id: progressId },
+      // Transisi status atomik: hanya baris berstatus DIAJUKAN yang bisa diubah.
+      // Dua admin yang memverifikasi bersamaan: hanya satu yang berhasil (count=1),
+      // yang lain mendapat count=0 → PROGRESS_ALREADY_VERIFIED (409).
+      const transition = await tx.programProgress.updateMany({
+        where: { id: progressId, status: ProgressStatus.DIAJUKAN },
         data: {
           status: decision === "APPROVED" ? ProgressStatus.DIVERIFIKASI : ProgressStatus.DITOLAK,
           verifiedById: reviewerId,
           verifiedAt: new Date(),
           rejectionReason: decision === "REJECTED" ? rejectionReason ?? "Ditolak" : null,
         },
+      });
+
+      if (transition.count === 0) {
+        // Bedakan: tidak ada vs sudah diverifikasi.
+        const exists = await tx.programProgress.findUnique({ where: { id: progressId }, select: { id: true } });
+        if (!exists) throw new ApiError("PROGRESS_NOT_FOUND", "Progres tidak ditemukan.", 404);
+        throw new ApiError("PROGRESS_ALREADY_VERIFIED", "Progres telah diverifikasi sebelumnya.", 409);
+      }
+
+      const updated = await tx.programProgress.findUnique({
+        where: { id: progressId },
         include: {
           reportedBy: { select: { id: true, nama: true, role: true } },
           verifiedBy: { select: { id: true, nama: true, role: true } },
         },
       });
+
+      if (!updated) throw new ApiError("PROGRESS_NOT_FOUND", "Progres tidak ditemukan.", 404);
+
+      // Ambil data program untuk validasi target, status, dan pagu.
+      const prog = await tx.program.findFirst({
+        where: { id: progress.programId },
+        select: { id: true, target: true, status: true, pagu: true },
+      });
+      if (!prog) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
 
       await tx.auditLog.create({
         data: {
@@ -72,7 +86,7 @@ export const programProgressRepository = {
           entityId: String(progressId),
           details: {
             programId: progress.programId,
-            fromStatus: progress.status,
+            fromStatus: ProgressStatus.DIAJUKAN,
             toStatus: decision === "APPROVED" ? ProgressStatus.DIVERIFIKASI : ProgressStatus.DITOLAK,
             rejectionReason: decision === "REJECTED" ? rejectionReason : null,
           },

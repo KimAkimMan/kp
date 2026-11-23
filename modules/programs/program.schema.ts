@@ -10,6 +10,19 @@ import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
 
 export function parseCreateProgramInput(body: unknown): CreateProgramInput {
   const input = parseJsonObject(body);
+  // Field yang hanya boleh diubah melalui action khusus (bukan create biasa).
+  const BLOCKED_CREATE_FIELDS = new Set([
+    "status", "realisasi", "realisasiVolume", "penggunaan", "penggunaanBiaya",
+  ]);
+  const inputKeys = Object.keys(input);
+  const blocked = inputKeys.filter((k) => BLOCKED_CREATE_FIELDS.has(k));
+  if (blocked.length > 0) {
+    throw new ApiError(
+      "VALIDATION_ERROR",
+      `Field ${blocked.join(", ")} tidak dapat diisi saat create program. Gunakan action khusus (progress, cost, complete).`,
+      400,
+    );
+  }
   return {
     kode: requiredString(input, "kode"),
     nama: requiredString(input, "nama"),
@@ -38,14 +51,9 @@ export function parseCreateProgramInput(body: unknown): CreateProgramInput {
       : null,
     targetAwal: input.targetAwal !== undefined ? nonNegativeNumber(input, "targetAwal", false) as number | undefined : undefined,
     targetVolume: input.targetVolume !== undefined ? nonNegativeNumber(input, "targetVolume", false) as number | undefined : null,
-    realisasi: input.realisasi !== undefined ? nonNegativeNumber(input, "realisasi", false) as number | undefined : undefined,
-    realisasiVolume: input.realisasiVolume !== undefined ? nonNegativeNumber(input, "realisasiVolume", false) as number | undefined : null,
-    status: input.status !== undefined ? requiredString(input, "status") as "BELUM_DIKERJAKAN" | "SEDANG_DIKERJAKAN" | "SELESAI_DIKERJAKAN" : undefined,
     update: optionalString(input, "update"),
     sumber: optionalString(input, "sumber"),
     catatan: optionalString(input, "catatan"),
-    penggunaan: input.penggunaan !== undefined ? nonNegativeNumber(input, "penggunaan", false) as number | undefined : undefined,
-    penggunaanBiaya: input.penggunaanBiaya !== undefined ? nonNegativeNumber(input, "penggunaanBiaya", false) as number | undefined : null,
   };
 }
 

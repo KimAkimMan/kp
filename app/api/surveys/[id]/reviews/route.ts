@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
-import { requireUser } from "@/modules/auth/auth.context";
+import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { prisma } from "@/lib/prisma";
 import { surveyRepository } from "@/modules/surveys/survey.repository";
 import { surveyReviewRepository, surveyStatusHistoryRepository } from "@/modules/surveys/survey-review.repository";
@@ -23,7 +23,8 @@ export async function GET(_request: NextRequest, context: Context) {
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      const user = await requireUser();
+      // Hanya Admin yang dapat memberikan keputusan review survey.
+      const user = await requireRole("ADMIN");
       const { id } = await context.params;
       const body = await request.json();
       const { decision, notes } = body;
@@ -36,6 +37,14 @@ export async function POST(request: NextRequest, context: Context) {
       if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
       if (["DIVERIFIKASI", "DIKONVERSI"].includes(survey.status)) {
         throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat ditinjau ulang.", 409);
+      }
+      // Survey harus sudah dalam status MENUNGGU_VERIFIKASI sebelum direview.
+      if (survey.status !== "MENUNGGU_VERIFIKASI") {
+        throw new ApiError(
+          "SURVEY_NOT_READY_FOR_REVIEW",
+          "Survey belum dalam status menunggu verifikasi. Tidak dapat direview.",
+          409,
+        );
       }
 
       return successResponse(

@@ -9,6 +9,13 @@ export const programProgressService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat progress.", 403);
     }
+    // Operator hanya dapat melihat progress program yang dikelolanya.
+    if (user.role === "OPERATOR") {
+      const program = await programRepository.findById(programId);
+      if (!program || program.operatorPengelolaId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat progress program ini.", 403);
+      }
+    }
     return programProgressRepository.list(programId);
   },
 

@@ -1,4 +1,5 @@
 import { programCostRepository } from "./program-cost.repository";
+import { programRepository } from "./program.repository";
 import { ApiError } from "@/lib/http/api-error";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { completeDirectUpload, presignDirectUpload, presignDownload, type DirectUploadInput } from "@/modules/storage/direct-upload.service";
@@ -15,6 +16,13 @@ export const programCostService = {
   async list(programId: number, user: AuthenticatedUser) {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat biaya.", 403);
+    }
+    // Operator hanya dapat melihat biaya program yang dikelolanya.
+    if (user.role === "OPERATOR") {
+      const program = await programRepository.findById(programId);
+      if (!program || program.operatorPengelolaId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat biaya program ini.", 403);
+      }
     }
     return programCostRepository.list(programId);
   },
