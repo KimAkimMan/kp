@@ -158,6 +158,7 @@ export const programRepository = {
     const nilaiKontrakValue = input.nilaiKontrak ?? null;
 
     // Validasi operatorPengelolaId harus merupakan user aktif dengan role OPERATOR.
+    let operatorPengelolaNama: string | null = null;
     if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
       const operator = await prisma.user.findUnique({
         where: { id: input.operatorPengelolaId, isActive: true, deletedAt: null },
@@ -170,6 +171,7 @@ export const programRepository = {
           400,
         );
       }
+      operatorPengelolaNama = operator.nama;
     }
 
     return prisma.$transaction(async (tx) => {
@@ -190,7 +192,7 @@ export const programRepository = {
         kecamatan: input.kecamatan,
         desaKelurahan: input.desaKelurahan,
         detailLokasi: input.detailLokasi,
-        operatorPengelola: input.operatorPengelola,
+        operatorPengelola: input.operatorPengelola ?? operatorPengelolaNama,
         operatorPengelolaId: input.operatorPengelolaId,
         targetAwal: input.targetAwal ?? input.target,
         targetVolume: input.targetVolume ?? input.target,

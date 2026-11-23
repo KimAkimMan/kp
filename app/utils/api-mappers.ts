@@ -46,7 +46,7 @@ export function mapPublicProgramToProgram(program: PublicProgram): Program {
     operatorPengelola: program.operatorPengelola ?? "Belum Ditugaskan",
     operatorPengelolaId: program.operatorPengelolaId ?? null,
     penanggungJawabDinas: null,
-    periode: program.periode ?? "2026",
+    periode: program.periode ?? "",
     satuan: program.satuan,
     targetAwal: program.target,
     target: program.target,
