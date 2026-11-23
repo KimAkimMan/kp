@@ -47,7 +47,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       const map = L.map(mapRef.current, {
         scrollWheelZoom: false,
-      }).setView([-6.98, 108.48], 11);
+      }).setView([-6.974314, 108.523853], 14);
 
       map.attributionControl.setPrefix(false);
 
@@ -58,7 +58,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       }).addTo(map);
 
       // Marker kantor Disperkimtan Kuningan (titik pemantauan)
-      const officeMarker = L.marker([-6.974, 108.495]).addTo(map);
+      const officeMarker = L.marker([-6.974314, 108.523853]).addTo(map);
       officeMarker.bindPopup(`
         <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
           <strong style="color: #143965; font-size: 14px;">Disperkimtan Kab. Kuningan</strong><br/>

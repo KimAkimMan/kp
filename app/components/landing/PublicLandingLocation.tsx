@@ -48,8 +48,8 @@ export function PublicLandingLocation() {
           Lokasi Kami
         </h2>
         <p className="text-[#65778B] text-sm sm:text-base max-w-2xl">
-          Area pemantauan mencakup wilayah Dinas Perumahan, Kawasan Permukiman
-          dan Pertanahan Kabupaten Kuningan, Jawa Barat.
+          Kantor kami berlokasi di Dinas Perumahan, Kawasan Permukiman dan
+          Pertanahan Kabupaten Kuningan, Jawa Barat.
         </p>
       </div>
 
@@ -60,11 +60,12 @@ export function PublicLandingLocation() {
               Disperkimtan Kabupaten Kuningan, Jawa Barat
             </h3>
             <p className="text-sm text-[#65778B] mt-1">
-              Jl. RE. Martadinata No. 528 Ancaran, Kec. Sindangagung, Kuningan
+              Jl. RE. Martadinata No. 528 Ancaran, Kertawangunan, Kec.
+              Sindangagung, Kabupaten Kuningan, Jawa Barat 45513
             </p>
           </div>
           <a
-            href="https://www.google.com/maps/search/?api=1&query=Dinas+Perumahan+Kawasan+Permukiman+dan+Pertanahan+Kuningan"
+            href="https://www.google.com/maps/search/?api=1&query=-6.974314,108.523853(Dinas+Perumahan+Kawasan+Permukiman+dan+Pertanahan+Kuningan)"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-[#1E4E8C] text-white hover:bg-[#143965] transition shrink-0"
