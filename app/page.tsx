@@ -459,7 +459,7 @@ export default function Home() {
             periode: "Januari–Desember 2026",
             satuan: "Unit",
             target: data.target ?? 0,
-            pagu: data.pagu ?? 0,
+            ...(data.pagu !== undefined && data.pagu !== null ? { pagu: data.pagu } : {}),
           },
           { idempotencyKey },
         );

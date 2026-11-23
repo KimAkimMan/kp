@@ -203,6 +203,9 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
   const summary = calculateSummary(filteredProjects);
   const activeCount = statusCount(filteredProjects, "Sedang Dikerjakan");
   const doneCount = statusCount(filteredProjects, "Selesai Dikerjakan");
+  const paguBelumDitetapkan =
+    filteredProjects.length > 0 &&
+    filteredProjects.every((p) => (p.pagu ?? 0) <= 0);
 
   return (
     <div className="w-full min-h-screen bg-[#F5F8FB]">
@@ -404,7 +407,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#E78A31]">
             <p className="text-sm text-[#65778B] font-medium m-0">Total pagu</p>
             <strong className="block text-xl sm:text-2xl font-bold text-[#143965] mt-2">
-              {currency(summary.pagu)}
+              {paguBelumDitetapkan ? "Belum ditetapkan" : currency(summary.pagu)}
             </strong>
           </article>
           <article className="bg-white rounded-2xl p-5 border border-[#E1E9F0] shadow-sm border-t-4 border-t-[#258050]">

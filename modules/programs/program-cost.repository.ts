@@ -115,7 +115,9 @@ export const programCostRepository = {
         const pagu = Number(locked[0].pagu);
         const penggunaan = Number(locked[0].penggunaan);
         const totalSetelahDisetujui = penggunaan + Number(updated.nominal);
-        if (pagu > 0 && totalSetelahDisetujui > pagu) {
+        // Selalu validasi pagu, meski pagu = 0 (belum ditetapkan operator).
+        // Jika pagu = 0, biaya apapun akan ditolak karena melebihi anggaran.
+        if (totalSetelahDisetujui > pagu) {
           throw new ApiError(
             "COST_EXCEEDS_BUDGET",
             `Penggunaan biaya (${totalSetelahDisetujui}) melebihi pagu program (${pagu}).`,

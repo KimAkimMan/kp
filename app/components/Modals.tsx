@@ -223,7 +223,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       return;
     }
     const paguNum = Number(pagu);
-    if (!Number.isFinite(paguNum) || paguNum < 0) {
+    if (pagu.trim() !== "" && (!Number.isFinite(paguNum) || paguNum < 0)) {
       setError("Nilai pagu anggaran wajib berupa angka positif.");
       return;
     }
@@ -240,7 +240,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         kategori,
         nama: nama.trim(),
         namaKegiatan: nama.trim(),
-        pagu: paguNum,
+        ...(pagu.trim() !== "" ? { pagu: paguNum } : {}),
         kecamatan: kecamatan.trim(),
         desaKelurahan: desa.trim(),
         detailLokasi: detailLokasi.trim(),
