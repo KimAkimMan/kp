@@ -78,7 +78,7 @@ export const programRepository = {
     let operatorPengelolaNama: string | null = null;
     if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
       const operator = await prisma.user.findUnique({
-        where: { id: input.operatorPengelolaId },
+        where: { id: input.operatorPengelolaId, isActive: true, deletedAt: null },
         select: { id: true, nama: true, role: true },
       });
       if (!operator || operator.role !== "OPERATOR") {
@@ -156,6 +156,22 @@ export const programRepository = {
     // bukan admin saat inisiasi. Default pagu 0, nilaiKontrak null.
     const paguValue = Number(input.pagu ?? 0);
     const nilaiKontrakValue = input.nilaiKontrak ?? null;
+
+    // Validasi operatorPengelolaId harus merupakan user aktif dengan role OPERATOR.
+    if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
+      const operator = await prisma.user.findUnique({
+        where: { id: input.operatorPengelolaId, isActive: true, deletedAt: null },
+        select: { id: true, nama: true, role: true },
+      });
+      if (!operator || operator.role !== "OPERATOR") {
+        throw new ApiError(
+          "VALIDATION_ERROR",
+          "Operator pengelola harus berupa user aktif dengan role Operator.",
+          400,
+        );
+      }
+    }
+
     return prisma.$transaction(async (tx) => {
       const existing = await tx.program.findFirst({
         where: { kode: input.kode, deletedAt: null },
@@ -321,10 +337,17 @@ export const programRepository = {
       if (input.operatorPengelolaId !== undefined && input.operatorPengelolaId !== existing.operatorPengelolaId) {
         if (input.operatorPengelolaId !== null) {
           const user = await tx.user.findUnique({
-            where: { id: input.operatorPengelolaId },
-            select: { nama: true },
+            where: { id: input.operatorPengelolaId, isActive: true, deletedAt: null },
+            select: { nama: true, role: true },
           });
-          if (user) operatorPengelola = user.nama;
+          if (!user || user.role !== "OPERATOR") {
+            throw new ApiError(
+              "VALIDATION_ERROR",
+              "Operator pengelola harus berupa user aktif dengan role Operator.",
+              400,
+            );
+          }
+          operatorPengelola = user.nama;
         } else {
           operatorPengelola = null;
         }
