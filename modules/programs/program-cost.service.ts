@@ -107,6 +107,11 @@ export const programCostService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat dokumen biaya.", 403);
     }
+    // Operator hanya dapat melihat dokumen biaya program yang dikelolanya.
+    const cost = await programCostRepository.findById(costId);
+    if (user.role === "OPERATOR" && cost.program.operatorPengelolaId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat dokumen biaya program ini.", 403);
+    }
     return programCostRepository.listDocuments(costId);
   },
 };

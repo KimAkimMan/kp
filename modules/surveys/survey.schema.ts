@@ -102,6 +102,17 @@ export function parseSurveyInput(body: unknown, partial = false): SurveyInput {
       }
       return url ?? null;
     })(),
-    status: input.status !== undefined ? enumField(input, "status", enumValues.status) : "MENUNGGU_VERIFIKASI",
+    status: input.status !== undefined ? (() => {
+      const statusValue = requiredString(input, "status");
+      const terminalStatuses = ["DIVERIFIKASI", "DIKONVERSI"];
+      if (terminalStatuses.includes(statusValue)) {
+        throw new ApiError(
+          "VALIDATION_ERROR",
+          `Status ${statusValue} tidak dapat diatur saat membuat survey. Gunakan aksi verifikasi atau konversi survey.`,
+          400,
+        );
+      }
+      return enumField(input, "status", enumValues.status);
+    })() : "MENUNGGU_VERIFIKASI",
   };
 }

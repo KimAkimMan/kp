@@ -9,9 +9,9 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireUser();
+    const user = await requireUser();
     const programId = parsePositiveId((await context.params).id);
-    const result = await programHistoryService.list(programId);
+    const result = await programHistoryService.list(programId, user);
     return successResponse(result);
   });
 }

@@ -9,6 +9,16 @@ export const surveyProgramLinkService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat link survey.", 403);
     }
+    // Operator hanya dapat melihat link survey yang dia kelola.
+    if (user.role === "OPERATOR") {
+      const survey = await prisma.fieldSurvey.findFirst({
+        where: { id: surveyId, deletedAt: null },
+        select: { id: true, surveyorId: true },
+      });
+      if (!survey || survey.surveyorId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat link survey ini.", 403);
+      }
+    }
     return surveyProgramLinkRepositoryWithSurvey.list(surveyId);
   },
 

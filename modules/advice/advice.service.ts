@@ -16,9 +16,13 @@ export const adviceService = {
     return adviceRepository.findMany(filters);
   },
 
-  async get(id: string) {
+  async get(id: string, user?: AuthenticatedUser) {
     const advice = await adviceRepository.findById(id);
     if (!advice) throw new ApiError("ADVICE_NOT_FOUND", "Arahan tidak ditemukan.", 404);
+    // Operator hanya dapat melihat arahan yang ditujukan kepadanya.
+    if (user?.role === "OPERATOR" && advice.operatorId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Arahan ini bukan ditujukan kepada Anda.", 403);
+    }
     return advice;
   },
 

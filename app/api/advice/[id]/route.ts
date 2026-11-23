@@ -10,9 +10,9 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireUser();
+    const user = await requireUser();
     const { id } = await context.params;
-    return successResponse(await adviceService.get(id));
+    return successResponse(await adviceService.get(id, user));
   });
 }
 

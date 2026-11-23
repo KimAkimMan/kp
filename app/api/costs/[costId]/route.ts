@@ -56,9 +56,9 @@ export async function POST(request: NextRequest, context: Context) {
 
 export async function GET(_request: NextRequest, context: Context) {
   return handleRoute(async () => {
-    await requireRole("ADMIN", "OPERATOR");
+    const user = await requireRole("ADMIN", "OPERATOR");
     const costId = parsePositiveId((await context.params).costId);
-    const documents = await programCostService.listDocuments(costId, await requireRole("ADMIN", "OPERATOR"));
+    const documents = await programCostService.listDocuments(costId, user);
     return successResponse(documents);
   });
 }

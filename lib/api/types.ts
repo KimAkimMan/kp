@@ -69,6 +69,7 @@ export type PublicProgram = {
   penggunaan: number;
   operatorPengelola?: string | null;
   operatorPengelolaId?: number | null;
+  periode?: string | null;
   updatedAt: string;
 };
 

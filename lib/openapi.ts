@@ -568,6 +568,10 @@ export const openapiDocument = {
       parameters: [{ name: "progressId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
       patch: { tags: ["Programs"], security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Progress diverifikasi" } } },
     },
+    "/programs/progress/photos/{progressId}/download": {
+      parameters: [{ name: "progressId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
+      get: { tags: ["Programs"], summary: "Buat URL unduhan foto progres", security: [{ sessionCookie: [] }], responses: { "200": { description: "Presigned download URL foto progres" } } },
+    },
     "/costs/{costId}": {
       parameters: [{ name: "costId", in: "path", required: true, schema: { type: "integer", minimum: 1 } }],
       patch: { tags: ["Programs"], summary: "Verifikasi biaya (APPROVED/REJECTED)", security: [{ sessionCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["decision"], properties: { decision: { type: "string", enum: ["APPROVED", "REJECTED"] }, rejectionReason: { type: "string" } } } } } }, responses: { "200": { description: "Biaya diverifikasi/ditolak" } } },

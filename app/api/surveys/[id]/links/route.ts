@@ -5,6 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { surveyProgramLinkService } from "@/modules/surveys/survey-program-link.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
+import { parsePositiveId } from "@/lib/http/request";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -24,13 +25,11 @@ export async function POST(request: NextRequest, context: Context) {
       const body = await request.json();
       const { programId, relationType } = body;
 
-      if (!programId || typeof programId !== "number") {
-        throw new ApiError("VALIDATION_ERROR", "programId wajib diisi.", 400);
-      }
+      const programIdNum = parsePositiveId(String(programId), "programId");
 
       const result = await surveyProgramLinkService.create(
         surveyId,
-        { programId, relationType },
+        { programId: programIdNum, relationType },
         user as AuthenticatedUser,
       );
       return successResponse(result, 201);

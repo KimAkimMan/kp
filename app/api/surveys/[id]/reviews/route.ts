@@ -56,7 +56,11 @@ export async function POST(request: NextRequest, context: Context) {
             where: { id },
             data: {
               status: targetStatus,
-              ...(decision === "DITOLAK" ? { verifiedById: null, verifiedAt: null } : {}),
+              ...(decision === "DISETUJUI"
+                ? { verifiedById: user.id, verifiedAt: new Date() }
+                : decision === "DITOLAK"
+                ? { verifiedById: null, verifiedAt: null }
+                : {}),
             },
             include: { program: true, surveyorUser: { select: publicUserSelect } },
           });

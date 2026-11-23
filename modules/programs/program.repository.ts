@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/http/api-error";
 import { ProgramAssignmentStatus } from "@/generated/prisma/client";
 import type { CreateProgramInput } from "./program.types";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
@@ -72,6 +73,24 @@ export const programRepository = {
     // bukan admin saat inisiasi. Default pagu 0, nilaiKontrak null.
     const paguValue = Number(input.pagu ?? 0);
     const nilaiKontrakValue = input.nilaiKontrak ?? null;
+
+    // Validasi operatorPengelolaId harus merupakan user aktif dengan role OPERATOR.
+    let operatorPengelolaNama: string | null = null;
+    if (input.operatorPengelolaId !== null && input.operatorPengelolaId !== undefined) {
+      const operator = await prisma.user.findUnique({
+        where: { id: input.operatorPengelolaId },
+        select: { id: true, nama: true, role: true },
+      });
+      if (!operator || operator.role !== "OPERATOR") {
+        throw new ApiError(
+          "VALIDATION_ERROR",
+          "Operator pengelola harus berupa user aktif dengan role Operator.",
+          400,
+        );
+      }
+      operatorPengelolaNama = operator.nama;
+    }
+
     const recentDuplicate = await prisma.program.findFirst({
       where: {
         deletedAt: null,
@@ -107,6 +126,10 @@ export const programRepository = {
           penggunaanBiaya: input.penggunaanBiaya ?? 0,
           pagu: paguValue,
           nilaiKontrak: nilaiKontrakValue,
+          // Sinkronkan string nama operator saat ID disediakan (B-08).
+          ...(operatorPengelolaNama !== null
+            ? { operatorPengelola: operatorPengelolaNama }
+            : {}),
         },
       });
 
