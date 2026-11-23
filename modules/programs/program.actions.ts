@@ -150,6 +150,14 @@ export const programActions = {
       if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program sudah selesai.", 409);
       }
+      // Operator wajib telah menetapkan pagu bersama CV sebelum program selesai.
+      if (Number(program.pagu ?? 0) <= 0) {
+        throw new ApiError(
+          "PAGU_BELUM_DITETAPKAN",
+          "Pagu anggaran belum ditetapkan oleh operator bersama CV. Program tidak dapat diselesaikan sebelum pagu ditetapkan.",
+          409,
+        );
+      }
       if (Number(program.target) > 0 && Number(program.realisasi) < Number(program.target)) {
         throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
       }
@@ -161,7 +169,7 @@ export const programActions = {
           tahap: "Penyelesaian kegiatan",
           nilai: program.realisasi,
           satuan: program.satuan,
-          keterangan: "Kegiatan ditandai selesai.",
+          keterangan: "Kegiatan ditandai selesai. Pagu anggaran terpakai penuh.",
           foto,
           penginput: userName,
           inputById: userId,
@@ -174,6 +182,9 @@ export const programActions = {
           status: ProgramStatus.SELESAI_DIKERJAKAN,
           update: date.toISOString(),
           tanggalSelesai: date.toISOString(),
+          // Saat program selesai, pagu anggaran otomatis terpakai penuh.
+          penggunaan: program.pagu,
+          penggunaanBiaya: program.pagu,
         },
         include: { operator: true, histories: true, costs: true },
       });

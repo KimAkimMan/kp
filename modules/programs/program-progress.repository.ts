@@ -43,8 +43,8 @@ export const programProgressRepository = {
     return prisma.$transaction(async (tx) => {
       // Kunci baris program terlebih dahulu (SELECT ... FOR UPDATE) agar dua admin
       // yang memverifikasi progres pada program yang sama tidak saling race.
-      const program = await tx.$queryRawUnsafe<Array<{ id: number; target: Buffer | null; realisasi: Buffer | null; status: string }>>(
-        `SELECT id, target, realisasi, status FROM Program WHERE id = ? FOR UPDATE`,
+      const program = await tx.$queryRawUnsafe<Array<{ id: number; target: Buffer | null; realisasi: Buffer | null; status: string; pagu: Buffer | null }>>(
+        `SELECT id, target, realisasi, status, pagu FROM Program WHERE id = ? FOR UPDATE`,
         progress.programId,
       );
       if (!program || program.length === 0) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
@@ -104,6 +104,15 @@ export const programProgressRepository = {
         const selesai = target > 0 && totalRealisasi >= target;
         const sedang = !selesai && totalRealisasi > 0 && prog.status === ProgramStatus.BELUM_DIKERJAKAN;
 
+        // Jika program akan selesai, operator wajib telah menetapkan pagu.
+        if (selesai && Number(prog.pagu ?? 0) <= 0) {
+          throw new ApiError(
+            "PAGU_BELUM_DITETAPKAN",
+            "Pagu anggaran belum ditetapkan oleh operator bersama CV. Program tidak dapat diselesaikan sebelum pagu ditetapkan.",
+            409,
+          );
+        }
+
         await tx.program.update({
           where: { id: progress.programId },
           data: {
@@ -113,6 +122,9 @@ export const programProgressRepository = {
               ? {
                   status: ProgramStatus.SELESAI_DIKERJAKAN,
                   tanggalSelesai: new Date().toISOString(),
+                  // Saat program selesai, pagu anggaran otomatis terpakai penuh.
+                  penggunaan: Number(prog.pagu ?? 0),
+                  penggunaanBiaya: Number(prog.pagu ?? 0),
                 }
               : sedang
               ? {

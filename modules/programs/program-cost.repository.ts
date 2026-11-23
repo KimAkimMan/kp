@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { CostStatus } from "@/generated/prisma/client";
+import { CostStatus, ProgramStatus } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/http/api-error";
 import { getStorage } from "@/lib/storage";
 
@@ -103,10 +103,9 @@ export const programCostRepository = {
       // Biaya hanya mengurangi pagu saat DIVERIFIKASI. Saat DITOLAK, penggunaan tidak berubah
       // (karena tidak pernah ditambahkan saat DIAJUKAN).
       if (decision === "APPROVED") {
-        // Kunci baris Program agar cek pagu + increment serial (mencegah dua biaya
-        // berbeda yang diverifikasi bersamaan sama-sama lolos cek pagu).
-        const locked = await tx.$queryRawUnsafe<Array<{ pagu: unknown; penggunaan: unknown }>>(
-          `SELECT pagu, penggunaan FROM Program WHERE id = ? FOR UPDATE`,
+        // Blokir verifikasi biaya pada program yang sudah selesai (pagu sudah terpakai penuh).
+        const locked = await tx.$queryRawUnsafe<Array<{ pagu: unknown; penggunaan: unknown; status: string }>>(
+          `SELECT pagu, penggunaan, status FROM Program WHERE id = ? FOR UPDATE`,
           updated.programId,
         );
         if (!locked || locked.length === 0) {
@@ -114,6 +113,14 @@ export const programCostRepository = {
         }
         const pagu = Number(locked[0].pagu);
         const penggunaan = Number(locked[0].penggunaan);
+        const status = String(locked[0].status);
+        if (status === ProgramStatus.SELESAI_DIKERJAKAN) {
+          throw new ApiError(
+            "PROGRAM_COMPLETED",
+            "Program sudah selesai. Biaya tidak dapat ditambahkan setelah program diselesaikan.",
+            409,
+          );
+        }
         const totalSetelahDisetujui = penggunaan + Number(updated.nominal);
         // Selalu validasi pagu, meski pagu = 0 (belum ditetapkan operator).
         // Jika pagu = 0, biaya apapun akan ditolak karena melebihi anggaran.
