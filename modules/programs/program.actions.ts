@@ -82,23 +82,77 @@ export const programActions = {
           status: progressStatus,
         },
       });
-      const progress = await tx.programProgress.create({
-        data: {
-          programId,
-          tanggal: date,
-          tahap: input.tahap,
-          volume: input.nilai,
-          satuan: input.satuan,
-          persentase: Number(program.target) > 0
-            ? Math.min(100, (input.nilai / Number(program.target)) * 100)
-            : null,
-          keterangan: input.keterangan,
-          reportedById: userId,
-          status: "DIAJUKAN",
-          storageKey: input.storageKey ?? null,
-          originalName: input.originalName ?? null,
-        },
-      });
+      // Jika storageKey diberikan, cari progress record DRAFT yang sudah dibuat
+      // oleh completeDirect (upload foto terlebih dahulu). Update record tersebut
+      // agar tidak ada duplikasi progress record untuk 1 foto yang sama.
+      let progress;
+      if (input.storageKey) {
+        const existingDraft = await tx.programProgress.findFirst({
+          where: {
+            programId,
+            storageKey: input.storageKey,
+            status: ProgressStatus.DRAFT,
+          },
+        });
+        if (existingDraft) {
+          progress = await tx.programProgress.update({
+            where: { id: existingDraft.id },
+            data: {
+              tanggal: date,
+              tahap: input.tahap,
+              volume: input.nilai,
+              satuan: input.satuan,
+              persentase:
+                Number(program.target) > 0
+                  ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+                  : null,
+              keterangan: input.keterangan,
+              reportedById: userId,
+              status: "DIAJUKAN",
+              originalName:
+                input.originalName ?? existingDraft.originalName ?? null,
+            },
+          });
+        } else {
+          progress = await tx.programProgress.create({
+            data: {
+              programId,
+              tanggal: date,
+              tahap: input.tahap,
+              volume: input.nilai,
+              satuan: input.satuan,
+              persentase:
+                Number(program.target) > 0
+                  ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+                  : null,
+              keterangan: input.keterangan,
+              reportedById: userId,
+              status: "DIAJUKAN",
+              storageKey: input.storageKey ?? null,
+              originalName: input.originalName ?? null,
+            },
+          });
+        }
+      } else {
+        progress = await tx.programProgress.create({
+          data: {
+            programId,
+            tanggal: date,
+            tahap: input.tahap,
+            volume: input.nilai,
+            satuan: input.satuan,
+            persentase:
+              Number(program.target) > 0
+                ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+                : null,
+            keterangan: input.keterangan,
+            reportedById: userId,
+            status: "DIAJUKAN",
+            storageKey: input.storageKey ?? null,
+            originalName: input.originalName ?? null,
+          },
+        });
+      }
       const updated = await tx.program.update({
         where: { id: programId },
         data: {
