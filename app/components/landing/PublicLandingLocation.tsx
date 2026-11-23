@@ -4,6 +4,39 @@ import React from "react";
 import { ExternalLink } from "lucide-react";
 import { LeafletMap } from "../LeafletMap";
 
+const AREA_MARKERS = [
+  {
+    lat: -6.974,
+    lng: 108.495,
+    title: "Kec. Kuningan (Pusat)",
+    popup: "Pusat Pemerintahan dan Monitoring",
+  },
+  {
+    lat: -6.92,
+    lng: 108.52,
+    title: "Kec. Cigugur",
+    popup: "Area kegiatan program infrastruktur",
+  },
+  {
+    lat: -7.02,
+    lng: 108.45,
+    title: "Kec. Sindangagung",
+    popup: "Area kegiatan program infrastruktur",
+  },
+  {
+    lat: -6.95,
+    lng: 108.58,
+    title: "Kec. Jalaksana",
+    popup: "Area kegiatan program infrastruktur",
+  },
+  {
+    lat: -6.88,
+    lng: 108.42,
+    title: "Kec. Ciawigebang",
+    popup: "Area kegiatan program infrastruktur",
+  },
+];
+
 export function PublicLandingLocation() {
   return (
     <section id="lokasi" className="px-[5%] py-16 max-w-7xl mx-auto">
@@ -41,7 +74,7 @@ export function PublicLandingLocation() {
         </div>
 
         <div className="h-80 w-full rounded-xl overflow-hidden">
-          <LeafletMap />
+          <LeafletMap markers={AREA_MARKERS} />
         </div>
       </div>
     </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserPlus, Search, RotateCcw, Edit2, Trash2 } from "lucide-react";
+import { UserPlus, Search, RotateCcw, Edit2, Trash2, Key, AlertCircle } from "lucide-react";
 import { User } from "../../types";
 
 import { Button } from "@/app/components/ui/Button";
@@ -13,6 +13,7 @@ interface UsersViewProps {
   onOpenAddUser: () => void;
   onOpenEditUser: (user: User) => void;
   onDeleteUser: (user: User) => void;
+  onResetPassword: (userId: number, newPassword: string) => Promise<void>;
 }
 
 export const UsersView: React.FC<UsersViewProps> = ({
@@ -21,9 +22,13 @@ export const UsersView: React.FC<UsersViewProps> = ({
   onOpenAddUser,
   onOpenEditUser,
   onDeleteUser,
+  onResetPassword,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<User | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetError, setResetError] = useState("");
 
   const filteredUsers = users.filter((u) =>
     (u.nama + " " + u.email + " " + u.role)
@@ -35,6 +40,23 @@ export const UsersView: React.FC<UsersViewProps> = ({
     if (confirmDeleteUser) {
       onDeleteUser(confirmDeleteUser);
       setConfirmDeleteUser(null);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUser) return;
+    if (!newPassword || newPassword.length < 8) {
+      setResetError("Password baru minimal 8 karakter.");
+      return;
+    }
+    setResetError("");
+    try {
+      await onResetPassword(resetPasswordUser.id, newPassword);
+      setResetPasswordUser(null);
+      setNewPassword("");
+    } catch (error) {
+      setResetError("Gagal mereset password. Coba lagi.");
     }
   };
 
@@ -118,6 +140,16 @@ export const UsersView: React.FC<UsersViewProps> = ({
                         >
                           <Edit2 className="w-3.5 h-3.5" /> Ubah
                         </button>
+                        <button
+                          onClick={() => {
+                            setResetPasswordUser(u);
+                            setNewPassword("");
+                            setResetError("");
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E8F2F8] text-[#1E4E8C] hover:bg-[#D8EAF5] transition"
+                        >
+                          <Key className="w-3.5 h-3.5" /> Reset Password
+                        </button>
                         {u.id !== currentUser.id && (
                           <button
                             onClick={() => setConfirmDeleteUser(u)}
@@ -170,6 +202,63 @@ export const UsersView: React.FC<UsersViewProps> = ({
                 Ya, Hapus
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Reset Password Modal */}
+      {resetPasswordUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl border border-[#E1E9F0]">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F2F8] text-[#1E4E8C] flex items-center justify-center shrink-0">
+                <Key className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-[#143965]">Reset Password</h3>
+            </div>
+            <p className="text-sm text-[#65778B] mb-5">
+              Masukkan password baru untuk{" "}
+              <strong className="text-[#143965]">{resetPasswordUser.nama}</strong>. Minimal 8 karakter.
+            </p>
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1">
+                  Password Baru
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border border-[#CCD9E4] rounded-xl px-3 py-2 text-sm bg-white"
+                  placeholder="Minimal 8 karakter"
+                  required
+                  minLength={8}
+                />
+              </div>
+              {resetError && (
+                <div className="flex items-center gap-1.5 text-xs text-[#C44C3B] font-semibold">
+                  <AlertCircle className="w-4 h-4" /> {resetError}
+                </div>
+              )}
+              <div className="flex gap-3 justify-end pt-4 border-t border-[#EAF0F4]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetPasswordUser(null);
+                    setNewPassword("");
+                    setResetError("");
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F0F4F8] text-[#35536F] hover:bg-[#E1E9F0] transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#1E4E8C] text-white hover:bg-[#143965]"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

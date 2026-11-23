@@ -3,7 +3,20 @@
 import React, { useEffect, useRef } from "react";
 import type { Map as LeafletMapType } from "leaflet";
 
-export const LeafletMap: React.FC = () => {
+interface Marker {
+  lat: number;
+  lng: number;
+  title: string;
+  popup: string;
+}
+
+interface LeafletMapProps {
+  markers?: Marker[];
+}
+
+export const LeafletMap: React.FC<LeafletMapProps> = ({
+  markers = [],
+}) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMapType | null>(null);
 
@@ -44,15 +57,26 @@ export const LeafletMap: React.FC = () => {
           '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      // Add a marker for Disperkimtan Kuningan
-      const marker = L.marker([-6.974, 108.495]).addTo(map);
-      marker.bindPopup(`
+      // Marker kantor Disperkimtan Kuningan (titik pemantauan)
+      const officeMarker = L.marker([-6.974, 108.495]).addTo(map);
+      officeMarker.bindPopup(`
         <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
           <strong style="color: #143965; font-size: 14px;">Disperkimtan Kab. Kuningan</strong><br/>
           Jl. RE. Martadinata No. 528 Ancaran, Kuningan<br/>
           <span style="color: #65778B; font-size: 11px;">Pusat Monitoring Bidang Kawasan Permukiman</span>
         </div>
       `);
+
+      // Marker area kegiatan per kecamatan
+      markers.forEach((m) => {
+        const marker = L.marker([m.lat, m.lng]).addTo(map);
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 13px; line-height: 1.4;">
+            <strong style="color: #143965; font-size: 14px;">${m.title}</strong><br/>
+            <span style="color: #65778B; font-size: 11px;">Area kegiatan program</span>
+          </div>
+        `);
+      });
 
       mapInstanceRef.current = map;
     });
@@ -64,7 +88,7 @@ export const LeafletMap: React.FC = () => {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [markers]);
 
   return (
     <div

@@ -55,6 +55,7 @@ export default function Home() {
     handleDeleteAssignment,
     handleSaveUser,
     handleDeleteUser,
+    handleResetPassword,
     handleDeleteActivity,
     handleSaveActivity,
     handleSaveSurvey,
@@ -152,6 +153,7 @@ export default function Home() {
               onOpenAddUser={() => { setEditingUser(null); setUserModalOpen(true); }}
               onOpenEditUser={(u: User) => { setEditingUser(u); setUserModalOpen(true); }}
               onDeleteUser={handleDeleteUser}
+              onResetPassword={handleResetPassword}
             />
           )}
 

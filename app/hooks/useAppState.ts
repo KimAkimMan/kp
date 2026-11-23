@@ -71,6 +71,7 @@ export interface UseAppStateReturn {
   handleDeleteAssignment: (programId: number, assignmentId: number) => Promise<void>;
   handleSaveUser: (userData: Partial<User>) => Promise<void>;
   handleDeleteUser: (user: User) => Promise<void>;
+  handleResetPassword: (userId: number, newPassword: string) => Promise<void>;
   handleDeleteActivity: (program: Program) => Promise<void>;
   handleSaveActivity: (data: Partial<Program>) => Promise<void>;
   handleSaveSurvey: (survey: FieldSurvey, photoFile?: File) => Promise<void>;
@@ -437,6 +438,17 @@ export function useAppState(): UseAppStateReturn {
     }
   };
 
+  const handleResetPassword = async (userId: number, newPassword: string) => {
+    try {
+      await userApi.resetPassword(userId, newPassword);
+      await refreshUsers();
+      showToast("Password pengguna berhasil diubah.");
+    } catch (error) {
+      showToast(error instanceof ApiClientError ? error.message : "Gagal mengubah password.", "error");
+      throw error;
+    }
+  };
+
   const handleDeleteActivity = async (program: Program) => {
     try {
       await programApi.remove(program.id);
@@ -768,6 +780,7 @@ export function useAppState(): UseAppStateReturn {
     handleDeleteAssignment,
     handleSaveUser,
     handleDeleteUser,
+    handleResetPassword,
     handleDeleteActivity,
     handleSaveActivity,
     handleSaveSurvey,

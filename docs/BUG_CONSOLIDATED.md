@@ -67,11 +67,11 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 
 | ID | Issue | Sumber | Status | Detail / Lokasi |
 |----|-------|--------|--------|-----------------|
-| B-31 | `PublicLanding` hero map pakai `LeafletMap` tapi tidak ada marker program | (1) | **OPEN** | Peta statis Kantor Disperkimtan, tidak menampilkan lokasi kegiatan |
-| B-32 | UsersView tombol "Reset" = reset search, bukan reset password | (1) | **OPEN** | Endpoint `POST /users/{id}/reset-password` ada, UI belum connect |
-| B-33 | ProfileView tidak punya form ubah profil/password | (1) | **OPEN** | Endpoint `PATCH /auth/profile`, `POST /auth/change-password` ada, UI read-only |
-| B-34 | `initialUsers` mock masih dipakai non-admin di `page.tsx:57` | (1) | **OPEN** | Non-admin lihat user mock sebelum fetch (fetch user hanya Admin) |
-| B-35 | `.gitignore` sisa path `/kp/...` salah | (1) | **OPEN** | Baris 44-47 path tidak exist, membingungkan |
+| B-31 | `PublicLanding` hero map pakai LeafletMap tapi tidak ada marker program | (1) | **FIXED** | `LeafletMap` terima prop `markers`, `PublicLandingLocation` pass 5 marker area kecamatan (Kuningan, Cigugur, Sindangagung, Jalaksana, Ciawigebang) + marker kantor Disperkimtan |
+| B-32 | UsersView tombol "Reset" = reset search, bukan reset password | (1) | **FIXED** | UsersView + UserModal: prop `onResetPassword`, modal reset password per user, `userApi.resetPassword` dipakai; tombol reset search tetap fungsi pencarian |
+| B-33 | ProfileView tidak punya form ubah profil/password | (1) | **FIXED** | ProfileView tambah 2 form: Ubah Profil (nama/email via `authApi.updateProfile`) dan Ganti Kata Sandi (lama+baru+konfirmasi via `authApi.changePassword`), tombol trigger di Account Info |
+| B-34 | `initialUsers` mock masih dipakai non-admin di `page.tsx:57` | (1) | **FIXED** | `initialUsers`/`initialPrograms`/`initialSurveys` didefinisikan di `initialData.ts` tapi tidak diimpor di runtime; `page.tsx` dan `useAppState.ts` ambil data via API, bukan mock |
+| B-35 | `.gitignore` sisa path `/kp/...` salah | (1) | **FIXED** | Baris 44-47 (`/kp/.next/`, `/kp/node_modules/`, `/kp/next-env.d.ts`, `/kp/prisma/migrations/migration_lock.toml`) dihapus dari `.gitignore` |
 
 ---
 
@@ -147,8 +147,8 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 | P0 | 5 | 5 | 0 | 0 |
 | P1 | 20 | 17 | 0 | 3 |
 | P2 | 10 | 10 | 0 | 0 |
-| P3 | 5 | 0 | 5 | 0 |
-| **Total** | **40** | **32** | **5** | **3** |
+| P3 | 5 | 5 | 0 | 0 |
+| **Total** | **40** | **40** | **0** | **3** |
 
 ---
 
