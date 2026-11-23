@@ -6,6 +6,7 @@ import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { ProgramActor } from "./program.types";
+import { publicUserSelect } from "../auth/auth.repository";
 import {
   presignDownload,
   type DirectUploadInput,
@@ -249,57 +250,20 @@ export const programService = {
         details: { reason: "API admin delete" },
       },
     });
-    return toFlatProgram({ id: result.id, deletedAt: result.deletedAt } as unknown as {
-      id: number;
-      kode: string;
-      nama: string;
-      namaKegiatan: string | null;
-      kategori: string;
-      categoryId: number | null;
-      periodId: number | null;
-      lokasi: string;
-      kecamatan: string | null;
-      kecamatanId: number | null;
-      desaKelurahan: string | null;
-      villageId: number | null;
-      detailLokasi: string | null;
-      operatorPengelola: string | null;
-      operatorPengelolaId: number | null;
-      penyedia: string | null;
-      direktur: string | null;
-      noKontrak: string | null;
-      nilaiKontrak: number | Prisma.Decimal | null;
-      periode: string;
-      satuan: string | null;
-      target: number | Prisma.Decimal | null;
-      targetAwal: number | Prisma.Decimal | null;
-      targetVolume: number | Prisma.Decimal | null;
-      realisasi: number | Prisma.Decimal | null;
-      realisasiVolume: number | Prisma.Decimal | null;
-      pagu: number | Prisma.Decimal | null;
-      penggunaan: number | Prisma.Decimal | null;
-      penggunaanBiaya: number | Prisma.Decimal | null;
-      status: string;
-      jadwal: string | null;
-      lebarJalan: number | Prisma.Decimal | null;
-      kondisiJalan: string | null;
-      tanggalMulai: Date | null;
-      tanggalSelesai: Date | null;
-      catatan: string | null;
-      sumber: string | null;
-      update: string;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
-      deletedById: number | null;
-      histories?: unknown[];
-      costs?: unknown[];
-      assignments?: unknown[];
-      progressEntries?: unknown[];
-      surveys?: unknown[];
-      adviceRecords?: unknown[];
-      operator?: { id: number; nama: string; email: string; role: string } | null;
+    // Ambil program lengkap setelah delete untuk return konsisten (flat ApiProgram)
+    const deleted = await prisma.program.findUnique({
+      where: { id },
+      include: {
+        operator: { select: publicUserSelect },
+        histories: true,
+        costs: true,
+        assignments: true,
+        progressEntries: true,
+        surveys: true,
+        adviceRecords: true,
+      },
     });
+    return toFlatProgram(deleted ?? { id, deletedAt: result.deletedAt } as unknown as NonNullable<Parameters<typeof toFlatProgram>[0]>);
   },
 
   async getDocumentationPhotos() {

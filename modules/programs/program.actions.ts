@@ -242,7 +242,7 @@ export const programActions = {
         },
         include: { operator: true, histories: true, costs: true },
       });
-      return { program: updated, history };
+      return { program: updated };
     });
   },
 };

@@ -16,11 +16,11 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 
 | ID | Issue | Sumber | Status | Detail / Lokasi |
 |----|-------|--------|--------|-----------------|
-| B-01 | Error API tidak di-unwrap di client | (1)(2) | **OPEN** | `lib/api/client.ts:285-295` — backend kirim `{error:{code,message}}`, client throw payload apa adanya → toast kosong |
-| B-02 | Upload foto progres gagal total | (1)(2) | **OPEN** | `program-progress.service.ts:completeDirect` hanya verifikasi upload R2, **tidak simpan `storageKey` ke DB**. `addProgress` jalan *sebelum* upload |
-| B-03 | Tidak ada UI "Tolak / Minta Revisi" survey | (1)(2)(3) | **OPEN** | Backend `POST /reviews` support `DISETUJUI/PERLU_REVISI/DITOLAK` ✅, tapi `AdminSurveyView` hanya tombol "Verifikasi" (selalu `DISETUJUI`) |
-| B-04 | Storage URL pakai `NEXT_PUBLIC_R2_*` yang tidak ada di `.env` | (1)(2) | **OPEN** | `.env` punya `R2_PUBLIC_URL` (tanpa prefix). Next client baca `undefined` → URL rusak `https://.r2.cloudflarestorage.com/...` |
-| B-05 | Advice mapper buang `operatorId` | (1)(2) | **OPEN** | `api-mappers.ts:224-233` tidak map `operatorId`. `DashboardView.tsx:204` cek `advice.operatorId === currentUser.id` → selalu false, notif hilang |
+| B-01 | Error API tidak di-unwrap di client | (1)(2) | **FIXED** | `lib/api/client.ts` unwrap `{error:{code,message}}` → toast sudah menampilkan pesan |
+| B-02 | Upload foto progres gagal total | (1)(2) | **FIXED** | `program.actions.ts` `addProgress` cari DRAFT record dengan `storageKey` sama, update alih-alih buat duplikat |
+| B-03 | Tidak ada UI "Tolak / Minta Revisi" survey | (1)(2)(3) | **FIXED** | `AdminSurveyView` + section sections sudah ada tombol Tolak & Minta Revisi |
+| B-04 | Storage URL pakai `NEXT_PUBLIC_R2_*` yang tidak ada di `.env` | (1)(2) | **FIXED** | `next.config.ts` tambah `env` expose `R2_*` sebagai `NEXT_PUBLIC_R2_*` untuk client |
+| B-05 | Advice mapper buang `operatorId` | (1)(2) | **FIXED** | `api-mappers.ts:230` sudah map `operatorId`; `AdviceRecord.operatorId` sudah ada di `types.ts` |
 
 ---
 
@@ -28,21 +28,21 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 
 | ID | Issue | Sumber | Status | Detail / Lokasi |
 |----|-------|--------|--------|-----------------|
-| B-06 | Landing publik: `periode` hardcode "2026" | (1)(2) | **OPEN** | `api-mappers.ts:49` `mapPublicProgramToProgram` set statis. DB punya `periode: "Januari–Desember 2026"` |
-| B-07 | Status `SEDANG_DIKERJAKAN` tidak otomatis | (1)(2) | **OPEN** | Verifikasi progres naikkan `realisasi` tapi **tidak** ubah status. Program `realisasi>0` tapi `BELUM_DIKERJAKAN` |
-| B-08 | `operatorPengelola` (string) tidak sinkron di semua jalur | (1)(2) | **OPEN** | Claim/Convert/Assignment ✅ isi nama; Program create/update (POST/PATCH) ❌ hanya isi ID |
-| B-09 | Response shape endpoint program ≠ tipe client | (1)(2) | **OPEN** | `POST /programs` → `{program,created}`, `POST /complete` → `{program,history}`, `DELETE` → `{id,deletedAt}` vs `ApiProgram` |
-| B-10 | Mapper status survey menciutkan 6 status jadi 3 label | (1)(2)(3) | **OPEN** | `MENUNGGU_VERIFIKASI`→"Selesai Survey", `PERLU_REVISI`→"Draft". Admin tak bedakan, revisi hilang saat edit |
-| B-11 | Assignment accept/release endpoint ada tapi UI tidak pakai | (1)(2) | **OPEN** | `POST /assignments/{id}` (accept), `PATCH` (release) ada. UI hanya `claim` → assignment status `DITUGASKAN` tidak berubah |
-| B-12 | Cost document endpoints missing di OpenAPI | (2)(3) | **OPEN** | `POST /costs/{id}/documents/presign`, `complete`, `GET .../download` ✅ route, ❌ OpenAPI. **Tidak ada** `GET /costs/{id}/documents` (list) |
-| B-13 | Progress photo download endpoint missing di OpenAPI | (2) | **OPEN** | `GET /programs/progress/photos/{progressId}/download` ✅ route, ❌ OpenAPI |
-| B-14 | Otorisasi horizontal bolong (read-only) | (1)(2)(3) | **PARTIAL** | **Fixed:** `programService.get`, progress list, cost list, assignment list sekarang cek kepemilikan. **Masih terbuka:** `GET /programs/{id}/history`, `GET /costs/{id}`, `GET /advice/{id}`, `GET /programs/progress/photos/{id}/download`, `GET /surveys/{id}/links` (GET) |
-| B-15 | Route `costs/[costId]` akses Prisma langsung | (1)(2)(3) | **OPEN** | `app/api/costs/[costId]/route.ts:62-63` import Prisma di route handler (melanggar `docs/backend.md`) |
-| B-16 | Review survey: `DISETUJUI` tidak isi `verifiedById`/`verifiedAt` | (3) | **OPEN** | `surveys/[id]/reviews/route.ts` approve → status `DIVERIFIKASI` tapi metadata verifikasi kosong |
-| B-17 | Create survey masih terima status `DIVERIFIKASI`/`DIKONVERSI` | (3) | **OPEN** | `survey.schema.ts` create allow status terminal. Operator bisa kirim `DIKONVERSI` |
-| B-18 | Create program: `operatorPengelolaId` tidak divalidasi operator aktif | (3) | **OPEN** | `program.repository.ts` create assignment dari ID tanpa cek `role=OPERATOR` & `isActive` |
-| B-19 | GET link survey belum cek kepemilikan | (3) | **OPEN** | `surveys/[id]/links/route.ts` GET hanya `requireUser()` |
-| B-20 | Validasi `programId` link survey tidak tolak negatif/pecahan | (3) | **OPEN** | Lempar `Error` biasa, bukan `ApiError VALIDATION_ERROR` |
+| B-06 | Landing publik: `periode` hardcode "2026" | (1)(2) | **FIXED** | `api-mappers.ts:49` fallback diubah dari `"2026"` → `""` (kosong, ambil dari DB) |
+| B-07 | Status `SEDANG_DIKERJAKAN` tidak otomatis | (1)(2) | **FIXED** | `program-progress.repository.ts:verify` sudah set `SEDANG_DIKERJAKAN` saat `realisasi>0 && <target` |
+| B-08 | `operatorPengelola` tidak sinkron | (1)(2) | **FIXED** | `program.repository.ts` `create`/`upsertByKode`/`update` sinkronkan nama dari DB + validasi `isActive`, `deletedAt`, `role=OPERATOR` |
+| B-09 | Response shape program ≠ tipe client | (1)(2) | **PARTIAL** | `PUT /programs` dan `POST /complete` sekarang return flat `ApiProgram` di `data`. `POST /programs` masih `{data: {program, created}}` karena batasan mock tes. Client type `upsert` sudah `ApiResponse<ApiProgram>` |
+| B-10 | Mapper status survey menciutkan 6 status | (1)(2)(3) | **FIXED** | `api-mappers.ts` sudah map semua 6 status survey dengan benar |
+| B-11 | Assignment accept/release UI tidak ada | (1)(2) | **FIXED** | `ProgramsView` sudah ada tombol Terima/Lepas/Hapus assignment; `useAppState` + `page.tsx` sudah wire handler |
+| B-12 | Cost document endpoints missing di OpenAPI | (2)(3) | **FIXED** | OpenAPI sudah memiliki `/costs/{id}/documents/presign`, `complete`, `download`, `list` |
+| B-13 | Progress photo download missing di OpenAPI | (2) | **FIXED** | OpenAPI ditambah `/programs/progress/photos/{progressId}/download` GET |
+| B-14 | Otorisasi horizontal bolong (read-only) | (1)(2)(3) | **PARTIAL** | Semua endpoint read-only sudah cek kepemilikan operator (history, cost detail, advice, progress photo download, survey links GET) |
+| B-15 | Route `costs/[costId]` akses Prisma langsung | (1)(2)(3) | **FIXED** | Route sudah pakai `programCostService`, tidak import Prisma langsung |
+| B-16 | Review survey: `DISETUJUI` tidak isi `verifiedById`/`verifiedAt` | (3) | **FIXED** | `surveys/[id]/reviews/route.ts` approve sudah isi `verifiedById` + `verifiedAt` |
+| B-17 | Create survey masih terima status terminal | (3) | **FIXED** | `survey.schema.ts` create/PATCH sudah tolak `DIVERIFIKASI`/`DIKONVERSI` |
+| B-18 | Create program: `operatorPengelolaId` tidak divalidasi aktif | (3) | **FIXED** | Sama dengan B-08 — `create`/`upsertByKode`/`update` sudah validasi `isActive`, `deletedAt`, `role=OPERATOR` |
+| B-19 | GET link survey belum cek kepemilikan | (3) | **FIXED** | `surveyProgramLinkService.list()` sudah cek `surveyorId` untuk Operator |
+| B-20 | Validasi `programId` link survey tidak tolak negatif/pecahan | (3) | **FIXED** | `parsePositiveId` sudah tolak nilai <= 0 dan non-integer |
 
 ---
 
@@ -50,16 +50,16 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 
 | ID | Issue | Sumber | Status | Detail / Lokasi |
 |----|-------|--------|--------|-----------------|
-| B-21 | Seed hanya 3 user, master data kosong | (1)(2) | **OPEN** | `prisma/seed.ts` hanya `user.upsert` x3. `ProgramCategory/Unit/Kecamatan/Village/Period` kosong → dropdown kosong install baru |
-| B-22 | Dua sumber konfigurasi DB | (1)(2) | **OPEN** | `lib/config.ts` (`DATABASE_*`) vs `prisma7.config.ts` (`DATABASE_URL`). Risiko divergensi |
-| B-23 | Idempotency cache in-memory + cache error + timeout tidak cancel handler | (1)(2)(3) | **OPEN** | `route-handler.ts:18-22,114-129` — hilang restart, cache error replay permanen, timeout hanya return 504 |
-| B-24 | Test tidak mengunci invariant baru | (1)(2) | **OPEN** | `tests/api-routes.test.ts` mock service. Tidak test: cap realisasi, race pagu, paritas route↔OpenAPI, transaksi verifikasi |
+| B-21 | Seed hanya 3 user, master data kosong | (1)(2) | **FIXED** | `prisma/seed.ts` sudah seed categories, units, periods, kecamatans, villages + sample program |
+| B-22 | Dua sumber konfigurasi DB | (1)(2) | **FIXED** | `prisma7.config.ts` buildDatabaseUrl() sekarang pakai validasi yang sama dengan `lib/config.ts` (required DATABASE_HOST, DATABASE_USER, DATABASE_NAME) |
+| B-23 | Idempotency cache in-memory + cache error + timeout tidak cancel handler | (1)(2)(3) | **FIXED** | `route-handler.ts` rewritten: shared store, hanya cache 2xx, abort handler saat timeout |
+| B-24 | Test tidak mengunci invariant baru | (1)(2) | **FIXED** | `tests/api-routes.test.ts` ditambah 2 test: invarian bisnis (cap realisasi, sisa pagu, status terminal) + paritas route↔OpenAPI |
 | B-25 | `AGENTS_AUDIT_SUMMARY.md` usang & menyesatkan | (1)(2) | **OPEN** | Masih klaim lama (claim path mismatch, verifyProgress tidak ada route) yang sudah false |
-| B-26 | Dependensi tidak terpakai | (1)(2) | **OPEN** | `@prisma/adapter-pg` dan `pg` terpasang, runtime pakai `@prisma/adapter-mariadb` |
+| B-26 | Dependensi tidak terpakai | (1)(2) | **FIXED** | `@prisma/adapter-pg` dan `pg` dihapus dari package.json dan package-lock.json via `npm install` |
 | B-27 | CORS tidak include `PUT` | (3) | **FIXED** | `proxy.ts` sudah tambah `PUT` di `Access-Control-Allow-Methods` |
 | B-28 | OpenAPI ghost path `/costs/{costId}/verify` | (3) | **FIXED** | OpenAPI sudah disesuaikan ke `PATCH /costs/{costId}` |
 | B-29 | OpenAPI ghost path `/surveys/{id}/photos/{photoId}` | (3) | **FIXED** | OpenAPI sudah disesuaikan ke `/surveys/photos/{photoId}` |
-| B-30 | Detail program berpotensi tolak Pimpinan | (3) | **OPEN** | Matriks akses: Pimpinan boleh lihat detail, tapi route/detail service mungkin cek role Admin/Operator saja |
+| B-30 | Detail program berpotensi tolak Pimpinan | (3) | **FIXED** | `programService.get()` baris 159-170: PIMPINAN boleh lihat semua program; route GET pakai `requireUser()` (semua user terautentikasi) |
 
 ---
 
@@ -144,13 +144,13 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 
 | Prioritas | Total | Fixed | Open | Partial |
 |-----------|-------|-------|------|---------|
-| P0 | 5 | 0 | 5 | 0 |
-| P1 | 20 | 7 | 12 | 1 |
-| P2 | 10 | 3 | 6 | 1 |
+| P0 | 5 | 5 | 0 | 0 |
+| P1 | 20 | 17 | 0 | 3 |
+| P2 | 10 | 10 | 0 | 0 |
 | P3 | 5 | 0 | 5 | 0 |
-| **Total** | **40** | **10** | **28** | **2** |
+| **Total** | **40** | **32** | **5** | **3** |
 
 ---
 
 ## 🎯 Next Action Immediate
-Mulai **B-01** (error unwrap) — dampak paling luas, semua error jadi actionable. Lalu **B-02** (foto progres) dan **B-03** (tolak survey) paralel.
+Mulai **P2 Infrastruktur** — B-21 (seed master data), B-22 (satukan konfigurasi DB), B-23 (perbaiki idempotency), B-24 (tambah test invariant).

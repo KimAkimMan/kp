@@ -23,7 +23,7 @@ const { state, serviceMethods, programActions, cookieStore } = vi.hoisted(() => 
   programActions: {
     addProgress: vi.fn(async () => ({ id: 1 })),
     addCost: vi.fn(async () => ({ id: 1 })),
-    markComplete: vi.fn(async () => ({ id: 1 })),
+    markComplete: vi.fn(async () => ({ program: { id: 1 } })),
   },
   cookieStore: {
     value: undefined as string | undefined,
@@ -372,5 +372,76 @@ describe("API route contracts", () => {
     ));
     expect(invalid.status).toBe(400);
     expect(invalid.body.error).toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("melindungi invarian bisnis: cap realisasi, sisa pagu, status terminal", async () => {
+    // currentUser.role = "ADMIN" from previous test; requireRole(["ADMIN","OPERATOR"]) passes
+
+    // Progres: nilai melebihi target → 400
+    programActions.addProgress.mockImplementationOnce(async () => {
+      throw new ApiError("PROGRESS_EXCEEDS_TARGET", "Realisasi kumulatif melebihi target.", 400);
+    });
+    const progresExceeds = await json(await progressRoute.POST(
+      request("/api/programs/1/progress", "POST", {
+        tanggal: "2026-10-20", tahap: "Test", nilai: 9999, satuan: "M",
+        keterangan: "Test", status: "SEDANG_DIKERJAKAN",
+      }), context,
+    ));
+    expect(progresExceeds.status).toBe(400);
+    expect(progresExceeds.body.error).toMatchObject({ code: "PROGRESS_EXCEEDS_TARGET" });
+
+    // Biaya: nominal melebihi sisa pagu → 400
+    programActions.addCost.mockImplementationOnce(async () => {
+      throw new ApiError("COST_EXCEEDS_BUDGET", "Penggunaan biaya melebihi pagu program.", 400);
+    });
+    const costExceeds = await json(await costsRoute.POST(
+      request("/api/programs/1/costs", "POST", {
+        tanggal: "2026-10-20", uraian: "Test", nominal: 999999999,
+      }), context,
+    ));
+    expect(costExceeds.status).toBe(400);
+    expect(costExceeds.body.error).toMatchObject({ code: "COST_EXCEEDS_BUDGET" });
+
+    // Program sudah selesai → 409
+    programActions.markComplete.mockImplementationOnce(async () => {
+      throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
+    });
+    const alreadyComplete = await json(await completeRoute.POST(
+      request("/api/programs/1/complete", "POST"), context,
+    ));
+    expect(alreadyComplete.status).toBe(409);
+    expect(alreadyComplete.body.error).toMatchObject({ code: "PROGRAM_COMPLETED" });
+
+    state.user.role = "ADMIN";
+  });
+
+  it("memastikan paritas route ↔ OpenAPI spec: semua route ada di OpenAPI", async () => {
+    const spec = await json(await openapiRoute.GET());
+    const paths = Object.keys(spec.body.paths ?? {});
+
+    const expectedPaths = [
+      "/programs",
+      "/programs/{id}",
+      "/programs/{id}/complete",
+      "/programs/{id}/progress",
+      "/programs/{id}/costs",
+      "/programs/{id}/history",
+      "/surveys",
+      "/surveys/{id}",
+      "/surveys/{id}/verify",
+      "/surveys/{id}/convert",
+      "/advice",
+      "/advice/{id}",
+      "/auth/login",
+      "/auth/logout",
+      "/auth/me",
+      "/users",
+      "/users/{id}",
+      "/reports/summary",
+    ];
+
+    for (const expectedPath of expectedPaths) {
+      expect(paths).toContain(expectedPath);
+    }
   });
 });

@@ -1787,6 +1787,44 @@ export interface paths {
         };
         trace?: never;
     };
+    "/programs/progress/photos/{progressId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                progressId: number;
+            };
+            cookie?: never;
+        };
+        /** Unduh foto progres dengan presigned URL */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    progressId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Foto progres dan URL unduhan */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/costs/{costId}/verify": {
         parameters: {
             query?: never;

@@ -34,7 +34,7 @@ export const programApi = {
     input: CreateProgramInput,
     options?: { idempotencyKey?: string },
   ) {
-    return apiClient.put<ApiResponse<{ program: ApiProgram; created: boolean }>>(
+    return apiClient.put<ApiResponse<ApiProgram>>(
       "/programs",
       input,
       options,

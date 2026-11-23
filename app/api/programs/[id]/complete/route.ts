@@ -16,12 +16,12 @@ export async function POST(request: NextRequest, context: Context) {
       await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
       const { foto } = parseCompletionInput(await request.json().catch(() => ({})));
       return successResponse(
-        await programActions.markComplete(
+        (await programActions.markComplete(
           parsePositiveId((await context.params).id),
           user.id,
           user.nama,
           foto,
-        ),
+        )).program,
       );
     },
     undefined,

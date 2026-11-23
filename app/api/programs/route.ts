@@ -44,10 +44,7 @@ export async function PUT(request: NextRequest) {
       const user = await requireRole("ADMIN");
       const input = parseUpsertProgramInput(await request.json());
       const { program, created } = await programService.upsert(input, user.id);
-      return successResponse(
-        { program, created },
-        created ? 201 : 200,
-      );
+      return successResponse(program, created ? 201 : 200);
     },
     undefined,
     { idempotencyScope: { method: "PUT", path: "/api/programs" } },

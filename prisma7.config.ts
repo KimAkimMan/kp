@@ -3,12 +3,21 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+function required(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} wajib dikonfigurasi.`);
+  return value;
+}
+
 function buildDatabaseUrl(): string {
-  const host = process.env.DATABASE_HOST ?? "localhost";
-  const port = process.env.DATABASE_PORT ?? "3306";
-  const user = process.env.DATABASE_USER ?? "user";
+  const host = required("DATABASE_HOST");
+  const port = Number(process.env.DATABASE_PORT ?? "3306");
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("DATABASE_PORT harus berupa port TCP yang valid.");
+  }
+  const user = required("DATABASE_USER");
   const password = process.env.DATABASE_PASSWORD ?? "";
-  const database = process.env.DATABASE_NAME ?? "your_database";
+  const database = required("DATABASE_NAME");
   return `mysql://${user}:${password}@${host}:${port}/${database}`;
 }
 
