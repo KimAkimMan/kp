@@ -92,10 +92,13 @@ function computeStats(
 
   const isProportional = !isAnnual;
 
+  // Filter programs by selected year based on periode string (e.g. "Januari–Desember 2026")
+  const filteredPrograms = programs.filter((p) => p.periode.includes(String(year)));
+
   // Group programs by (kategori, satuan)
   const groupMap = new Map<string, { target: number; realisasi: number }>();
 
-  for (const p of programs) {
+  for (const p of filteredPrograms) {
     const unitSymbol = formatUnitSymbol(p.satuan);
     const key = `${p.kategori}|||${unitSymbol}`;
     const existing = groupMap.get(key) ?? { target: 0, realisasi: 0 };
