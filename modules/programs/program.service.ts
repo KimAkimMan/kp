@@ -155,8 +155,8 @@ export const programService = {
   async get(id: number, user?: AuthenticatedUser) {
     const program = await programRepository.findById(id);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-    // Non-admin hanya dapat melihat program yang dikelolanya (operator pengelola).
-    if (user?.role !== "ADMIN") {
+    // Admin dan Pimpinan dapat melihat semua program. Operator hanya program miliknya.
+    if (user?.role !== "ADMIN" && user?.role !== "PIMPINAN") {
       if (!user || program.operatorPengelolaId === null || program.operatorPengelolaId !== user.id) {
         throw new ApiError(
           "FORBIDDEN",

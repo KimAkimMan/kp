@@ -20,6 +20,11 @@ export function getDatabaseConfig() {
   };
 }
 
+export function getDatabaseUrl(): string {
+  const cfg = getDatabaseConfig();
+  return `mysql://${cfg.user}:${encodeURIComponent(cfg.password)}@${cfg.host}:${cfg.port}/${cfg.database}`;
+}
+
 export function getJwtSecret(): string {
   const value = required("JWT_SECRET");
   if (value.length < 32) throw new Error("JWT_SECRET harus minimal 32 karakter.");
