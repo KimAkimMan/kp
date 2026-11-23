@@ -44,5 +44,4 @@ next-env.d.ts
 /kp/.next/
 /kp/node_modules/
 /kp/next-env.d.ts
-migration.sql
 /kp/prisma/migrations/migration_lock.toml

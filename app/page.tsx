@@ -3,7 +3,7 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { Program, User, AdviceRecord, PageType, FieldSurvey } from "./types";
 import { SurveyStatus } from "@/generated/prisma/enums";
-import { initialPrograms, initialUsers, initialSurveys } from "./data/initialData";
+import { initialUsers } from "./data/initialData";
 import { ApiClientError, adviceApi, authApi, programApi, surveyApi, userApi, apiClient } from "@/lib/api";
 import type { ApiResponse } from "@/lib/api/client";
 import {
@@ -57,9 +57,9 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>(initialUsers);
 
   // Data state with persistence (initialized with initialData for SSR hydration consistency)
-  const [programs, setPrograms] = useState<Program[]>(initialPrograms);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [adviceRecords, setAdviceRecords] = useState<AdviceRecord[]>([]);
-  const [surveys, setSurveys] = useState<FieldSurvey[]>(initialSurveys);
+  const [surveys, setSurveys] = useState<FieldSurvey[]>([]);
   const [toast, setToast] = useState<{
     message: string | null;
     type?: "success" | "error";

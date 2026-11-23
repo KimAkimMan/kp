@@ -1,6 +1,6 @@
 import { ApiError } from "@/lib/http/api-error";
 import { prisma } from "@/lib/prisma";
-import { ProgramStatus } from "@/generated/prisma/client";
+import { ProgramStatus, ProgressStatus } from "@/generated/prisma/client";
 
 export type CreateProgressInput = {
   tanggal: string;
@@ -38,8 +38,23 @@ export const programActions = {
       if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
       }
-      if (input.nilai > Number(program.target)) {
-        throw new ApiError("PROGRESS_EXCEEDS_TARGET", "Realisasi tidak boleh melebihi target.", 400);
+      // Validasi kumulatif: sum progress DIVERIFIKASI + nilai baru <= target
+      const alreadyApproved = await tx.programProgress.aggregate({
+        where: {
+          programId,
+          status: ProgressStatus.DIVERIFIKASI,
+        },
+        _sum: { volume: true },
+      });
+      const totalCurrent = Number(alreadyApproved._sum.volume ?? 0);
+      const requested = Number(input.nilai);
+      const target = Number(program.target ?? 0);
+      if (target > 0 && totalCurrent + requested > target) {
+        throw new ApiError(
+          "PROGRESS_EXCEEDS_TARGET",
+          `Realisasi kumulatif (${totalCurrent + requested}) melebihi target program (${target}).`,
+          400,
+        );
       }
       const progressStatus = input.status as ProgramStatus;
       // Operator tidak bisa menyelesaikan program lewat progres.
@@ -158,6 +173,7 @@ export const programActions = {
         data: {
           status: ProgramStatus.SELESAI_DIKERJAKAN,
           update: date.toISOString(),
+          tanggalSelesai: date.toISOString(),
         },
         include: { operator: true, histories: true, costs: true },
       });

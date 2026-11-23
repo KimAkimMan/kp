@@ -40,6 +40,15 @@ export const programProgressRepository = {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Kunci baris program terlebih dahulu (SELECT ... FOR UPDATE) agar dua admin
+      // yang memverifikasi progres pada program yang sama tidak saling race.
+      const program = await tx.$queryRawUnsafe<Array<{ id: number; target: Buffer | null; realisasi: Buffer | null; status: string }>>(
+        `SELECT id, target, realisasi, status FROM Program WHERE id = ? FOR UPDATE`,
+        progress.programId,
+      );
+      if (!program || program.length === 0) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      const prog = program[0];
+
       const updated = await tx.programProgress.update({
         where: { id: progressId },
         data: {
@@ -80,14 +89,17 @@ export const programProgressRepository = {
           _sum: { volume: true },
         });
         const totalRealisasi = Number(approved._sum.volume ?? 0);
+        const target = Number(prog.target ?? 0);
 
-        const program = await tx.program.findUnique({
-          where: { id: progress.programId },
-          select: { target: true, status: true },
-        });
-        if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+        // Tolak realisasi kumulatif yang melebihi target (invariant §9).
+        if (target > 0 && totalRealisasi > target) {
+          throw new ApiError(
+            "REALISASI_EXCEEDS_TARGET",
+            `Realisasi kumulatif (${totalRealisasi}) melebihi target program (${target}).`,
+            400,
+          );
+        }
 
-        const target = Number(program.target ?? 0);
         const selesai = target > 0 && totalRealisasi >= target;
 
         await tx.program.update({
@@ -95,7 +107,12 @@ export const programProgressRepository = {
           data: {
             realisasi: totalRealisasi,
             realisasiVolume: totalRealisasi,
-            ...(selesai ? { status: ProgramStatus.SELESAI_DIKERJAKAN } : {}),
+            ...(selesai
+              ? {
+                  status: ProgramStatus.SELESAI_DIKERJAKAN,
+                  tanggalSelesai: new Date().toISOString(),
+                }
+              : {}),
           },
         });
       }

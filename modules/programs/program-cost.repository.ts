@@ -54,20 +54,29 @@ export const programCostRepository = {
   },
 
   async verify(costId: number, decision: "APPROVED" | "REJECTED", reviewerId: number, rejectionReason?: string) {
-    const cost = await this.findById(costId);
-    if (cost.status === CostStatus.DIVERIFIKASI || cost.status === CostStatus.DITOLAK) {
-      throw new ApiError("COST_ALREADY_VERIFIED", "Biaya telah diverifikasi sebelumnya.", 409);
-    }
-
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.programCost.update({
-        where: { id: costId },
+      // Transisi status atomik: hanya baris berstatus DIAJUKAN yang bisa diubah.
+      // Dua admin yang memverifikasi bersamaan: hanya satu yang berhasil (count=1),
+      // yang lain mendapat count=0 → COST_ALREADY_VERIFIED (409).
+      const transition = await tx.programCost.updateMany({
+        where: { id: costId, status: CostStatus.DIAJUKAN },
         data: {
           status: decision === "APPROVED" ? CostStatus.DIVERIFIKASI : CostStatus.DITOLAK,
           verifiedById: reviewerId,
           verifiedAt: new Date(),
           rejectionReason: decision === "REJECTED" ? rejectionReason ?? "Ditolak" : null,
         },
+      });
+
+      if (transition.count === 0) {
+        // Bedakan: tidak ada vs sudah diverifikasi.
+        const exists = await tx.programCost.findUnique({ where: { id: costId }, select: { id: true } });
+        if (!exists) throw new ApiError("COST_NOT_FOUND", "Biaya tidak ditemukan.", 404);
+        throw new ApiError("COST_ALREADY_VERIFIED", "Biaya telah diverifikasi sebelumnya.", 409);
+      }
+
+      const updated = await tx.programCost.findUniqueOrThrow({
+        where: { id: costId },
         include: {
           inputBy: { select: { id: true, nama: true, role: true } },
           verifiedBy: { select: { id: true, nama: true, role: true } },
@@ -82,8 +91,8 @@ export const programCostRepository = {
           entity: "ProgramCost",
           entityId: String(costId),
           details: {
-            programId: cost.programId,
-            fromStatus: cost.status,
+            programId: updated.programId,
+            fromStatus: CostStatus.DIAJUKAN,
             toStatus: decision === "APPROVED" ? CostStatus.DIVERIFIKASI : CostStatus.DITOLAK,
             nominal: updated.nominal,
             rejectionReason: decision === "REJECTED" ? rejectionReason : null,
@@ -94,21 +103,27 @@ export const programCostRepository = {
       // Biaya hanya mengurangi pagu saat DIVERIFIKASI. Saat DITOLAK, penggunaan tidak berubah
       // (karena tidak pernah ditambahkan saat DIAJUKAN).
       if (decision === "APPROVED") {
-        const program = await tx.program.findUnique({
-          where: { id: cost.programId },
-          select: { pagu: true, penggunaan: true },
-        });
-        if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-        const totalSetelahDisetujui = Number(program.penggunaan) + Number(updated.nominal);
-        if (Number(program.pagu) > 0 && totalSetelahDisetujui > Number(program.pagu)) {
+        // Kunci baris Program agar cek pagu + increment serial (mencegah dua biaya
+        // berbeda yang diverifikasi bersamaan sama-sama lolos cek pagu).
+        const locked = await tx.$queryRawUnsafe<Array<{ pagu: unknown; penggunaan: unknown }>>(
+          `SELECT pagu, penggunaan FROM Program WHERE id = ? FOR UPDATE`,
+          updated.programId,
+        );
+        if (!locked || locked.length === 0) {
+          throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+        }
+        const pagu = Number(locked[0].pagu);
+        const penggunaan = Number(locked[0].penggunaan);
+        const totalSetelahDisetujui = penggunaan + Number(updated.nominal);
+        if (pagu > 0 && totalSetelahDisetujui > pagu) {
           throw new ApiError(
             "COST_EXCEEDS_BUDGET",
-            `Penggunaan biaya (${totalSetelahDisetujui}) melebihi pagu program (${program.pagu}).`,
+            `Penggunaan biaya (${totalSetelahDisetujui}) melebihi pagu program (${pagu}).`,
             400,
           );
         }
         await tx.program.update({
-          where: { id: cost.programId },
+          where: { id: updated.programId },
           data: {
             penggunaan: { increment: updated.nominal },
             penggunaanBiaya: { increment: updated.nominal },

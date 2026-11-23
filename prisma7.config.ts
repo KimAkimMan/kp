@@ -3,6 +3,15 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+function buildDatabaseUrl(): string {
+  const host = process.env.DATABASE_HOST ?? "localhost";
+  const port = process.env.DATABASE_PORT ?? "3306";
+  const user = process.env.DATABASE_USER ?? "user";
+  const password = process.env.DATABASE_PASSWORD ?? "";
+  const database = process.env.DATABASE_NAME ?? "your_database";
+  return `mysql://${user}:${password}@${host}:${port}/${database}`;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +19,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: process.env.DATABASE_URL ?? buildDatabaseUrl(),
   },
 });
