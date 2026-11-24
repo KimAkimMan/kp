@@ -2,6 +2,7 @@ import { programRepository } from "./program.repository";
 import type { CreateProgramInput } from "./program.types";
 import { ApiError } from "@/lib/http/api-error";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
+import { sanitizeInputObject } from "./input-sanitizer";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -178,6 +179,8 @@ export const programService = {
     const existing = await programRepository.findById(id);
     if (!existing) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     // Blokir field yang hanya boleh diubah melalui alur khusus (bukan PATCH langsung)
     const BLOCKED_FIELDS = new Set(["realisasi", "realisasiVolume", "penggunaan", "penggunaanBiaya", "status"]);
     const inputRecord = input as Record<string, unknown>;

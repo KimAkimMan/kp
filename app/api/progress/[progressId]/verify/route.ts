@@ -5,6 +5,7 @@ import { requireRole } from "@/modules/auth/auth.context";
 import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programProgressRepository } from "@/modules/programs/program-progress.repository";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 type Context = { params: Promise<{ progressId: string }> };
 
@@ -12,6 +13,10 @@ export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const progressId = parsePositiveId((await context.params).progressId);
       const body = await parseRequestBody(request) as Record<string, unknown>;
       const { decision, rejectionReason } = body;

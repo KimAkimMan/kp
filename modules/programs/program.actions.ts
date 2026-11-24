@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/http/api-error";
 import { prisma } from "@/lib/prisma";
 import { ProgramStatus, ProgressStatus } from "@/generated/prisma/client";
+import { sanitizeInputObject } from "./input-sanitizer";
 
 export type CreateProgressInput = {
   tanggal: string;
@@ -32,6 +33,8 @@ function parseDate(value: string): Date {
 export const programActions = {
   async addProgress(programId: number, input: CreateProgressInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     return prisma.$transaction(async (tx) => {
       // Lock program row untuk mencegah race condition: dua request concurrent
       // tidak boleh sama-sama lolos validasi PROGRESS_EXCEEDS_TARGET.
@@ -217,6 +220,8 @@ export const programActions = {
 
   async addCost(programId: number, input: CreateCostInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     return prisma.$transaction(async (tx) => {
       // Lock program row untuk mencegah race condition pada cek pagu.
       const locked = await tx.$queryRawUnsafe<Array<{ id: number; pagu: unknown; penggunaan: unknown; status: string }>>(

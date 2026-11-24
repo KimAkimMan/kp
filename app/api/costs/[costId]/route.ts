@@ -6,6 +6,7 @@ import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programCostService } from "@/modules/programs/program-cost.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 type Context = { params: Promise<{ costId: string }> };
 
@@ -13,6 +14,10 @@ export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const costId = parsePositiveId((await context.params).costId);
       const body = await parseRequestBody(request) as Record<string, unknown>;
       const { decision, rejectionReason } = body;
