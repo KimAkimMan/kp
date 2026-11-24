@@ -273,7 +273,6 @@ Gunakan komponen pencapaian pimpinan sebagai blok visual:
   - ikon gedung,
   - judul “Masuk ke Sistem”,
   - deskripsi instansi,
-  - tiga selector role: Admin, Operator, Pimpinan,
   - panel akun demo sesuai role,
   - input Username/Email,
   - input Kata Sandi dengan toggle tampil/sembunyi,
@@ -281,7 +280,6 @@ Gunakan komponen pencapaian pimpinan sebagai blok visual:
   - tombol “Masuk ke Aplikasi”,
   - tombol “Kembali ke halaman transparansi”.
 - State wireframe:
-  - role aktif,
   - input kosong,
   - kredensial salah,
   - login berhasil/toast.

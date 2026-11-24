@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Landmark, Building2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { ApiClientError, authApi } from "@/lib/api";
 import { mapApiUserToUser } from "../utils/api-mappers";
-import { Role, User } from "../types";
+import { User } from "../types";
 
 interface LoginScreenProps {
   onLoginSuccess: (user: User) => void;
@@ -12,9 +12,8 @@ interface LoginScreenProps {
 }
 
 /**
- * Selector role hanya menunjukkan niat login; kredensial tidak diisi
- * otomatis dan harus diisi manual oleh pengguna. Sumber kebenaran role
- * setelah login tetap berasal dari API (`data.user.role`).
+ * Login tidak memilih role di UI: role sepenuhnya ditentukan oleh akun
+ * yang berhasil diautentikasi (`data.user.role` dari API).
  */
 
 function getLoginErrorMessage(error: unknown): string {
@@ -36,17 +35,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
   onBackToLanding,
 }) => {
-  const [selectedRole, setSelectedRole] = useState<Role>("Admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleRoleChange = (role: Role) => {
-    setSelectedRole(role);
-    setErrorMessage("");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,24 +107,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <p className="text-sm text-[#64758A] mb-6">
             Sistem Informasi Penyimpanan Data dan Pemantauan Kegiatan PSU
           </p>
-
-          {/* Role selector buttons */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {(["Admin", "Operator", "Pimpinan"] as Role[]).map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => handleRoleChange(role)}
-                className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold border transition ${
-                  selectedRole === role
-                    ? "border-[#1E4E8C] bg-[#EDF5FB] text-[#1E4E8C] shadow-xs"
-                    : "border-[#D4E0EB] bg-white text-[#4A647D] hover:bg-[#F7FAFC]"
-                }`}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
 
           <div className="mb-4">
             <label className="block text-xs font-bold text-[#35536F] uppercase tracking-wider mb-1.5">
