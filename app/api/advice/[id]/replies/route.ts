@@ -3,8 +3,9 @@ import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { adviceReplyService } from "@/modules/advice/advice-reply.service";
-import type { AuthenticatedUser } from "@/modules/auth/auth.types";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 import { ApiError } from "@/lib/http/api-error";
+import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { parseRequestBody } from "@/lib/http/request";
 
 type Context = { params: Promise<{ id: string }> };
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const adviceId = (await context.params).id;
       const body = await parseRequestBody(request) as Record<string, unknown>;
       const { isi } = body;

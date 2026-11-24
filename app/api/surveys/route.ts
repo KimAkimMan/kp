@@ -8,6 +8,7 @@ import { parseSurveyInput } from "@/modules/surveys/survey.schema";
 import type { SurveyInput } from "@/modules/surveys/survey.types";
 import { parsePagination } from "@/lib/pagination";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 const surveyStatuses = [
   "DRAFT",
@@ -48,6 +49,10 @@ export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const body = (await parseRequestBody(request)) as Record<string, unknown>;
       // Pre-set surveyor/surveyorId for OPERATOR before validation
       if (user.role === "OPERATOR") {

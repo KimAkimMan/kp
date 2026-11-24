@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/http/api-error";
 import { prisma } from "@/lib/prisma";
 import { ProgramStatus, ProgressStatus } from "@/generated/prisma/client";
+import { sanitizeInputObject } from "./input-sanitizer";
 
 export type CreateProgressInput = {
   tanggal: string;
@@ -32,10 +33,21 @@ function parseDate(value: string): Date {
 export const programActions = {
   async addProgress(programId: number, input: CreateProgressInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     return prisma.$transaction(async (tx) => {
+      // Lock program row untuk mencegah race condition: dua request concurrent
+      // tidak boleh sama-sama lolos validasi PROGRESS_EXCEEDS_TARGET.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: number; target: unknown; status: string }>>(
+        `SELECT id, target, status FROM Program WHERE id = ? FOR UPDATE`,
+        programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
       const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+      if (String(locked[0].status) === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
       }
       // Validasi kumulatif: sum progress DIVERIFIKASI + nilai baru <= target
@@ -208,14 +220,24 @@ export const programActions = {
 
   async addCost(programId: number, input: CreateCostInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     return prisma.$transaction(async (tx) => {
+      // Lock program row untuk mencegah race condition pada cek pagu.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: number; pagu: unknown; penggunaan: unknown; status: string }>>(
+        `SELECT id, pagu, penggunaan, status FROM Program WHERE id = ? FOR UPDATE`,
+        programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
       const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+      if (String(locked[0].status) === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
       }
-      const nextUsage = Number(program.penggunaan) + input.nominal;
-      if (Number(program.pagu) > 0 && nextUsage > Number(program.pagu)) {
+      const nextUsage = Number(locked[0].penggunaan ?? 0) + input.nominal;
+      if (Number(locked[0].pagu ?? 0) > 0 && nextUsage > Number(locked[0].pagu)) {
         throw new ApiError("COST_EXCEEDS_BUDGET", "Penggunaan biaya melebihi pagu program.", 400);
       }
       const cost = await tx.programCost.create({
@@ -267,6 +289,21 @@ export const programActions = {
       }
       if (Number(locked[0].target) > 0 && Number(locked[0].realisasi) < Number(locked[0].target)) {
         throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
+      }
+      // Wajib ada minimal 1 progress DIVERIFIKASI sebelum menyelesaikan program
+      const approvedProgress = await tx.programProgress.aggregate({
+        where: {
+          programId,
+          status: ProgressStatus.DIVERIFIKASI,
+        },
+        _count: true,
+      });
+      if (approvedProgress._count === 0) {
+        throw new ApiError(
+          "NO_VERIFIED_PROGRESS",
+          "Program tidak dapat diselesaikan: belum ada progres yang diverifikasi.",
+          409,
+        );
       }
       const date = new Date();
       const history = await tx.programHistory.create({

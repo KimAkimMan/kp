@@ -44,6 +44,9 @@ export const programProgressService = {
     // Validasi program ada, bukan progress record (belum dibuat saat upload).
     const program = await programRepository.findById(progressId);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+    if (user.role === "OPERATOR" && program.operatorPengelolaId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat mengunggah foto progres program operator lain.", 403);
+    }
     return presignDirectUpload(`progress/${progressId}/photos`, input, "image");
   },
 
@@ -58,6 +61,9 @@ export const programProgressService = {
     // Validasi programId ada (progress record belum dibuat saat upload foto presigned)
     const program = await programRepository.findById(programId);
     if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+    if (user.role === "OPERATOR" && program.operatorPengelolaId !== user.id) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat mengunggah foto progres program operator lain.", 403);
+    }
     // Hanya verifikasi upload ke object storage.
     await completeDirectUpload(`progress/${programId}/photos`, input, "image");
     // Simpan storageKey ke database sebagai progress record agar tidak hilang

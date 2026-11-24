@@ -4,6 +4,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string; assignmentId: string }> };
@@ -13,6 +14,10 @@ export async function POST(request: NextRequest, context: Context) {
     async () => {
       const { assignmentId } = await context.params;
       const user = await requireRole("OPERATOR");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const assignmentIdNum = parsePositiveId(assignmentId);
       const result = await programAssignmentService.accept(
         assignmentIdNum,
@@ -30,6 +35,10 @@ export async function PATCH(request: NextRequest, context: Context) {
     async () => {
       const { id, assignmentId } = await context.params;
       const user = await requireUser();
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const assignmentIdNum = parsePositiveId(assignmentId);
       const body = await parseRequestBody(request) as Record<string, unknown>;
       const { action } = body;
@@ -65,10 +74,14 @@ export async function PATCH(request: NextRequest, context: Context) {
   );
 }
 
-export async function DELETE(_request: NextRequest, context: Context) {
+export async function DELETE(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const { id, assignmentId } = await context.params;
       const result = await programAssignmentService.delete(
         parsePositiveId(assignmentId),

@@ -10,6 +10,8 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePagination } from "@/lib/pagination";
 import { parseProgramListFilters } from "@/modules/programs/program.schema";
 import { parseRequestBody } from "@/lib/http/request";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
+import { ApiError } from "@/lib/http/api-error";
 
 export async function GET(request: NextRequest) {
   return handleRoute(async () => {
@@ -31,6 +33,10 @@ export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const input = parseCreateProgramInput(await parseRequestBody(request));
       return successResponse(await programService.create(input, user.id), 201);
     },
@@ -43,6 +49,10 @@ export async function PUT(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const input = parseUpsertProgramInput(await parseRequestBody(request));
       const { program, created } = await programService.upsert(input, user.id);
       return successResponse(program, created ? 201 : 200);

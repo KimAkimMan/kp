@@ -69,3 +69,51 @@ export const loginRateLimiter = {
     entries.delete(key(request, email));
   },
 };
+
+// Rate limiter untuk operasi mutasi sensitif (claim, complete, verify).
+// Berbasis jumlah request per window waktu per user + IP.
+const OPERATION_WINDOW_MS = 60 * 1000; // 1 menit
+const OPERATION_MAX_REQUESTS = 60; // 60 request per menit
+const operationEntries = new Map<string, { count: number; resetAt: number }>();
+let lastOperationCleanupAt = 0;
+
+function operationKey(request: NextRequest, userId: number | string): string {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  return `op:${forwarded}:${userId}`;
+}
+
+function cleanupOperationExpired(now: number) {
+  if (now - lastOperationCleanupAt < CLEANUP_INTERVAL_MS) return;
+  for (const [key, entry] of operationEntries) {
+    if (now >= entry.resetAt) operationEntries.delete(key);
+  }
+  lastOperationCleanupAt = now;
+}
+
+export const operationRateLimiter = {
+  async check(request: NextRequest, userId: number | string) {
+    const now = Date.now();
+    cleanupOperationExpired(now);
+    const rateLimitKey = operationKey(request, userId);
+    const current = operationEntries.get(rateLimitKey);
+    if (!current || current.resetAt <= now) {
+      if (current) operationEntries.delete(rateLimitKey);
+      if (operationEntries.size >= MAX_TRACKED_KEYS) {
+        return {
+          allowed: false,
+          retryAfterSeconds: Math.ceil((SATURATED_RETRY_AFTER_SECONDS * 1000) / 1000),
+        };
+      }
+      operationEntries.set(rateLimitKey, { count: 1, resetAt: now + OPERATION_WINDOW_MS });
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
+    if (current.count >= OPERATION_MAX_REQUESTS) {
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.ceil((current.resetAt - now) / 1000),
+      };
+    }
+    current.count += 1;
+    return { allowed: true, retryAfterSeconds: 0 };
+  },
+};

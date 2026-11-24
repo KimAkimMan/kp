@@ -163,14 +163,15 @@ export const programProgressRepository = {
     });
   },
 
-  async updatePhoto(progressId: number, storageKey: string, originalName: string | null) {
+  async updatePhoto(progressId: number, storageKey: string, originalName: string | null, operatorId?: number) {
     const progress = await this.findById(progressId);
+    // Hanya operator yang mengelola program (atau admin) yang dapat update foto.
+    if (operatorId !== undefined && progress.program.operatorPengelolaId !== operatorId) {
+      throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah foto progres program operator lain.", 403);
+    }
     return prisma.programProgress.update({
       where: { id: progressId },
-      data: {
-        storageKey,
-        originalName,
-      },
+      data: { storageKey, originalName },
     });
   },
 

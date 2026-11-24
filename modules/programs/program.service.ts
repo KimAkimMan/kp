@@ -2,6 +2,7 @@ import { programRepository } from "./program.repository";
 import type { CreateProgramInput } from "./program.types";
 import { ApiError } from "@/lib/http/api-error";
 import type { ProgramListFilters, UpdateProgramInput } from "./program.types";
+import { sanitizeInputObject } from "./input-sanitizer";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -173,6 +174,13 @@ export const programService = {
 
   async update(id: number, input: UpdateProgramInput, user: AuthenticatedUser) {
     await this.get(id, user);
+    
+    // Load existing program first for validation
+    const existing = await programRepository.findById(id);
+    if (!existing) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+    
+    // Sanitasi input teks dari client untuk mencegah XSS/injection.
+    sanitizeInputObject(input as Record<string, unknown>);
     // Blokir field yang hanya boleh diubah melalui alur khusus (bukan PATCH langsung)
     const BLOCKED_FIELDS = new Set(["realisasi", "realisasiVolume", "penggunaan", "penggunaanBiaya", "status"]);
     const inputRecord = input as Record<string, unknown>;
@@ -194,6 +202,22 @@ export const programService = {
       if (input.status === "SELESAI_DIKERJAKAN") {
         throw new ApiError("USE_COMPLETE_ACTION", "Gunakan action complete untuk menyelesaikan program.", 409);
       }
+      // State machine validation: operator tidak boleh lompat status
+      // BELUM_DIKERJAKAN -> SEDANG_DIKERJAKAN -> SELESAI_DIKERJAKAN (via complete action)
+      if (input.status !== undefined && existing.status !== input.status) {
+        const validTransitions: Record<string, string[]> = {
+          BELUM_DIKERJAKAN: ["SEDANG_DIKERJAKAN"],
+          SEDANG_DIKERJAKAN: ["BELUM_DIKERJAKAN"], // bisa mundur ke belum dikerjakan
+        };
+        const allowed = validTransitions[existing.status] ?? [];
+        if (!allowed.includes(input.status)) {
+          throw new ApiError(
+            "INVALID_STATUS_TRANSITION",
+            `Tidak dapat mengubah status dari ${existing.status} ke ${input.status}. Gunakan aksi 'Selesai' untuk mengakhiri program.`,
+            409,
+          );
+        }
+      }
       // Operator hanya boleh mengubah field teknis/jadwal, bukan angka keuangan
       const OPERATOR_ALLOWED = new Set([
         "nama", "namaKegiatan", "kategori", "lokasi", "kecamatan", "desaKelurahan",
@@ -209,9 +233,6 @@ export const programService = {
         throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah field: " + forbidden.join(", "), 403);
       }
     }
-
-    const existing = await programRepository.findById(id);
-    if (!existing) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
 
     const nextTarget =
       input.target !== undefined ? Number(input.target) : Number(existing.target ?? 0);
@@ -270,6 +291,10 @@ export const programService = {
     }
     if (program.operatorPengelolaId !== user.id) {
       throw new ApiError("FORBIDDEN", "Anda tidak dapat mengubah program ini.", 403);
+    }
+    // Operator tidak boleh mengedit program yang sudah SELESAI_DIKERJAKAN
+    if (program.status === "SELESAI_DIKERJAKAN") {
+      throw new ApiError("PROGRAM_COMPLETED", "Program sudah selesai dikerjakan, tidak dapat diubah.", 409);
     }
     return program;
   },

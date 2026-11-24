@@ -7,6 +7,8 @@ import { parseCostInput } from "@/modules/programs/program.action.schema";
 import { programActions } from "@/modules/programs/program.actions";
 import { programService } from "@/modules/programs/program.service";
 import { programCostService } from "@/modules/programs/program-cost.service";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
+import { ApiError } from "@/lib/http/api-error";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 
 type Context = { params: Promise<{ id: string }> };
@@ -24,6 +26,10 @@ export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       await programService.assertCanEdit(parsePositiveId((await context.params).id), user);
       return successResponse(
         await programActions.addCost(

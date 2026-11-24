@@ -232,13 +232,35 @@ export const programAssignmentRepository = {
         },
       });
 
-      // Kosongkan operatorPengelolaId pada Program jika assignment ini yang aktif
+      // Kosongkan operatorPengelolaId pada Program HANYA jika tidak ada assignment aktif lain
       const program = await tx.program.findFirst({ where: { id: assignment.programId, deletedAt: null } });
       if (program && program.operatorPengelolaId === assignment.operatorId) {
-        await tx.program.update({
-          where: { id: assignment.programId },
-          data: { operatorPengelolaId: null, operatorPengelola: null },
+        // Cek apakah ada assignment DITUGASKAN/DITERIMA lain untuk program ini
+        const otherActiveAssignment = await tx.programAssignment.findFirst({
+          where: {
+            programId: assignment.programId,
+            id: { not: assignmentId },
+            status: { in: [ProgramAssignmentStatus.DITUGASKAN, ProgramAssignmentStatus.DITERIMA] },
+          },
+          include: { operator: { select: { nama: true } } },
         });
+
+        if (!otherActiveAssignment) {
+          // Tidak ada assignment lain -> clear operator
+          await tx.program.update({
+            where: { id: assignment.programId },
+            data: { operatorPengelolaId: null, operatorPengelola: null },
+          });
+        } else {
+          // Ada assignment lain -> pindahkan operatorPengelolaId ke operator assignment aktif lain
+          await tx.program.update({
+            where: { id: assignment.programId },
+            data: {
+              operatorPengelolaId: otherActiveAssignment.operatorId,
+              operatorPengelola: otherActiveAssignment.operator.nama,
+            },
+          });
+        }
       }
 
       await tx.auditLog.create({

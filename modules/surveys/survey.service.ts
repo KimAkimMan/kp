@@ -62,6 +62,13 @@ export const surveyService = {
       throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat diubah.", 409);
     }
     return prisma.$transaction(async (tx) => {
+      // Lock survey row untuk mencegah race condition pada perubahan status.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: string; status: string; deletedAt: unknown }>>(
+        `SELECT id, status, deletedAt FROM FieldSurvey WHERE id = ? FOR UPDATE`,
+        id,
+      );
+      if (!locked || locked.length === 0) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+      if (locked[0].deletedAt !== null) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
       const updated = await tx.fieldSurvey.update({
         where: { id },
         data: input,
