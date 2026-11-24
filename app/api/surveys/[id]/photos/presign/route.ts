@@ -5,12 +5,18 @@ import { parseRequestBody } from "@/lib/http/request";
 import { requireRole } from "@/modules/auth/auth.context";
 import { parseDirectUploadInput } from "@/modules/storage/direct-upload.service";
 import { surveyPhotoService } from "@/modules/surveys/survey-photo.service";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(async () => {
     const user = await requireRole("ADMIN", "OPERATOR");
+    const rateLimit = await operationRateLimiter.check(request, user.id);
+    if (!rateLimit.allowed) {
+      throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+    }
     const { id } = await context.params;
     const input = parseDirectUploadInput(await parseRequestBody(request));
     return successResponse(await surveyPhotoService.presignDirect(id, input, user));

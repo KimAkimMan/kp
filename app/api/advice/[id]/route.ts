@@ -5,6 +5,8 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parseAdviceStatusInput } from "@/modules/advice/advice.schema";
 import { adviceService } from "@/modules/advice/advice.service";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -20,6 +22,10 @@ export async function PATCH(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const { status } = parseAdviceStatusInput(await parseRequestBody(request));
       return successResponse(await adviceService.updateStatus((await context.params).id, status, user));
     },
@@ -28,10 +34,14 @@ export async function PATCH(request: NextRequest, context: Context) {
   );
 }
 
-export async function DELETE(_request: NextRequest, context: Context) {
+export async function DELETE(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("PIMPINAN", "ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       return successResponse(await adviceService.remove((await context.params).id, user.id));
     },
     undefined,

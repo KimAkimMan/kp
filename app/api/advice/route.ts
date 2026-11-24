@@ -7,6 +7,7 @@ import { parseRequestBody } from "@/lib/http/request";
 import { parseCreateAdviceInput } from "@/modules/advice/advice.schema";
 import { parsePagination } from "@/lib/pagination";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 const adviceStatuses = ["BELUM_DITINDAKLANJUTI", "SUDAH_DITINDAKLANJUTI"];
 
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("PIMPINAN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const input = parseCreateAdviceInput(await parseRequestBody(request));
       return successResponse(await adviceService.create({
         ...input,

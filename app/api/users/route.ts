@@ -7,6 +7,7 @@ import { handleRoute } from "@/lib/http/route-handler";
 import { parseRequestBody } from "@/lib/http/request";
 import { parsePagination } from "@/lib/pagination";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 const userRoles = ["Admin", "Operator", "Pimpinan"];
 
@@ -38,7 +39,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
-      await requireRole("ADMIN");
+      const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const input = parseCreateUserInput(await parseRequestBody(request));
       return successResponse(await userService.create(input), 201);
     },

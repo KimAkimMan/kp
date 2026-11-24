@@ -3,13 +3,19 @@ import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
 import { requireUser } from "@/modules/auth/auth.context";
 import { surveyPhotoService } from "@/modules/surveys/survey-photo.service";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
+import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ photoId: string }> };
 
-export async function DELETE(_request: NextRequest, context: Context) {
+export async function DELETE(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireUser();
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const photoId = (await context.params).photoId;
       const result = await surveyPhotoService.deletePhoto(photoId, user);
       return successResponse(result);
