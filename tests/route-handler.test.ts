@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NextResponse } from "next/server";
+import {
+  MemoryIdempotencyStore,
+  setIdempotencyStore,
+  type IdempotencyStore,
+} from "@/lib/idempotency-store";
 
 const headersState = vi.hoisted(() => ({
   headers: new Map<string, string>(),
@@ -26,6 +31,7 @@ function setHeader(key: string, value: string | null) {
 describe("handleRoute", () => {
   beforeEach(() => {
     headersState.headers.clear();
+    setIdempotencyStore(new MemoryIdempotencyStore());
   });
 
   it("returns a structured gateway timeout response", async () => {
@@ -73,6 +79,49 @@ describe("handleRoute", () => {
     expect(replay.status).toBe(201);
     await expect(replay.json()).resolves.toEqual({ data: { id: 1 } });
     expect(replay.headers.get("x-idempotent")).toBe("replayed");
+  });
+
+  it("releases a reservation after a failed response so the request can retry", async () => {
+    setHeader("Idempotency-Key", "kunci-retry");
+    const options = { idempotencyScope: { method: "POST", path: "/api/programs" } };
+    const failed = await handleRoute(
+      () => Promise.resolve(NextResponse.json({ error: "failed" }, { status: 500 })),
+      100,
+      options,
+    );
+    expect(failed.status).toBe(500);
+
+    const retried = await handleRoute(
+      () => Promise.resolve(NextResponse.json({ data: { id: 2 } }, { status: 201 })),
+      100,
+      options,
+    );
+    expect(retried.status).toBe(201);
+    await expect(retried.json()).resolves.toEqual({ data: { id: 2 } });
+  });
+
+  it("returns a retryable service error when the in-memory store is full", async () => {
+    const fullStore: IdempotencyStore = {
+      get: async () => null,
+      reserve: async () => "capacity_exceeded",
+      set: async () => {},
+      del: async () => {},
+      cleanup: async () => {},
+    };
+    setIdempotencyStore(fullStore);
+    setHeader("Idempotency-Key", "kunci-capacity");
+
+    const response = await handleRoute(
+      () => Promise.resolve(NextResponse.json({ data: "should not run" })),
+      100,
+      { idempotencyScope: { method: "POST", path: "/api/programs" } },
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("retry-after")).toBe("60");
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "IDEMPOTENCY_CAPACITY" },
+    });
   });
 
   it("does not replay across different route scopes with the same key", async () => {

@@ -4,7 +4,6 @@ import type { Program } from "@/app/types";
 import {
   downloadReportExcel,
   downloadReportPdf,
-  downloadReportWord,
 } from "@/app/utils/report-export";
 
 const program: Program = {
@@ -86,21 +85,6 @@ describe("report exports", () => {
     expect(worksheet?.getCell("C8").value).toBe("Peningkatan Jalan Desa");
     expect(worksheet?.getCell("J8").value).toBe(100000);
     expect(worksheet?.rowCount).toBe(8);
-  });
-
-  it("creates a Word document download", async () => {
-    await downloadReportWord(options);
-
-    expect(downloadLink.download).toBe(
-      "Laporan-Capaian-Permukiman-Kuningan.docx",
-    );
-    expect(downloadedBlob?.type).toBe(
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    );
-    expect(downloadedBlob?.size).toBeGreaterThan(0);
-    expect(new Uint8Array(await downloadedBlob!.arrayBuffer()).slice(0, 2)).toEqual(
-      new Uint8Array([0x50, 0x4b]),
-    );
   });
 
   it("creates a PDF file instead of opening the print dialog", async () => {

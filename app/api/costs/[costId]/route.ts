@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole } from "@/modules/auth/auth.context";
-import { parsePositiveId } from "@/lib/http/request";
+import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programCostService } from "@/modules/programs/program-cost.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
@@ -14,18 +14,22 @@ export async function PATCH(request: NextRequest, context: Context) {
     async () => {
       const user = await requireRole("ADMIN");
       const costId = parsePositiveId((await context.params).costId);
-      const body = await request.json();
+      const body = await parseRequestBody(request) as Record<string, unknown>;
       const { decision, rejectionReason } = body;
 
-      if (!decision || !["APPROVED", "REJECTED"].includes(decision)) {
+      if (
+        typeof decision !== "string" ||
+        !["APPROVED", "REJECTED"].includes(decision)
+      ) {
         throw new ApiError("VALIDATION_ERROR", "Decision harus 'APPROVED' atau 'REJECTED'.", 400);
       }
+      const verifiedDecision = decision as "APPROVED" | "REJECTED";
 
       const result = await programCostService.verify(
         costId,
-        decision,
+        verifiedDecision,
         user as AuthenticatedUser,
-        rejectionReason,
+        typeof rejectionReason === "string" ? rejectionReason : undefined,
       );
       return successResponse(result);
     },

@@ -71,6 +71,12 @@ export const surveyPhotoService = {
 
   async deletePhoto(id: string, user: AuthenticatedUser) {
     const photo = await surveyPhotoRepository.findById(id);
+    if (user.role === "OPERATOR") {
+      const survey = await surveyRepository.findById(photo.surveyId);
+      if (!survey || survey.surveyorId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat menghapus foto survey operator lain.", 403);
+      }
+    }
     if (user.role !== "ADMIN" && photo.uploadedById !== user.id) {
       throw new ApiError("FORBIDDEN", "Hanya Admin atau pemilik foto yang dapat menghapus.", 403);
     }

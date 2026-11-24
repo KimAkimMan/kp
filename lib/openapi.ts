@@ -526,7 +526,7 @@ export const openapiDocument = {
           { $ref: "#/components/parameters/Page" },
           { $ref: "#/components/parameters/PageSize" },
           { name: "search", in: "query", required: false, schema: { type: "string" } },
-          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "DIVERIFIKASI"] } },
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["DRAFT", "SELESAI_SURVEY", "MENUNGGU_VERIFIKASI", "PERLU_REVISI", "DIVERIFIKASI", "DIKONVERSI"] } },
           { name: "kecamatan", in: "query", required: false, schema: { type: "string" } },
         ],
         responses: { "200": { description: "Daftar survey" } },

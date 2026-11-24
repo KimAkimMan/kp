@@ -77,39 +77,37 @@ export const surveyProgramLinkRepositoryWithSurvey = {
   },
 
   async create(surveyId: string, input: SurveyProgramLinkInput) {
-    const survey = await prisma.fieldSurvey.findFirst({
-      where: { id: surveyId, deletedAt: null },
-    });
-    if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
-
-    const program = await prisma.program.findFirst({
-      where: { id: input.programId, deletedAt: null },
-    });
-    if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-
-    // Cek apakah sudah ada link
-    const existing = await prisma.surveyProgramLink.findFirst({
-      where: {
+    return prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM FieldSurvey WHERE id = ? FOR UPDATE`,
         surveyId,
-        programId: input.programId,
-      },
-    });
-    if (existing) {
-      throw new ApiError("LINK_ALREADY_EXISTS", "Survey sudah terlink ke program ini.", 409);
-    }
-
-    return prisma.surveyProgramLink.create({
-      data: {
-        surveyId,
-        programId: input.programId,
-        linkedById: input.linkedById,
-        relationType: input.relationType ?? "LINKED",
-        linkedAt: new Date(),
-      },
-      include: {
-        program: true,
-        linkedBy: { select: { id: true, nama: true, role: true } },
-      },
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+      }
+      const program = await tx.program.findFirst({
+        where: { id: input.programId, deletedAt: null },
+      });
+      if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      const existing = await tx.surveyProgramLink.findFirst({
+        where: { surveyId, programId: input.programId },
+      });
+      if (existing) {
+        throw new ApiError("LINK_ALREADY_EXISTS", "Survey sudah terlink ke program ini.", 409);
+      }
+      return tx.surveyProgramLink.create({
+        data: {
+          surveyId,
+          programId: input.programId,
+          linkedById: input.linkedById,
+          relationType: input.relationType ?? "LINKED",
+          linkedAt: new Date(),
+        },
+        include: {
+          program: true,
+          linkedBy: { select: { id: true, nama: true, role: true } },
+        },
+      });
     });
   },
 

@@ -5,8 +5,6 @@ export type ApiErrorPayload = {
   requestId?: string;
 };
 
-import { getIdempotencyStore } from "@/lib/idempotency-store";
-
 export type ApiResponse<T> = {
   data: T;
 };
@@ -251,18 +249,9 @@ export class ApiClient {
     validateQuery(query);
     const method = (init.method ?? "GET").toUpperCase();
 
-    // Jika ada kunci idempotensi dan respons sudah tersimpan, kembalikan langsung
-    // tanpa memanggul backend lagi (mencegah duplikasi dari double-submit/retry).
-    // Kunci mencakup method + path agar kunci yang sama tidak bentrok lintas endpoint.
-    if (idempotencyKey) {
-      const cacheKey = `${method}|${path}|${idempotencyKey}`;
-      const store = getIdempotencyStore();
-      const cached = await store.get(cacheKey);
-      if (cached) {
-        return cached.body as T;
-      }
-    }
-
+    // Deduplikasi request baca yang identik masih berjalan selama request
+    // pertama belum selesai. Idempotensi mutasi ditangani sepenuhnya di server
+    // agar hasilnya konsisten lintas tab maupun instance.
     if (method === "GET" || method === "HEAD") {
       const url = createUrl(this.baseUrl, path, query);
       const key = this.requestKey(method, url);
@@ -293,18 +282,6 @@ export class ApiClient {
         message: `Request gagal dengan status ${result.response.status}.`,
       };
       throw new ApiClientError(result.response.status, error);
-    }
-
-    // Simpan ke cache idempotensi untuk request mutasi HANYA jika sukses (2xx).
-    // Jangan cache error agar client dapat retry dengan aman.
-    if (
-      idempotencyKey &&
-      (method === "POST" || method === "PATCH" || method === "DELETE" || method === "PUT") &&
-      result.response.ok
-    ) {
-      const cacheKey = `${method}|${path}|${idempotencyKey}`;
-      const store = getIdempotencyStore();
-      await store.set(cacheKey, { status: result.response.status, body: result.payload }, 24 * 60 * 60 * 1000);
     }
 
     if (method === "GET" || method === "HEAD") {

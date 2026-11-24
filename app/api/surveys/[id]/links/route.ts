@@ -5,7 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { surveyProgramLinkService } from "@/modules/surveys/survey-program-link.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
-import { parsePositiveId } from "@/lib/http/request";
+import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -22,14 +22,16 @@ export async function POST(request: NextRequest, context: Context) {
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR");
       const surveyId = (await context.params).id;
-      const body = await request.json();
+      const body = await parseRequestBody(request) as Record<string, unknown>;
       const { programId, relationType } = body;
 
       const programIdNum = parsePositiveId(String(programId), "programId");
+      const relationTypeValue =
+        typeof relationType === "string" ? relationType : undefined;
 
       const result = await surveyProgramLinkService.create(
         surveyId,
-        { programId: programIdNum, relationType },
+        { programId: programIdNum, relationType: relationTypeValue },
         user as AuthenticatedUser,
       );
       return successResponse(result, 201);

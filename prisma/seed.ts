@@ -6,6 +6,9 @@ import { UserRole } from "@/generated/prisma/client";
 const password = process.env.SEED_LOGIN_PASSWORD ?? "Password123!";
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed demo tidak diizinkan dijalankan saat NODE_ENV=production.");
+  }
   const passwordHash = await hashPassword(password);
 
   const [admin, operator, pimpinan] = await Promise.all([

@@ -209,6 +209,42 @@ export const programService = {
         throw new ApiError("FORBIDDEN", "Operator tidak dapat mengubah field: " + forbidden.join(", "), 403);
       }
     }
+
+    const existing = await programRepository.findById(id);
+    if (!existing) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+
+    const nextTarget =
+      input.target !== undefined ? Number(input.target) : Number(existing.target ?? 0);
+    const currentRealisasi = Number(existing.realisasi ?? existing.realisasiVolume ?? 0);
+    if (nextTarget > 0 && currentRealisasi > nextTarget) {
+      throw new ApiError(
+        "TARGET_BELOW_REALISASI",
+        `Target (${nextTarget}) tidak boleh lebih kecil dari realisasi (${currentRealisasi}).`,
+        400,
+      );
+    }
+    if (input.targetVolume !== undefined) {
+      const nextTargetVolume = Number(input.targetVolume ?? 0);
+      if (nextTargetVolume > 0 && currentRealisasi > nextTargetVolume) {
+        throw new ApiError(
+          "TARGET_BELOW_REALISASI",
+          `Target volume (${nextTargetVolume}) tidak boleh lebih kecil dari realisasi (${currentRealisasi}).`,
+          400,
+        );
+      }
+    }
+
+    const nextPagu =
+      input.pagu !== undefined ? Number(input.pagu) : Number(existing.pagu ?? 0);
+    const currentPenggunaan = Number(existing.penggunaan ?? existing.penggunaanBiaya ?? 0);
+    if (nextPagu < currentPenggunaan) {
+      throw new ApiError(
+        "PAGU_BELOW_USAGE",
+        `Pagu (${nextPagu}) tidak boleh lebih kecil dari penggunaan biaya (${currentPenggunaan}).`,
+        400,
+      );
+    }
+
     const result = await programRepository.update(id, input);
     await prisma.auditLog.create({
       data: {

@@ -213,7 +213,7 @@ SIPANTAU
 ├── Laporan
 │   ├── Ringkasan agregat
 │   ├── Filter tahun
-│   └── Ekspor Excel / Word / PDF
+│   └── Ekspor Excel / PDF
 │
 ├── Pengguna
 │   ├── CRUD pengguna
@@ -837,12 +837,11 @@ Halaman laporan menampilkan rekap dalam tabel dan ringkasan angka.
 
 ### 16.3 Ekspor
 
-Tiga format, dihasilkan di sisi klien dari data yang sudah ditampilkan:
+Dua format, dihasilkan di sisi klien dari data yang sudah ditampilkan:
 
 | Format | Library | Kegunaan |
 | --- | --- | --- |
 | Excel `.xlsx` | ExcelJS | Rekap untuk diolah lanjut |
-| Word `.docx` | docx | Dokumen laporan resmi |
 | PDF `.pdf` | jsPDF + AutoTable | Cetak/arsip siap tanda tangan |
 
 Header dokumen memuat instansi, tahun anggaran, waktu cetak, dan nama petugas.
@@ -1183,9 +1182,8 @@ seperti `SURVEY_NOT_VERIFIED`, `PAGU_TERLAMPAUI`, `PROGRAM_NOT_FOUND`.
 | Storage | Cloudflare R2 / S3-compatible | Presigned PUT/GET |
 | AWS SDK | `@aws-sdk/client-s3`, `s3-request-presigner` | Untuk presign |
 | Excel | ExcelJS | Ekspor `.xlsx` |
-| Word | docx | Ekspor `.docx` |
 | PDF | jsPDF + jspdf-autotable | Ekspor `.pdf` |
-| Testing | Vitest | 46 test, 12 file |
+| Testing | Vitest | 55 test, 13 file |
 | Lint | ESLint 9 + `eslint-config-next` | 0 error |
 | Dokumentasi API | OpenAPI 3 + Swagger UI | `/api/openapi`, `/api/docs` |
 
@@ -1555,8 +1553,8 @@ R2_PUBLIC_URL=...
 ```
 
 > Runtime aplikasi (`lib/prisma.ts`) dan Prisma CLI (`prisma7.config.ts`)
-> membaca konfigurasi dari kunci yang berbeda. Pastikan keduanya menunjuk
-> database yang sama.
+> memakai satu konfigurasi database: `DATABASE_HOST`, `DATABASE_PORT`,
+> `DATABASE_USER`, `DATABASE_PASSWORD`, dan `DATABASE_NAME`.
 
 ### 28.3 Langkah menjalankan
 
@@ -1581,7 +1579,7 @@ pimpinan@kp.local  → Pimpinan
 ```bash
 npm run build            # build produksi
 npm start                # jalankan hasil build
-npm test                 # 46 unit test (Vitest)
+npm test                 # 55 unit test (Vitest)
 npm run lint             # ESLint
 npx tsc --noEmit         # type check
 npm run openapi:generate # regenerate tipe dari OpenAPI
@@ -1615,7 +1613,7 @@ menyesatkan saat pengembangan lanjutan.
 - Klaim program atomik.
 - Soft delete di user, survey, program.
 - Pagination konsisten dengan batas maksimum.
-- Build sehat: `tsc` exit 0, 46 test lulus, lint 0 error.
+- Build sehat: `tsc` exit 0, 55 test lulus, lint 0 error.
 
 ### 29.2 Titik yang perlu perhatian sebelum produksi
 

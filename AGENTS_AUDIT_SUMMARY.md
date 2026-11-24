@@ -34,7 +34,7 @@ Based on a read-only audit of /home/dika/kp/kp (Next.js 16 + Prisma 7 + MariaDB)
 
 ## Idempotency Improvements
 
-- **Shared store abstraction** (`lib/idempotency-store.ts`): MemoryIdempotencyStore default, bisa diganti dengan Redis untuk production multi-instance
+- **Bounded in-memory idempotency** (`lib/idempotency-store.ts`): tanpa layanan eksternal; dibatasi untuk satu instance, dengan respons kapasitas penuh yang fail-closed
 - **Hanya cache response 2xx**: Error response (4xx/5xx) tidak di-cache agar client bisa retry dengan aman
 - **Timeout handling**: Route handler tetap mengembalikan 504 saat timeout (handler tetap berjalan di background, batasan Next.js App Router)
 
@@ -50,7 +50,7 @@ Based on a read-only audit of /home/dika/kp/kp (Next.js 16 + Prisma 7 + MariaDB)
 
 ## Remaining Enhancements (P2 - Optional)
 
-- Redis-backed idempotency store untuk production multi-instance
+- Shared idempotency dan rate-limit store bila deployment multi-instance dibutuhkan
 - Test integrasi DB untuk claim, progress, cost, survey convert, auth
 - Pecah SurveyView/AdminSurveyView/DashboardView yang monolitik
 - Guard cleanup-db.ts (tolak NODE_ENV=production)

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
-import { parsePositiveId } from "@/lib/http/request";
+import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
 import { ApiError } from "@/lib/http/api-error";
 
@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       const { id, assignmentId } = await context.params;
       const user = await requireUser();
       const assignmentIdNum = parsePositiveId(assignmentId);
-      const body = await request.json();
+      const body = await parseRequestBody(request) as Record<string, unknown>;
       const { action } = body;
 
       if (user.role === "OPERATOR") {

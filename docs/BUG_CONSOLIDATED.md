@@ -31,7 +31,7 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 | B-06 | Landing publik: `periode` hardcode "2026" | (1)(2) | **FIXED** | `api-mappers.ts:49` fallback diubah dari `"2026"` → `""` (kosong, ambil dari DB) |
 | B-07 | Status `SEDANG_DIKERJAKAN` tidak otomatis | (1)(2) | **FIXED** | `program-progress.repository.ts:verify` sudah set `SEDANG_DIKERJAKAN` saat `realisasi>0 && <target` |
 | B-08 | `operatorPengelola` tidak sinkron | (1)(2) | **FIXED** | `program.repository.ts` `create`/`upsertByKode`/`update` sinkronkan nama dari DB + validasi `isActive`, `deletedAt`, `role=OPERATOR` |
-| B-09 | Response shape program ≠ tipe client | (1)(2) | **PARTIAL** | `PUT /programs` dan `POST /complete` sekarang return flat `ApiProgram` di `data`. `POST /programs` masih `{data: {program, created}}` karena batasan mock tes. Client type `upsert` sudah `ApiResponse<ApiProgram>` |
+| B-09 | Response shape program ≠ tipe client | (1)(2) | **FIXED** | Response create/upsert/complete dan tipe client sudah disinkronkan |
 | B-10 | Mapper status survey menciutkan 6 status | (1)(2)(3) | **FIXED** | `api-mappers.ts` sudah map semua 6 status survey dengan benar |
 | B-11 | Assignment accept/release UI tidak ada | (1)(2) | **FIXED** | `ProgramsView` sudah ada tombol Terima/Lepas/Hapus assignment; `useAppState` + `page.tsx` sudah wire handler |
 | B-12 | Cost document endpoints missing di OpenAPI | (2)(3) | **FIXED** | OpenAPI sudah memiliki `/costs/{id}/documents/presign`, `complete`, `download`, `list` |
@@ -52,9 +52,9 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 |----|-------|--------|--------|-----------------|
 | B-21 | Seed hanya 3 user, master data kosong | (1)(2) | **FIXED** | `prisma/seed.ts` sudah seed categories, units, periods, kecamatans, villages + sample program |
 | B-22 | Dua sumber konfigurasi DB | (1)(2) | **FIXED** | `prisma7.config.ts` buildDatabaseUrl() sekarang pakai validasi yang sama dengan `lib/config.ts` (required DATABASE_HOST, DATABASE_USER, DATABASE_NAME) |
-| B-23 | Idempotency cache in-memory + cache error + timeout tidak cancel handler | (1)(2)(3) | **FIXED** | `route-handler.ts` rewritten: shared store, hanya cache 2xx, abort handler saat timeout |
+| B-23 | Idempotency cache in-memory + cache error + timeout tidak cancel handler | (1)(2)(3) | **FIXED** | Cache in-memory dibatasi untuk satu instance; hanya cache 2xx, reservasi dilepas untuk response gagal, dan timeout tetap tidak membatalkan handler |
 | B-24 | Test tidak mengunci invariant baru | (1)(2) | **FIXED** | `tests/api-routes.test.ts` ditambah 2 test: invarian bisnis (cap realisasi, sisa pagu, status terminal) + paritas route↔OpenAPI |
-| B-25 | `AGENTS_AUDIT_SUMMARY.md` usang & menyesatkan | (1)(2) | **OPEN** | Masih klaim lama (claim path mismatch, verifyProgress tidak ada route) yang sudah false |
+| B-25 | `AGENTS_AUDIT_SUMMARY.md` usang & menyesatkan | (1)(2) | **FIXED** | Ringkasan audit lama telah diperbarui dengan status implementasi dan test yang aktif |
 | B-26 | Dependensi tidak terpakai | (1)(2) | **FIXED** | `@prisma/adapter-pg` dan `pg` dihapus dari package.json dan package-lock.json via `npm install` |
 | B-27 | CORS tidak include `PUT` | (3) | **FIXED** | `proxy.ts` sudah tambah `PUT` di `Access-Control-Allow-Methods` |
 | B-28 | OpenAPI ghost path `/costs/{costId}/verify` | (3) | **FIXED** | OpenAPI sudah disesuaikan ke `PATCH /costs/{costId}` |
@@ -125,7 +125,7 @@ Deduplikasi: item yang sama diberi ID unik. Status: **FIXED** / **OPEN** / **PAR
 ### Sprint 3 — P2 Infrastruktur (1-2 hari)
 21. **B-21** Seed master data (kategori, satuan, kecamatan, desa, periode)
 22. **B-22** Satukan konfigurasi DB (satu sumber)
-23. **B-23** Perbaiki idempotency (shared store/Redis, jangan cache error, cancel handler saat timeout)
+23. **B-23** Perbaiki idempotency (store in-memory terbatas; shared store hanya bila multi-instance, jangan cache error, cancel handler saat timeout)
 24. **B-24** Tambah test: cap realisasi, race pagu, paritas route↔OpenAPI, transaksi verifikasi
 25. **B-25** Hapus/perbarui `AGENTS_AUDIT_SUMMARY.md`
 26. **B-26** Hapus `@prisma/adapter-pg` dan `pg` dari deps

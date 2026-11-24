@@ -1,11 +1,9 @@
 import { NextRequest } from "next/server";
 import { handleRoute } from "@/lib/http/route-handler";
+import { parseRequestBody } from "@/lib/http/request";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
-import { prisma } from "@/lib/prisma";
-import { surveyRepository } from "@/modules/surveys/survey.repository";
 import { surveyReviewRepository, surveyStatusHistoryRepository } from "@/modules/surveys/survey-review.repository";
-import { publicUserSelect } from "@/modules/auth/auth.repository";
 import { ApiError } from "@/lib/http/api-error";
 
 type Context = { params: Promise<{ id: string }> };
@@ -23,70 +21,22 @@ export async function GET(_request: NextRequest, context: Context) {
 export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
-      // Hanya Admin yang dapat memberikan keputusan review survey.
       const user = await requireRole("ADMIN");
       const { id } = await context.params;
-      const body = await request.json();
+      const body = await parseRequestBody(request) as Record<string, unknown>;
       const { decision, notes } = body;
-
-      if (!decision || !["DITOLAK", "PERLU_REVISI", "DISETUJUI"].includes(decision)) {
+      if (
+        typeof decision !== "string" ||
+        !["DITOLAK", "PERLU_REVISI", "DISETUJUI"].includes(decision)
+      ) {
         throw new ApiError("VALIDATION_ERROR", "Decision harus 'DITOLAK', 'PERLU_REVISI', atau 'DISETUJUI'.", 400);
       }
-
-      const survey = await surveyRepository.findById(id);
-      if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
-      if (["DIVERIFIKASI", "DIKONVERSI"].includes(survey.status)) {
-        throw new ApiError("SURVEY_LOCKED", "Survey yang telah diverifikasi tidak dapat ditinjau ulang.", 409);
-      }
-      // Survey harus sudah dalam status MENUNGGU_VERIFIKASI sebelum direview.
-      if (survey.status !== "MENUNGGU_VERIFIKASI") {
-        throw new ApiError(
-          "SURVEY_NOT_READY_FOR_REVIEW",
-          "Survey belum dalam status menunggu verifikasi. Tidak dapat direview.",
-          409,
-        );
-      }
-
-      return successResponse(
-        await prisma.$transaction(async (tx) => {
-          const targetStatus =
-            decision === "DISETUJUI" ? "DIVERIFIKASI" : decision === "PERLU_REVISI" ? "PERLU_REVISI" : "DRAFT";
-
-          const updated = await tx.fieldSurvey.update({
-            where: { id },
-            data: {
-              status: targetStatus,
-              ...(decision === "DISETUJUI"
-                ? { verifiedById: user.id, verifiedAt: new Date() }
-                : decision === "DITOLAK"
-                ? { verifiedById: null, verifiedAt: null }
-                : {}),
-            },
-            include: { program: true, surveyorUser: { select: publicUserSelect } },
-          });
-
-          await tx.surveyReview.create({
-            data: {
-              surveyId: id,
-              reviewerId: user.id,
-              decision,
-              notes: notes ?? null,
-            },
-          });
-
-          await tx.surveyStatusHistory.create({
-            data: {
-              surveyId: id,
-              fromStatus: survey.status,
-              toStatus: targetStatus,
-              changedById: user.id,
-              reason: notes ?? null,
-            },
-          });
-
-          return updated;
-        }),
-      );
+      return successResponse(await surveyReviewRepository.review(
+        id,
+        decision as "DITOLAK" | "PERLU_REVISI" | "DISETUJUI",
+        notes,
+        user.id,
+      ));
     },
     undefined,
     { idempotencyScope: { method: "POST", path: "/api/surveys/[id]/reviews" } },

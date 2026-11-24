@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { handleRoute } from "@/lib/http/route-handler";
 import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
-import { parsePositiveId } from "@/lib/http/request";
+import { parsePositiveId, parseRequestBody } from "@/lib/http/request";
 import { programAssignmentService } from "@/modules/programs/program-assignment.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
@@ -22,16 +22,17 @@ export async function POST(request: NextRequest, context: Context) {
     async () => {
       const user = await requireRole("ADMIN");
       const programId = parsePositiveId((await context.params).id);
-      const body = await request.json();
-      const { operatorId, notes } = body;
+      const body = await parseRequestBody(request) as Record<string, unknown>;
+      const { operatorId } = body;
 
       if (!operatorId || typeof operatorId !== "number") {
         throw new ApiError("VALIDATION_ERROR", "operatorId wajib diisi.", 400);
       }
 
+      const notesValue = typeof body.notes === "string" ? body.notes : undefined;
       const result = await programAssignmentService.create(
         programId,
-        { operatorId, notes },
+        { operatorId, notes: notesValue },
         user as AuthenticatedUser,
       );
       return successResponse(result, 201);

@@ -100,14 +100,34 @@ export const surveyService = {
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
     }
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.fieldSurvey.update({
-        where: { id },
+      const locked = await tx.$queryRawUnsafe<Array<{ id: string; status: string }>>(
+        `SELECT id, status FROM FieldSurvey WHERE id = ? FOR UPDATE`,
+        id,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+      }
+      if (!["SELESAI_SURVEY", "MENUNGGU_VERIFIKASI", "PERLU_REVISI"].includes(locked[0].status)) {
+        throw new ApiError("SURVEY_NOT_READY_FOR_REVIEW", "Survey belum siap untuk diverifikasi.", 409);
+      }
+      const transition = await tx.fieldSurvey.updateMany({
+        where: {
+          id,
+          status: { in: ["SELESAI_SURVEY", "MENUNGGU_VERIFIKASI", "PERLU_REVISI"] },
+          deletedAt: null,
+        },
         data: {
           status: "DIVERIFIKASI",
           ...(programId !== undefined && programId !== null ? { programId } : {}),
           verifiedById: reviewerId,
           verifiedAt: new Date(),
         },
+      });
+      if (transition.count !== 1) {
+        throw new ApiError("SURVEY_ALREADY_VERIFIED", "Survey telah diproses verifikasi sebelumnya.", 409);
+      }
+      const updated = await tx.fieldSurvey.findUniqueOrThrow({
+        where: { id },
         include: { program: true, surveyorUser: { select: publicUserSelect } },
       });
       await tx.surveyReview.create({
@@ -149,12 +169,23 @@ export const surveyService = {
     operatorPengelolaId?: number | null;
   }, createdById?: number) {
     return prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRawUnsafe<Array<{
+        id: string;
+        status: string;
+        programId: number | null;
+      }>>(
+        `SELECT id, status, programId FROM FieldSurvey WHERE id = ? FOR UPDATE`,
+        id,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
+      }
       const survey = await tx.fieldSurvey.findFirst({ where: { id, deletedAt: null } });
       if (!survey) throw new ApiError("SURVEY_NOT_FOUND", "Survey tidak ditemukan.", 404);
-      if (survey.programId) {
+      if (locked[0].programId || survey.programId) {
         throw new ApiError("SURVEY_ALREADY_CONVERTED", "Survey sudah menjadi program.", 409);
       }
-      if (survey.status !== "DIVERIFIKASI") {
+      if (locked[0].status !== "DIVERIFIKASI" || survey.status !== "DIVERIFIKASI") {
         throw new ApiError("SURVEY_NOT_VERIFIED", "Survey harus diverifikasi sebelum dikonversi.", 409);
       }
       // Gunakan operatorPengelolaId dari input jika disediakan, fallback ke survey.surveyorId

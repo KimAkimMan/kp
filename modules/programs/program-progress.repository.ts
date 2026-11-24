@@ -41,6 +41,21 @@ export const programProgressRepository = {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Serialisasi verifikasi per program: transaksi lain untuk program yang sama
+      // menunggu lock ini sebelum mengubah progres atau menghitung realisasi.
+      const locked = await tx.$queryRawUnsafe<Array<{
+        id: number;
+        target: unknown;
+        status: string;
+        pagu: unknown;
+      }>>(
+        `SELECT id, target, status, pagu FROM Program WHERE id = ? FOR UPDATE`,
+        progress.programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
+
       // Transisi status atomik: hanya baris berstatus DIAJUKAN yang bisa diubah.
       // Dua admin yang memverifikasi bersamaan: hanya satu yang berhasil (count=1),
       // yang lain mendapat count=0 → PROGRESS_ALREADY_VERIFIED (409).
@@ -71,12 +86,7 @@ export const programProgressRepository = {
 
       if (!updated) throw new ApiError("PROGRESS_NOT_FOUND", "Progres tidak ditemukan.", 404);
 
-      // Ambil data program untuk validasi target, status, dan pagu.
-      const prog = await tx.program.findFirst({
-        where: { id: progress.programId },
-        select: { id: true, target: true, status: true, pagu: true },
-      });
-      if (!prog) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      const prog = locked[0];
 
       await tx.auditLog.create({
         data: {

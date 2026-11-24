@@ -17,7 +17,11 @@ export type UserListFilters = {
 export const userRepository = {
   async findMany(filters: UserListFilters = {}) {
     const where: Record<string, unknown> = { deletedAt: null };
-    if (filters.role !== undefined) where.role = filters.role;
+    if (filters.role !== undefined) {
+      where.role =
+        filters.role === "Admin" ? "ADMIN" :
+        filters.role === "Operator" ? "OPERATOR" : "PIMPINAN";
+    }
     if (filters.search !== undefined) {
       const search = filters.search;
       where.AND = [

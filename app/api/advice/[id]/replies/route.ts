@@ -5,6 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { adviceReplyService } from "@/modules/advice/advice-reply.service";
 import type { AuthenticatedUser } from "@/modules/auth/auth.types";
 import { ApiError } from "@/lib/http/api-error";
+import { parseRequestBody } from "@/lib/http/request";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest, context: Context) {
     async () => {
       const user = await requireRole("ADMIN", "OPERATOR", "PIMPINAN");
       const adviceId = (await context.params).id;
-      const body = await request.json();
+      const body = await parseRequestBody(request) as Record<string, unknown>;
       const { isi } = body;
 
       if (!isi || typeof isi !== "string" || isi.trim().length === 0) {

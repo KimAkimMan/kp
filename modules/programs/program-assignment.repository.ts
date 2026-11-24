@@ -17,6 +17,13 @@ export type ProgramAssignmentUpdateInput = {
 };
 
 export const programAssignmentRepository = {
+  async findProgramOwner(programId: number) {
+    return prisma.program.findFirst({
+      where: { id: programId, deletedAt: null },
+      select: { id: true, operatorPengelolaId: true },
+    });
+  },
+
   async list(programId: number) {
     return prisma.programAssignment.findMany({
       where: { programId },
@@ -160,12 +167,18 @@ export const programAssignmentRepository = {
       );
     }
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.programAssignment.update({
-        where: { id: assignmentId },
+      const transition = await tx.programAssignment.updateMany({
+        where: { id: assignmentId, operatorId, status: ProgramAssignmentStatus.DITUGASKAN },
         data: {
           status: ProgramAssignmentStatus.DITERIMA,
           acceptedAt: new Date(),
         },
+      });
+      if (transition.count !== 1) {
+        throw new ApiError("INVALID_ASSIGNMENT_STATUS", "Assignment sudah diproses sebelumnya.", 409);
+      }
+      const updated = await tx.programAssignment.findUniqueOrThrow({
+        where: { id: assignmentId },
         include: {
           operator: { select: publicUserSelect },
           assignedBy: { select: publicUserSelect },
@@ -195,12 +208,24 @@ export const programAssignmentRepository = {
       throw new ApiError("FORBIDDEN", "Anda bukan operator yang ditugaskan.", 403);
     }
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.programAssignment.update({
-        where: { id: assignmentId },
+      if (assignment.status === ProgramAssignmentStatus.DILEPAS) {
+        throw new ApiError("INVALID_ASSIGNMENT_STATUS", "Assignment sudah dilepas sebelumnya.", 409);
+      }
+      const transition = await tx.programAssignment.updateMany({
+        where: {
+          id: assignmentId,
+          status: { not: ProgramAssignmentStatus.DILEPAS },
+        },
         data: {
           status: ProgramAssignmentStatus.DILEPAS,
           releasedAt: new Date(),
         },
+      });
+      if (transition.count !== 1) {
+        throw new ApiError("INVALID_ASSIGNMENT_STATUS", "Assignment sudah diproses sebelumnya.", 409);
+      }
+      const updated = await tx.programAssignment.findUniqueOrThrow({
+        where: { id: assignmentId },
         include: {
           operator: { select: publicUserSelect },
           assignedBy: { select: publicUserSelect },

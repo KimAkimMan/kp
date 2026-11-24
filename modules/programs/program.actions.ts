@@ -114,24 +114,62 @@ export const programActions = {
             },
           });
         } else {
-          progress = await tx.programProgress.create({
-            data: {
-              programId,
-              tanggal: date,
-              tahap: input.tahap,
-              volume: input.nilai,
-              satuan: input.satuan,
-              persentase:
-                Number(program.target) > 0
-                  ? Math.min(100, (input.nilai / Number(program.target)) * 100)
-                  : null,
-              keterangan: input.keterangan,
-              reportedById: userId,
-              status: "DIAJUKAN",
-              storageKey: input.storageKey ?? null,
-              originalName: input.originalName ?? null,
-            },
-          });
+          const storageKeys = input.storageKey.split(",").map((key) => key.trim()).filter(Boolean);
+          const draftProgress = storageKeys.length > 1
+            ? await tx.programProgress.findMany({
+                where: {
+                  programId,
+                  storageKey: { in: storageKeys },
+                  status: ProgressStatus.DRAFT,
+                },
+                orderBy: { createdAt: "asc" },
+              })
+            : [];
+          if (draftProgress.length > 0) {
+            progress = await tx.programProgress.update({
+              where: { id: draftProgress[0].id },
+              data: {
+                tanggal: date,
+                tahap: input.tahap,
+                volume: input.nilai,
+                satuan: input.satuan,
+                persentase:
+                  Number(program.target) > 0
+                    ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+                    : null,
+                keterangan: input.keterangan,
+                reportedById: userId,
+                status: "DIAJUKAN",
+                storageKey: input.storageKey,
+                originalName: input.originalName ?? draftProgress[0].originalName ?? null,
+              },
+            });
+            await tx.programProgress.deleteMany({
+              where: {
+                id: { in: draftProgress.slice(1).map((draft) => draft.id) },
+                status: ProgressStatus.DRAFT,
+              },
+            });
+          } else {
+            progress = await tx.programProgress.create({
+              data: {
+                programId,
+                tanggal: date,
+                tahap: input.tahap,
+                volume: input.nilai,
+                satuan: input.satuan,
+                persentase:
+                  Number(program.target) > 0
+                    ? Math.min(100, (input.nilai / Number(program.target)) * 100)
+                    : null,
+                keterangan: input.keterangan,
+                reportedById: userId,
+                status: "DIAJUKAN",
+                storageKey: input.storageKey,
+                originalName: input.originalName ?? null,
+              },
+            });
+          }
         }
       } else {
         progress = await tx.programProgress.create({
@@ -199,20 +237,35 @@ export const programActions = {
 
   async markComplete(programId: number, userId: number, userName: string, foto = false) {
     return prisma.$transaction(async (tx) => {
-      const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
+      const locked = await tx.$queryRawUnsafe<Array<{
+        id: number;
+        pagu: unknown;
+        target: unknown;
+        realisasi: unknown;
+        status: string;
+      }>>(
+        `SELECT id, pagu, target, realisasi, status FROM Program WHERE id = ? FOR UPDATE`,
+        programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
+      const program = await tx.program.findFirst({
+        where: { id: programId, deletedAt: null },
+      });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+      if (String(locked[0].status) === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program sudah selesai.", 409);
       }
       // Operator wajib telah menetapkan pagu bersama CV sebelum program selesai.
-      if (Number(program.pagu ?? 0) <= 0) {
+      if (Number(locked[0].pagu ?? 0) <= 0) {
         throw new ApiError(
           "PAGU_BELUM_DITETAPKAN",
           "Pagu anggaran belum ditetapkan oleh operator bersama CV. Program tidak dapat diselesaikan sebelum pagu ditetapkan.",
           409,
         );
       }
-      if (Number(program.target) > 0 && Number(program.realisasi) < Number(program.target)) {
+      if (Number(locked[0].target) > 0 && Number(locked[0].realisasi) < Number(locked[0].target)) {
         throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
       }
       const date = new Date();
@@ -221,7 +274,7 @@ export const programActions = {
           programId,
           tanggal: date,
           tahap: "Penyelesaian kegiatan",
-          nilai: program.realisasi,
+          nilai: Number(locked[0].realisasi),
           satuan: program.satuan,
           keterangan: "Kegiatan ditandai selesai. Pagu anggaran terpakai penuh.",
           foto,

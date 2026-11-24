@@ -45,6 +45,7 @@ export async function handleRoute(
       ? timeoutMs
       : DEFAULT_ROUTE_TIMEOUT_MS;
   let requestId: string = randomUUID();
+  let reservedIdempotencyKey: string | null = null;
   try {
     requestId = (await headers()).get("x-request-id") ?? requestId;
   } catch {
@@ -59,7 +60,6 @@ export async function handleRoute(
   }
 
   // Bersihkan entri kadaluarsa sebelum pemeriksaan.
-  const now = Date.now();
   await getIdempotencyStore().cleanup();
 
   const idempotencyKey = await getIdempotencyKey();
@@ -73,9 +73,23 @@ export async function handleRoute(
     idempotencyScope &&
     MUTATION_METHODS.has(idempotencyScope.method.toUpperCase())
   ) {
-    const cached = await getIdempotencyStore().get(
-      cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined),
-    );
+    const key = cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined);
+    const cached = await getIdempotencyStore().get(key);
+    if (cached?.status === 102) {
+      return new Response(JSON.stringify({
+        error: {
+          code: "IDEMPOTENCY_IN_PROGRESS",
+          message: "Permintaan dengan kunci idempotensi ini sedang diproses.",
+        },
+      }), {
+        status: 409,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": requestId,
+          "x-idempotent": "in-progress",
+        },
+      });
+    }
     if (cached) {
       return new Response(JSON.stringify(cached.body), {
         status: cached.status,
@@ -86,6 +100,38 @@ export async function handleRoute(
         },
       });
     }
+    const reservation = await getIdempotencyStore().reserve(key, IDEMPOTENCY_TTL_MS);
+    if (reservation === "capacity_exceeded") {
+      return new Response(JSON.stringify({
+        error: {
+          code: "IDEMPOTENCY_CAPACITY",
+          message: "Penyimpanan idempotensi sedang penuh. Coba kembali beberapa saat lagi.",
+        },
+      }), {
+        status: 503,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": "60",
+          "x-request-id": requestId,
+        },
+      });
+    }
+    if (reservation === "already_exists") {
+      return new Response(JSON.stringify({
+        error: {
+          code: "IDEMPOTENCY_IN_PROGRESS",
+          message: "Permintaan dengan kunci idempotensi ini sedang diproses.",
+        },
+      }), {
+        status: 409,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": requestId,
+          "x-idempotent": "in-progress",
+        },
+      });
+    }
+    reservedIdempotencyKey = key;
   }
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -120,20 +166,34 @@ export async function handleRoute(
       response.status >= 200 &&
       response.status < 300
     ) {
+      const key = cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined);
+      let body: unknown;
       try {
-        const body = await response.clone().json();
-        await getIdempotencyStore().set(
-          cacheKey(idempotencyScope, idempotencyKey, sessionToken ?? undefined),
-          { status: response.status, body },
-          IDEMPOTENCY_TTL_MS,
-        );
+        body = await response.clone().json();
       } catch {
-        // Jika body tidak dapat di-parse, abaikan caching.
+        await getIdempotencyStore().del(key);
+        reservedIdempotencyKey = null;
+        return response;
       }
+      await getIdempotencyStore().set(
+        key,
+        { status: response.status, body },
+        IDEMPOTENCY_TTL_MS,
+      );
+      reservedIdempotencyKey = null;
+    } else if (reservedIdempotencyKey) {
+      await getIdempotencyStore().del(reservedIdempotencyKey);
+      reservedIdempotencyKey = null;
     }
 
     return response;
   } catch (error) {
+    if (
+      reservedIdempotencyKey &&
+      !(error instanceof ApiError && error.code === "GATEWAY_TIMEOUT")
+    ) {
+      await getIdempotencyStore().del(reservedIdempotencyKey);
+    }
     return errorResponse(error, requestId);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);

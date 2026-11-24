@@ -18,7 +18,7 @@ function buildDatabaseUrl(): string {
   const user = required("DATABASE_USER");
   const password = process.env.DATABASE_PASSWORD ?? "";
   const database = required("DATABASE_NAME");
-  return `mysql://${user}:${password}@${host}:${port}/${database}`;
+  return `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
 }
 
 export default defineConfig({
@@ -28,6 +28,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? buildDatabaseUrl(),
+    url: buildDatabaseUrl(),
   },
 });

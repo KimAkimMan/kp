@@ -88,6 +88,7 @@ export const programCostService = {
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat dokumen biaya.", 403);
     }
+    await this.assertCanManage(costId, user);
     const document = await programCostRepository.findDocumentById(documentId);
     if (document.costId !== costId) {
       throw new ApiError("DOCUMENT_NOT_FOUND", "Dokumen tidak terkait dengan biaya ini.", 404);
@@ -97,6 +98,12 @@ export const programCostService = {
 
   async deleteDocument(documentId: string, user: AuthenticatedUser) {
     const document = await programCostRepository.findDocumentById(documentId);
+    if (user.role === "OPERATOR") {
+      const cost = await programCostRepository.findById(document.costId);
+      if (cost.program.operatorPengelolaId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat menghapus dokumen biaya program operator lain.", 403);
+      }
+    }
     if (user.role !== "ADMIN" && document.uploadedById !== user.id) {
       throw new ApiError("FORBIDDEN", "Hanya pemilik dokumen yang dapat menghapus.", 403);
     }

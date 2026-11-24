@@ -5,9 +5,14 @@ import { ApiError } from "@/lib/http/api-error";
 
 export const programAssignmentService = {
   async list(programId: number, user: AuthenticatedUser) {
-    // Hanya Admin dan Operator yang dapat melihat assignment
     if (user.role !== "ADMIN" && user.role !== "OPERATOR") {
       throw new ApiError("FORBIDDEN", "Hanya Admin dan Operator yang dapat melihat assignment.", 403);
+    }
+    if (user.role === "OPERATOR") {
+      const program = await programAssignmentRepository.findProgramOwner(programId);
+      if (!program || program.operatorPengelolaId !== user.id) {
+        throw new ApiError("FORBIDDEN", "Anda tidak dapat melihat assignment program ini.", 403);
+      }
     }
     return programAssignmentRepository.list(programId);
   },

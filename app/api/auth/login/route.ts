@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     async () => {
       const input = parseJsonObject(await parseRequestBody(request));
       const email = emailString(input);
-      const limit = loginRateLimiter.check(request, email);
+      const limit = await loginRateLimiter.check(request, email);
       if (!limit.allowed) {
         throw new ApiError(
           "RATE_LIMITED",
@@ -31,11 +31,11 @@ export async function POST(request: NextRequest) {
         });
       } catch (error) {
         if (error instanceof ApiError && error.code === "INVALID_CREDENTIALS") {
-          loginRateLimiter.recordFailure(request, email);
+          await loginRateLimiter.recordFailure(request, email);
         }
         throw error;
       }
-      loginRateLimiter.clear(request, email);
+      await loginRateLimiter.clear(request, email);
       (await cookies()).set(SESSION_COOKIE, result.accessToken, {
         httpOnly: true,
         sameSite: "lax",

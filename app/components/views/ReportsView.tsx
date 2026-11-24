@@ -17,7 +17,6 @@ import {
 import {
   downloadReportExcel,
   downloadReportPdf,
-  downloadReportWord,
 } from "../../utils/report-export";
 import { ActivityFilters } from "./ActivityFilters";
 import { ApiClientError, reportApi, type ReportSummary } from "@/lib/api";
@@ -55,7 +54,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState("");
   const [backendSummary, setBackendSummary] = useState<ReportSummary | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<"xlsx" | "docx" | "pdf">("xlsx");
+  const [exportFormat, setExportFormat] = useState<"xlsx" | "pdf">("xlsx");
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -112,8 +111,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
       if (exportFormat === "xlsx") {
         await downloadReportExcel(options);
-      } else if (exportFormat === "docx") {
-        await downloadReportWord(options);
       } else {
         downloadReportPdf(options);
       }
@@ -153,14 +150,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             value={exportFormat}
             onChange={(event) => {
               const value = event.target.value;
-              if (value === "xlsx" || value === "docx" || value === "pdf") {
+              if (value === "xlsx" || value === "pdf") {
                 setExportFormat(value);
               }
             }}
             className="px-3 py-2 rounded-xl text-xs font-semibold border border-[#CCD9E4] bg-white text-[#1E4E8C] focus:outline-none focus:ring-2 focus:ring-[#8FC5E7]"
           >
             <option value="xlsx">Excel (.xlsx)</option>
-            <option value="docx">Word (.docx)</option>
             <option value="pdf">PDF (.pdf)</option>
           </Select>
           <button

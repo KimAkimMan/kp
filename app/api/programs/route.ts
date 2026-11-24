@@ -9,6 +9,7 @@ import { handleRoute } from "@/lib/http/route-handler";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { parsePagination } from "@/lib/pagination";
 import { parseProgramListFilters } from "@/modules/programs/program.schema";
+import { parseRequestBody } from "@/lib/http/request";
 
 export async function GET(request: NextRequest) {
   return handleRoute(async () => {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
-      const input = parseCreateProgramInput(await request.json());
+      const input = parseCreateProgramInput(await parseRequestBody(request));
       return successResponse(await programService.create(input, user.id), 201);
     },
     undefined,
@@ -42,7 +43,7 @@ export async function PUT(request: NextRequest) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
-      const input = parseUpsertProgramInput(await request.json());
+      const input = parseUpsertProgramInput(await parseRequestBody(request));
       const { program, created } = await programService.upsert(input, user.id);
       return successResponse(program, created ? 201 : 200);
     },

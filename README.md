@@ -29,10 +29,22 @@ for API clients that need to store it outside the browser cookie.
 
 Required environment variables:
 
-- `DATABASE_URL`
+- `DATABASE_HOST`
+- `DATABASE_PORT` (default `3306`)
+- `DATABASE_USER`
+- `DATABASE_PASSWORD`
+- `DATABASE_NAME`
 - `JWT_SECRET` (minimum 32 characters; use a high-entropy production secret)
 - `APP_ORIGIN` (recommended for CSRF origin validation, for example
   `https://example.com`)
+
+Idempotency and login rate limiting use bounded in-memory stores; no Redis
+service or additional environment variables are required. Run the application
+as a single server instance: these protections are not shared across instances
+and their state is cleared when the process restarts. Login rate limiting
+blocks after five failures for one hour, keyed by client IP and email. If the
+application later scales to multiple instances, use a shared store before
+enabling that deployment model.
 
 The readiness endpoint requires all required environment variables and a
 reachable database:
