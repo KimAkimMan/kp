@@ -33,9 +33,18 @@ export const programActions = {
   async addProgress(programId: number, input: CreateProgressInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
     return prisma.$transaction(async (tx) => {
+      // Lock program row untuk mencegah race condition: dua request concurrent
+      // tidak boleh sama-sama lolos validasi PROGRESS_EXCEEDS_TARGET.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: number; target: unknown; status: string }>>(
+        `SELECT id, target, status FROM Program WHERE id = ? FOR UPDATE`,
+        programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
       const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+      if (String(locked[0].status) === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
       }
       // Validasi kumulatif: sum progress DIVERIFIKASI + nilai baru <= target
@@ -209,13 +218,21 @@ export const programActions = {
   async addCost(programId: number, input: CreateCostInput, userId: number, userName: string) {
     const date = parseDate(input.tanggal);
     return prisma.$transaction(async (tx) => {
+      // Lock program row untuk mencegah race condition pada cek pagu.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: number; pagu: unknown; penggunaan: unknown; status: string }>>(
+        `SELECT id, pagu, penggunaan, status FROM Program WHERE id = ? FOR UPDATE`,
+        programId,
+      );
+      if (!locked || locked.length === 0) {
+        throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
+      }
       const program = await tx.program.findFirst({ where: { id: programId, deletedAt: null } });
       if (!program) throw new ApiError("PROGRAM_NOT_FOUND", "Program tidak ditemukan.", 404);
-      if (program.status === ProgramStatus.SELESAI_DIKERJAKAN) {
+      if (String(locked[0].status) === ProgramStatus.SELESAI_DIKERJAKAN) {
         throw new ApiError("PROGRAM_COMPLETED", "Program yang sudah selesai tidak dapat diubah.", 409);
       }
-      const nextUsage = Number(program.penggunaan) + input.nominal;
-      if (Number(program.pagu) > 0 && nextUsage > Number(program.pagu)) {
+      const nextUsage = Number(locked[0].penggunaan ?? 0) + input.nominal;
+      if (Number(locked[0].pagu ?? 0) > 0 && nextUsage > Number(locked[0].pagu)) {
         throw new ApiError("COST_EXCEEDS_BUDGET", "Penggunaan biaya melebihi pagu program.", 400);
       }
       const cost = await tx.programCost.create({
