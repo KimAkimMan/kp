@@ -1556,6 +1556,10 @@ R2_PUBLIC_URL=...
 > memakai satu konfigurasi database: `DATABASE_HOST`, `DATABASE_PORT`,
 > `DATABASE_USER`, `DATABASE_PASSWORD`, dan `DATABASE_NAME`.
 
+> Jika `prisma migrate deploy` gagal karena schema drift atau index duplikat,
+> ikuti prosedur aman di `docs/permasalahan-database.md` (backup dulu, jangan
+> `migrate reset` atau `db push` pada database produksi).
+
 ### 28.3 Langkah menjalankan
 
 ```bash
