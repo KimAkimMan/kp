@@ -335,6 +335,12 @@ export const programRepository = {
 
   async update(id: number, input: UpdateProgramInput) {
     return prisma.$transaction(async (tx) => {
+      // Lock program row untuk mencegah race condition pada sinkronisasi assignment.
+      const locked = await tx.$queryRawUnsafe<Array<{ id: number; deletedAt: unknown }>>(
+        `SELECT id, deletedAt FROM Program WHERE id = ? FOR UPDATE`,
+        id,
+      );
+      if (!locked || locked.length === 0) return null;
       const existing = await tx.program.findFirst({
         where: { id, deletedAt: null },
         select: { operatorPengelolaId: true },
@@ -363,7 +369,7 @@ export const programRepository = {
       }
 
       const program = await tx.program.update({
-        where: { id },
+        where: { id, deletedAt: null },
         data: {
           ...input,
           ...(operatorPengelola !== undefined ? { operatorPengelola } : {}),

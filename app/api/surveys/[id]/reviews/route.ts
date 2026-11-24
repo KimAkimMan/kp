@@ -5,6 +5,7 @@ import { successResponse } from "@/lib/http/api-response";
 import { requireRole, requireUser } from "@/modules/auth/auth.context";
 import { surveyReviewRepository, surveyStatusHistoryRepository } from "@/modules/surveys/survey-review.repository";
 import { ApiError } from "@/lib/http/api-error";
+import { operationRateLimiter } from "@/modules/auth/rate-limit";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,10 @@ export async function POST(request: NextRequest, context: Context) {
   return handleRoute(
     async () => {
       const user = await requireRole("ADMIN");
+      const rateLimit = await operationRateLimiter.check(request, user.id);
+      if (!rateLimit.allowed) {
+        throw new ApiError("RATE_LIMITED", "Terlalu banyak request. Coba lagi nanti.", 429);
+      }
       const { id } = await context.params;
       const body = await parseRequestBody(request) as Record<string, unknown>;
       const { decision, notes } = body;
