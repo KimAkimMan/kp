@@ -271,36 +271,8 @@ export const programRepository = {
 
   async claim(id: number, operatorId: number, operatorName: string, assignedById: number) {
     return prisma.$transaction(async (tx) => {
-      const program = await tx.program.findFirst({
-        where: { id, deletedAt: null },
-      });
-      if (!program) return null;
-      if (program.operatorPengelolaId === operatorId) {
-        const existingAssignment = await tx.programAssignment.findFirst({
-          where: {
-            programId: id,
-            operatorId,
-            status: { in: ["DITUGASKAN", "DITERIMA"] },
-          },
-        });
-        if (!existingAssignment) {
-          await tx.programAssignment.create({
-            data: {
-              programId: id,
-              operatorId,
-              assignedById,
-              status: ProgramAssignmentStatus.DITERIMA,
-              acceptedAt: new Date(),
-            },
-          });
-        }
-        return tx.program.findUnique({
-          where: { id },
-          include: { operator: true, histories: true, progressEntries: true, costs: true, assignments: true },
-        });
-      }
-      if (program.operatorPengelolaId !== null) return false;
-
+      // Atomic claim: update only if unassigned (operatorPengelolaId = null)
+      // This is atomic at DB level - only one transaction can succeed
       const claimed = await tx.program.updateMany({
         where: { id, deletedAt: null, operatorPengelolaId: null },
         data: {
@@ -308,8 +280,42 @@ export const programRepository = {
           operatorPengelola: operatorName,
         },
       });
-      if (claimed.count !== 1) return false;
 
+      if (claimed.count === 0) {
+        // No rows updated - either not found, deleted, or already assigned
+        // Check which case for proper return value
+        const program = await tx.program.findFirst({ where: { id, deletedAt: null } });
+        if (!program) return null; // Not found or deleted
+        if (program.operatorPengelolaId === operatorId) {
+          // Already assigned to this operator - idempotent: ensure assignment exists
+          const existingAssignment = await tx.programAssignment.findFirst({
+            where: {
+              programId: id,
+              operatorId,
+              status: { in: ["DITUGASKAN", "DITERIMA"] },
+            },
+          });
+          if (!existingAssignment) {
+            await tx.programAssignment.create({
+              data: {
+                programId: id,
+                operatorId,
+                assignedById,
+                status: ProgramAssignmentStatus.DITERIMA,
+                acceptedAt: new Date(),
+              },
+            });
+          }
+          return tx.program.findUnique({
+            where: { id },
+            include: { operator: true, histories: true, progressEntries: true, costs: true, assignments: true },
+          });
+        }
+        // Assigned to someone else
+        return false;
+      }
+
+      // Claim succeeded - create assignment record within same transaction
       await tx.programAssignment.create({
         data: {
           programId: id,
@@ -319,6 +325,7 @@ export const programRepository = {
           acceptedAt: new Date(),
         },
       });
+
       return tx.program.findUnique({
         where: { id },
         include: { operator: true, histories: true, progressEntries: true, costs: true, assignments: true },

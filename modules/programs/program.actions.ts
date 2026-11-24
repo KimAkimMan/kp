@@ -268,6 +268,21 @@ export const programActions = {
       if (Number(locked[0].target) > 0 && Number(locked[0].realisasi) < Number(locked[0].target)) {
         throw new ApiError("PROGRAM_NOT_READY_TO_COMPLETE", "Realisasi belum mencapai target.", 409);
       }
+      // Wajib ada minimal 1 progress DIVERIFIKASI sebelum menyelesaikan program
+      const approvedProgress = await tx.programProgress.aggregate({
+        where: {
+          programId,
+          status: ProgressStatus.DIVERIFIKASI,
+        },
+        _count: true,
+      });
+      if (approvedProgress._count === 0) {
+        throw new ApiError(
+          "NO_VERIFIED_PROGRESS",
+          "Program tidak dapat diselesaikan: belum ada progres yang diverifikasi.",
+          409,
+        );
+      }
       const date = new Date();
       const history = await tx.programHistory.create({
         data: {
